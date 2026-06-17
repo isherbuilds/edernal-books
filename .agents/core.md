@@ -4,6 +4,8 @@ Use this when adding or refactoring shared domain logic in `packages/core`.
 
 This file is the source of truth for what belongs in `packages/core`, how to structure it, and how shared contract changes should propagate through the repo.
 
+For backend package boundaries, external routes, DB query extraction, middleware, request ids, cache, and domain package timing, follow [Backend architecture](./backend-architecture.md).
+
 ## Goals
 
 - Keep shared domain contracts in one place.
