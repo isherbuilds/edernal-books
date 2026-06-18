@@ -24,7 +24,8 @@ flowchart TD
   TX --> Accounts["ledger_account<br/>number_sequence"]
   TX --> Source["source_document"]
   TX --> Journal["journal_batch<br/>journal_line"]
-  TX --> Events["audit_event<br/>outbox_event<br/>idempotency_ledger"]
+  TX --> Events["audit_event<br/>outbox_event"]
+  TX --> OperationKey["operation_key unique guard"]
   Journal --> Reports["trial balance<br/>general ledger"]
 ```
 
@@ -39,7 +40,7 @@ sequenceDiagram
   participant DB as accounting tables
 
   UI->>API: Draft batch command
-  API->>TX: Claim idempotency and load period/accounts
+  API->>TX: Check operation key and load period/accounts
   API->>Core: validateBatchDraft
   Core-->>API: ok or stable error code
   API->>DB: Allocate number_sequence
@@ -357,7 +358,6 @@ Do not add `party_id`, approval fields, snapshot JSON, render JSON, outstanding 
 - `posting_date`.
 - `description`.
 - `operation_key`.
-- `idempotency_ledger_id`.
 - `reversal_of_batch_id`.
 - `posted_at`.
 - `posted_by`.
@@ -663,7 +663,7 @@ Router/service tests should cover:
 
 `journalBatches.post` runs inside one `db.transaction` after membership has been verified:
 
-1. Claim/check `idempotency_ledger`.
+1. Check `operation_key`; return the existing posted batch when the same key already succeeded.
 2. Load accounting period and reject hard lock.
 3. Load accounts and reject inactive/group/manual-blocked accounts.
 4. Validate lines with `validateBatchDraft`.
@@ -672,7 +672,6 @@ Router/service tests should cover:
 7. Insert `journal_line` rows.
 8. Write `audit_event`.
 9. Write `outbox_event` with `journal_batch.posted`.
-10. Store terminal idempotency response.
 
 - [ ] **Step 5: Implement reversal procedure**
 
@@ -783,7 +782,7 @@ Do not start owner documents until:
 - Posted batch is immutable.
 - Reversal creates a separate posted batch.
 - Posting writes `audit_event` and `outbox_event`.
-- Posting uses `idempotency_ledger`.
+- Posting uses operation-local idempotency through `journal_batch.operation_key`.
 - Trial balance balances from posted lines.
 - General ledger reads only organization-scoped posted lines.
 - Accounting-core has no React, Hono, oRPC, Drizzle, or Better Auth dependency.

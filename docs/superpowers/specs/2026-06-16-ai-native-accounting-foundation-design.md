@@ -4,7 +4,7 @@ Date: 2026-06-16
 
 Updated: 2026-06-17 to align with `docs/superpowers/plans/2026-06-17-accounting-foundation-schema-revision-plan.md`.
 
-Glossary: `docs/superpowers/plans/2026-06-16-plan-set-index.md` defines overloaded terms such as tenant scope, snapshot, `outbox_event`, and `idempotency_ledger`.
+Glossary: `docs/superpowers/plans/2026-06-16-plan-set-index.md` defines overloaded terms such as tenant scope, snapshot, `outbox_event`, and operation-local idempotency.
 
 ## Scope
 
@@ -77,7 +77,7 @@ flowchart TD
   API --> AccountingCore["packages/accounting-core<br/>pure posting rules"]
   DB --> Audit["audit_event"]
   DB --> Outbox["outbox_event"]
-  DB --> Idempotency["idempotency_ledger"]
+  DB --> OperationKey["operation-local idempotency"]
   DB --> Ledger["ledger_account<br/>journal_batch<br/>journal_line"]
   Ledger --> Reports["trial balance<br/>general ledger"]
 ```
@@ -91,11 +91,11 @@ sequenceDiagram
   participant Core as accounting-core
   participant DB as tenant transaction
   participant Ledger as journal tables
-  participant Audit as audit/outbox/idempotency
+  participant Audit as audit/outbox
 
   UI->>API: Post document or journal command
   API->>DB: Start org-scoped transaction
-  API->>Audit: Claim idempotency key
+  API->>DB: Check operation key or natural unique key
   API->>Core: Validate money, accounts, balance
   Core-->>API: Valid posting draft
   API->>Ledger: Insert journal_batch and journal_line rows
@@ -178,7 +178,6 @@ Acceptance criteria:
 - Server-side role checks.
 - `audit_event` table and writer.
 - `outbox_event` table and transactional writer.
-- `idempotency_ledger` table and request-boundary service.
 - `currency` reference data.
 - Tenant-scoped query helpers or service checks for app-owned tenant tables.
 - Database migrations.
@@ -303,10 +302,12 @@ The app may configure plugins, but these tables are not accounting-domain tables
 - transactional outbox for internal jobs, reports, AI indexing, and future webhooks;
 - webhook delivery tables come in Phase 6.
 
-`idempotency_ledger`:
+Idempotency:
 
-- request-boundary duplicate protection;
-- stores request hash, lock state, terminal result, and expiry.
+- `requestId` is tracing only;
+- natural upserts use natural keys;
+- accounting commands use operation-local command keys or natural unique keys;
+- public API response replay can add a central replay store in Phase 6 if needed.
 
 ### Phase 1 App-Owned Tables
 
@@ -353,7 +354,7 @@ Build now:
 - service layer between UI and database;
 - `audit_event`;
 - `outbox_event`;
-- `idempotency_ledger`;
+- operation-local idempotency for money-moving commands;
 - permission model;
 - Zod contracts;
 - source-document links from postings;

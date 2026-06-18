@@ -10,6 +10,7 @@ client helpers used by the web app.
 - Enable Better Auth organization/member/invitation support.
 - Enable Better Auth OpenAPI plugin.
 - Export inferred `AuthSession` type.
+- Export Phase 0 app role helpers.
 - Provide React auth client, hooks, queries, and middleware helpers.
 
 Does not own app-specific organization accounting data. Future business settings
@@ -33,6 +34,7 @@ flowchart TD
 | Import                                            | Purpose                           |
 | ------------------------------------------------- | --------------------------------- |
 | `@tsu-stack/auth/index`                           | `auth`, `AuthSession`             |
+| `@tsu-stack/auth/permissions`                     | App roles and permission helpers  |
 | `@tsu-stack/auth/react/auth-client`               | Browser auth client               |
 | `@tsu-stack/auth/react/tanstack-start/hooks`      | React auth hooks                  |
 | `@tsu-stack/auth/react/tanstack-start/queries`    | TanStack Query options            |
@@ -52,6 +54,19 @@ flowchart TD
 - `openAPI`: enabled with `deepSpace` theme.
 - telemetry disabled.
 
+## App Roles
+
+Phase 0 app roles:
+
+- `owner`: manages members, business settings, books, owner documents, and integrations.
+- `operator`: manages daily owner workflow documents.
+- `accountant`: posts journals, reversals, reports, exports, and owner workflow documents.
+- `developer`: manages API/integration surfaces later.
+- `viewer`: read-only business access.
+
+Better Auth stores multiple organization roles as comma-separated strings, so
+`parseOrganizationRoles` normalizes strings and arrays before permission checks.
+
 ## Development Commands
 
 | Command                    | Purpose                                          |
@@ -59,6 +74,7 @@ flowchart TD
 | `rtk vp run auth:secret`   | Generate a Better Auth secret                    |
 | `rtk vp run auth:generate` | Regenerate Better Auth schema through db package |
 | `rtk vp run db:migrate`    | Apply auth/db migrations                         |
+| `rtk vp run test:unit`     | Run auth unit tests                              |
 
 ## Integration Notes
 
@@ -66,8 +82,8 @@ flowchart TD
 - API context reads sessions with `auth.api.getSession`.
 - Web route guards should use auth query helpers rather than hand-parsing
   cookies.
-- Future organization roles should be documented here and mirrored in
-  `packages/core` contracts when other packages need them.
+- Organization role helpers stay here until another package needs direct role
+  contracts.
 
 ## Gotchas
 

@@ -106,6 +106,45 @@ sequenceDiagram
 
 Middleware order lives in [../apps/server/ARCHITECTURE.md](../apps/server/ARCHITECTURE.md).
 
+## Tenant Mutation Flow
+
+Use this flow for organization-scoped app mutations:
+
+```mermaid
+sequenceDiagram
+  participant Client as Web client
+  participant Hono as apps/server Hono
+  participant Log as request logger
+  participant API as oRPC procedure
+  participant Auth as Better Auth
+  participant DB as Drizzle/Postgres
+  participant Audit as audit_event
+
+  Client->>Hono: Mutating request with orgSlug
+  Hono->>Log: Attach requestId for tracing
+  Hono->>API: Parse route and Zod input
+  API->>Auth: Require authSession.user
+  API->>DB: Check membership by userId + orgSlug
+  DB-->>API: organizationId + role
+  API->>Log: Add organization metadata
+  API->>DB: Run organization-scoped write with organizationId
+  alt accounting command needing duplicate protection
+    API->>DB: Use operation-local command key or natural unique key
+  end
+  alt non-critical settings audit
+    API->>Audit: Fire-and-forget best-effort audit row
+  else accounting-critical audit/outbox
+    API->>DB: Await audit/outbox in same transaction
+  end
+  API-->>Client: Small success envelope or DTO
+```
+
+`requestId` is observability only. It identifies one HTTP attempt in logs and
+audit metadata; it is not a duplicate-prevention key. Accounting commands that
+can create money-moving records must use operation-local idempotency, such as a
+posted batch command key, source document natural key, provider request id, or a
+domain-owned unique constraint.
+
 ## Web Rendering Flow
 
 ```mermaid
@@ -149,7 +188,7 @@ flowchart TD
   API --> AccountingCore["future packages/accounting-core<br/>pure invariants"]
   DBTX --> Audit["audit_event"]
   DBTX --> Outbox["outbox_event"]
-  DBTX --> Idempotency["idempotency_ledger"]
+  DBTX --> OperationKey["operation-local idempotency key"]
   DBTX --> Ledger["ledger_account<br/>journal_batch<br/>journal_line"]
   Ledger --> Reports["trial balance<br/>general ledger"]
 ```
@@ -161,11 +200,12 @@ Accounting invariants:
 - Every batch balances before posting.
 - Money uses integer minor units.
 - Tenant-owned rows carry `organization_id`.
-- App routes accept an explicit `orgId` or `orgSlug`, then verify membership
-  before tenant data access.
+- App routes accept client-provided `orgSlug`, verify membership, then use the
+  canonical `organizationId` for tenant data access.
 - Sensitive mutations write `audit_event`.
 - Async side effects start from `outbox_event`.
-- Mutations support idempotency at request boundary.
+- Accounting commands use operation-local idempotency; `requestId` stays a log
+  correlation id.
 
 The source of truth is
 [AI-native accounting foundation design](superpowers/specs/2026-06-16-ai-native-accounting-foundation-design.md).
@@ -186,7 +226,6 @@ erDiagram
   organization ||--|| organization_setting : configures
   organization ||--o{ audit_event : records
   organization ||--o{ outbox_event : emits
-  organization ||--o{ idempotency_ledger : dedupes
   currency ||--o{ organization_setting : base_currency
 
   user {
@@ -258,17 +297,17 @@ erDiagram
     text event_type
     text status
   }
-  idempotency_ledger {
-    uuid id PK
-    text organization_id FK
-    text route_key
-    text idempotency_key
-    text status
-  }
 ```
 
 The planned Phase 1 ledger kernel and later accounting schema are documented in
 [schema revision plan](superpowers/plans/2026-06-17-accounting-foundation-schema-revision-plan.md).
+
+Current idempotency decision: do not add a generic central
+`idempotency_ledger` table in Phase 0. Natural upserts such as organization
+settings use their natural key. Future accounting posting commands should carry
+a domain command key and enforce it inside the posting/source-document tables.
+A central replay store can be reconsidered for Phase 6 public APIs if external
+clients need response replay across heterogeneous endpoints.
 
 ## Public API Strategy
 

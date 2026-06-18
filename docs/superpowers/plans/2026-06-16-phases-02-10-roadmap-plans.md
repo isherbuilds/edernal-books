@@ -22,7 +22,7 @@ All later phases build on:
 - `journal_line`.
 - `audit_event`.
 - `outbox_event`.
-- `idempotency_ledger`.
+- operation-local idempotency at posting boundaries.
 
 Do not reintroduce `business_profile`, `account_group`, simple `journal`, `internal_event`, `audit_log`, document-specific sequence tables, or app-owned API-key tables.
 

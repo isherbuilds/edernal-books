@@ -6,8 +6,8 @@ Status: Accepted source of truth for foundation schema and plan vocabulary.
 
 Updated: 2026-06-19. Phase 0 foundation schema is implemented in the worktree:
 Better Auth organization tables, `organization_setting`, `currency`,
-`audit_event`, `outbox_event`, and `idempotency_ledger`. App-owned UUID primary
-keys use UUID-v7 runtime defaults; Better Auth-owned IDs stay generated text IDs.
+`audit_event`, and `outbox_event`. App-owned UUID primary keys use UUID-v7
+runtime defaults; Better Auth-owned IDs stay generated text IDs.
 
 Reference only: `/Users/docbook/edernal-company/temp-edernal-books`.
 
@@ -20,7 +20,7 @@ Use the stronger accounting spine found in the reference repo without copying it
 The right direction is:
 
 - Keep the product sequence already planned: platform, ledger kernel, owner workflows, GST, bank, AI, integrations.
-- Adopt durable foundation names: `organization_setting`, `ledger_account`, `journal_batch`, `source_document`, `number_sequence`, `audit_event`, `outbox_event`, `idempotency_ledger`.
+- Adopt durable foundation names: `organization_setting`, `ledger_account`, `journal_batch`, `source_document`, `number_sequence`, `audit_event`, and `outbox_event`.
 - Keep Phase 0/1 small. Do not add tables or fields until a phase has a service that writes and reads them.
 
 ## Foundation Data Map
@@ -49,13 +49,6 @@ erDiagram
     text organization_id
     text aggregate_type
     text event_type
-    text status
-  }
-  idempotency_ledger {
-    uuid id PK
-    text organization_id
-    text route_key
-    text idempotency_key
     text status
   }
   fiscal_year {
@@ -93,7 +86,7 @@ erDiagram
     text organization_id
     uuid accounting_period_id FK
     uuid source_document_id FK
-    uuid idempotency_ledger_id FK
+    text operation_key
     text status
   }
   journal_line {
@@ -107,7 +100,6 @@ erDiagram
   fiscal_year ||--o{ accounting_period : contains
   accounting_period ||--o{ journal_batch : controls
   source_document ||--o{ journal_batch : traces
-  idempotency_ledger ||--o{ journal_batch : dedupes
   journal_batch ||--o{ journal_line : contains
   ledger_account ||--o{ journal_line : classifies
 ```
@@ -118,18 +110,17 @@ erDiagram
 sequenceDiagram
   participant API as API service
   participant Scope as Tenant scope
-  participant Idem as idempotency_ledger
+  participant Idem as operation key
   participant Domain as deterministic service
   participant Ledger as journal tables
   participant Events as audit_event/outbox_event
 
   API->>Scope: Verify membership and start transaction
-  API->>Idem: Claim route_key + idempotency_key
+  API->>Idem: Check domain command key or natural unique key
   API->>Domain: Validate command and invariants
   Domain-->>API: Safe write model
   API->>Ledger: Write app-owned tenant rows
   API->>Events: Write audit and outbox rows
-  API->>Idem: Store terminal response
   Scope-->>API: Commit
 ```
 
@@ -139,9 +130,9 @@ sequenceDiagram
 - Report snapshot reads should use normal transaction/read-consistency tools when needed. They do not mean a saved organization profile snapshot.
 - `snapshot` has three meanings in these plans: database read consistency, immutable report/export copies, and OpenAPI schema snapshot tests. None of those meanings is stock inventory.
 - `organization` is Better Auth's internal term for a business tenant. Product UI should say "Business".
-- `outbox_event`, `audit_event`, and `idempotency_ledger` are infrastructure tables. They are included early because they protect correctness, replay behavior, and traceability before invoices/GST/bank/AI features exist.
-- Not every Phase 0 mutation must write all three infrastructure tables. Use
-  fire-and-forget audit activity only for non-critical history trails. Use
+- `outbox_event` and `audit_event` are infrastructure tables. They are included early because they protect traceability and durable async intent before invoices/GST/bank/AI features exist.
+- Not every Phase 0 mutation must write every infrastructure row. Use
+  fire-and-forget audit only for non-critical history trails. Use
   awaited transactional audit/outbox/idempotency for commands whose correctness,
   replay, or downstream delivery depends on those rows.
 
@@ -182,18 +173,22 @@ Why:
 
 ### D3: Idempotency
 
-Use exactly one request-boundary idempotency authority: `idempotency_ledger`.
+Use operation-local idempotency, not a generic Phase 0 ledger.
 
 Rules:
 
-- `idempotency_ledger` stores request hash, lock state, terminal response, expiry, and replay metadata.
-- `journal_batch.operation_key` is a domain uniqueness guard for posting retries.
+- `requestId` is log/audit correlation only. It is never a duplicate-prevention key.
+- Natural upserts, such as `organization_setting`, rely on their natural key.
+- Posting commands carry an operation key and enforce uniqueness in the domain table, for example `(organization_id, operation_key)` on `journal_batch`.
+- External provider flows may use provider request ids or provider object ids as the operation-local key when those ids represent the same business operation.
 - `source_document` does not get an `idempotency_key` column.
+- A central replay store can be reconsidered in Phase 6 only if public API clients need terminal response replay across unrelated endpoint types.
 
 Why:
 
-- Duplicate protection belongs at the service/API boundary.
-- Multiple idempotency mechanisms create conflicting replay behavior.
+- Accounting needs duplicate protection, but the key should live where the business operation is defined.
+- A generic ledger adds request hashing, lock expiry, replay response storage, and status transitions before any public API needs that machinery.
+- Request ids change per retry, so they cannot protect money-moving writes.
 
 ### D4: Tenant Isolation Boundary
 
@@ -229,7 +224,6 @@ Add:
 - `currency`.
 - `audit_event`.
 - `outbox_event`.
-- `idempotency_ledger`.
 - Tenant-scoped query helpers as needed.
 
 Current implementation note: Better Auth organization/member/invitation support
@@ -288,7 +282,7 @@ Use existing foundation:
 - `number_sequence` allocates document numbers.
 - posted documents create `journal_batch` rows.
 - document services write `audit_event` and `outbox_event`.
-- posting replay uses `idempotency_ledger`.
+- posting replay uses operation-local command keys.
 
 ### Phase 3: India GST Core
 
@@ -385,9 +379,9 @@ Phase 1 shell fields:
 - `created_at`.
 - `updated_at`.
 
-Defer:
-
-- raw idempotency keys forever; request replay belongs in `idempotency_ledger`.
+- Do not add raw idempotency keys to `source_document`; posting replay belongs
+  to the posting command or external provider boundary that owns the duplicate
+  risk.
 - `party_id` until Phase 2.
 - approval lifecycle until Phase 2 or later.
 - snapshots/render context until PDFs and delivery exist.
@@ -404,7 +398,6 @@ Keep in Phase 1:
 - accounting period link.
 - source document link.
 - operation key.
-- idempotency ledger link.
 - reversal link.
 - status.
 - posted metadata.
@@ -425,7 +418,7 @@ Use these replacements everywhere in docs and implementation:
 - simple `journal` table -> `journal_batch`.
 - `internal_event` -> `outbox_event`.
 - `audit_log` -> `audit_event`.
-- `idempotency_key` table -> `idempotency_ledger`.
+- `idempotency_key` table -> operation-local command key.
 - `number_sequence` -> `number_sequence`.
 - `journal_batch_id` -> `journal_batch_id` or `source_document_id`, depending on direction.
 
@@ -451,7 +444,7 @@ The other agent's June 17 direction makes sense at the accounting-spine level:
 - stronger `ledger_account`;
 - `journal_batch` as posting unit;
 - `source_document` as traceability backbone;
-- outbox/idempotency/audit from day one;
+- outbox/audit from day one, with operation-local idempotency at posting boundaries;
 - tenant isolation from day one.
 
 Changes needed before using it:
@@ -484,6 +477,6 @@ Changes needed before using it:
 - [ ] Money uses minor units.
 - [ ] `outbox_event` replaces `internal_event`.
 - [ ] `audit_event` replaces `audit_log`.
-- [ ] `idempotency_ledger` replaces simple idempotency-key tables.
+- [ ] Operation-local command keys replace simple global idempotency-key tables.
 - [ ] `number_sequence` replaces document-specific sequence tables.
 - [ ] Later plans reference this amendment before execution.

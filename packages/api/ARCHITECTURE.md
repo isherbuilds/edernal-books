@@ -43,8 +43,9 @@ Tenant routes use `organizationProcedure(inputSchema)`. The schema parses a
 top-level `orgSlug`; the procedure loads `authSession`, verifies membership in
 the `member` table, and exposes `authSession`, `organizationId`,
 `organizationSlug`, `organizationRole`, and `organizationMembership` to
-handlers. Role-specific authorization should be a separate named middleware when
-needed.
+handlers. Keep the membership check inline in the procedure factory while there
+is only one consumer. Role-specific authorization should be a separate named
+middleware when needed.
 
 ## Context Contract
 
@@ -60,8 +61,9 @@ Current `OrpcContext`:
 | `organizationRole`       | `organizationProcedure`                         | Better Auth member role                                         |
 | `organizationMembership` | `organizationProcedure`                         | membership row used for authorization decisions                 |
 
-Future accounting phases should extend context with request id, IP/user-agent,
-and idempotency metadata through explicit contracts in `packages/core`.
+Future accounting phases should pass request id and IP/user-agent through
+explicit contracts when audit metadata needs them. Idempotency belongs on the
+specific command input that needs duplicate protection, not in global context.
 
 ## Organization Settings Router
 
@@ -71,7 +73,7 @@ and idempotency metadata through explicit contracts in `packages/core`.
 - membership verification lives in `organizationProcedure`;
 - read/write helpers live in `@tsu-stack/db/queries`;
 - settings mutations return a tiny success envelope, not the full saved row;
-- settings writes emit best-effort activity-style audit rows without blocking
+- settings writes emit best-effort audit rows without blocking
   the response. Use durable awaited audit/outbox only for accounting-critical
   writes or real async consumers.
 

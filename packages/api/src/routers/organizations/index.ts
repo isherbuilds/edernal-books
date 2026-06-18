@@ -7,7 +7,7 @@ import {
 } from "@tsu-stack/core/organizations";
 import {
   getOrganizationSetting,
-  logOrganizationSettingActivity,
+  logOrganizationSettingAudit,
   type OrganizationSettingRow,
   upsertOrganizationSetting
 } from "@tsu-stack/db/queries";
@@ -51,7 +51,7 @@ export const organizationsRouter = {
 
         await upsertOrganizationSetting(context.db, settingInput);
 
-        logOrganizationSettingActivity(context.db, {
+        logOrganizationSettingAudit(context.db, {
           ...settingInput,
           source: "user",
           userId: context.authSession.user.id
