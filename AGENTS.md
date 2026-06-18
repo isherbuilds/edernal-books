@@ -1,12 +1,16 @@
-# tsu-stack
+# Edernal Books / tsu-stack
 
-Opinionated full-stack TypeScript monorepo: TanStack Start + Hono + oRPC + Drizzle + Better Auth + Paraglide.js (i18n), powered by Vite Plus.
+Owner-first accounting app for India SMBs on an opinionated full-stack TypeScript monorepo: TanStack Start + Hono + oRPC + Drizzle + Better Auth + Paraglide.js (i18n), powered by Vite Plus.
 
 ## Start Here
 
 - Start with the most specific `.agents/*.md` file for the task.
 - Follow links from that file for adjacent context instead of reading several docs up front.
 - Keep guidance in its owning file. Link instead of repeating rules across docs.
+- Public orientation starts at [README.md](README.md).
+- Documentation map starts at [docs/README.md](docs/README.md).
+- Architecture map starts at [docs/architecture.md](docs/architecture.md).
+- Documentation style rules live in [docs/documentation-style-guide.md](docs/documentation-style-guide.md).
 
 ## Cross-Cutting Docs
 
@@ -16,6 +20,7 @@ Opinionated full-stack TypeScript monorepo: TanStack Start + Hono + oRPC + Drizz
 - [Logging](.agents/logging.md) only when adding, changing, or keeping durable logs.
 - [Testing](.agents/testing.md) only when tests are explicitly requested or the task is test-specific.
 - [Backend architecture](.agents/backend-architecture.md) for package boundaries, API/runtime composition, middleware, external routes, request ids, cache, health, and abstraction timing.
+- [Documentation style guide](docs/documentation-style-guide.md) when adding or changing public docs, package READMEs, architecture docs, ADRs, or planning docs.
 
 ## Topic Index
 
@@ -24,6 +29,7 @@ Pick the most specific file for the task. Use links within that file instead of 
 ### Delivery Flows
 
 - [End-to-end feature workflow](.agents/end-to-end-features.md) for full-stack feature work spanning `packages/db`, `packages/core`, `packages/api`, and `apps/web`.
+- [Accounting planning hub](docs/superpowers/README.md) for accounting roadmap, phase plans, schema vocabulary, and foundation gates.
 
 ### App And Frameworks
 
@@ -48,6 +54,7 @@ Pick the most specific file for the task. Use links within that file instead of 
 ## Task Entry Points
 
 - UI work: Start with [UI guidelines](.agents/ui.md). Add [TanStack patterns](.agents/tanstack-patterns.md) when the task touches route/file placement, loaders, or page composition. Add [Zustand state management](.agents/zustand.md) when client state must be accessed from different components.
+- Documentation work: Start with [Documentation style guide](docs/documentation-style-guide.md). For package docs, also read the owning package README/ARCHITECTURE file. For accounting docs, read [Accounting planning hub](docs/superpowers/README.md).
 - Shared client state: Start with [Zustand state management](.agents/zustand.md). Do not use React Context unless the user explicitly asks for it.
 - Bugfix: Start with the owning domain doc from the index above, then use [Workflow](.agents/workflow.md) for user-directed validation timing. Add [Core package patterns](.agents/core.md) when the fix touches shared enums, schemas, formatters, defaults, or other cross-package contracts. Add [Logging](.agents/logging.md) or [Testing](.agents/testing.md) only when the task explicitly calls for them or their policies require them.
 - Backend/API architecture: Start with [Backend architecture](.agents/backend-architecture.md). Add [oRPC patterns](.agents/orpc.md) for procedures, [Core package patterns](.agents/core.md) for shared contracts, [Auth patterns](.agents/auth.md) for Better Auth/org behavior, and [Logging](.agents/logging.md) only when logging changes.
@@ -60,8 +67,8 @@ Pick the most specific file for the task. Use links within that file instead of 
 
 Before substantial work:
 
-- Skill check: run `vpx @tanstack/intent@latest list`, or use skills already listed in context.
-- Skill guidance: if one local skill clearly matches the task, run `vpx @tanstack/intent@latest load <package>#<skill>` and follow the returned `SKILL.md`.
+- Skill check: run `rtk vpx @tanstack/intent@latest list`, or use skills already listed in context.
+- Skill guidance: if one local skill clearly matches the task, run `rtk vpx @tanstack/intent@latest load <package>#<skill>` and follow the returned `SKILL.md`.
 - Monorepos: when working across packages, run the skill check from the workspace root and prefer the local skill for the package being changed.
 - Multiple matches: prefer the most specific local skill for the package or concern you are changing; load additional skills only when the task spans multiple packages or concerns.
 
@@ -69,17 +76,17 @@ Before substantial work:
 
 ## TanStack Docs
 
-Use `pnpm tanstack` (aliased to `vpx @tanstack/cli@latest`) to look up TanStack documentation. Always pass `--json` for machine-readable output.
+Use `rtk vp run tanstack -- ...` (root script alias to `vpx @tanstack/cli@latest`) to look up TanStack documentation. Always pass `--json` for machine-readable output.
 
 ```bash
 # List TanStack libraries (optionally filter by --group state|headlessUI|performance|tooling)
-pnpm tanstack libraries --json
+rtk vp run tanstack -- libraries --json
 
 # Fetch a specific doc page
-pnpm tanstack doc router framework/react/guide/data-loading --json
-pnpm tanstack doc query framework/react/overview --docs-version v5 --json
+rtk vp run tanstack -- doc router framework/react/guide/data-loading --json
+rtk vp run tanstack -- doc query framework/react/overview --docs-version v5 --json
 
 # Search docs (optionally filter by --library, --framework, --limit)
-pnpm tanstack search-docs "server functions" --library start --json
-pnpm tanstack search-docs "loaders" --library router --framework react --json
+rtk vp run tanstack -- search-docs "server functions" --library start --json
+rtk vp run tanstack -- search-docs "loaders" --library router --framework react --json
 ```

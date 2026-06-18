@@ -4,7 +4,7 @@ Date: 2026-06-16
 
 Updated: 2026-06-17 to align with `docs/superpowers/plans/2026-06-17-accounting-foundation-schema-revision-plan.md`.
 
-Glossary: `docs/superpowers/plans/2026-06-16-plan-set-index.md` defines overloaded terms such as `RLS`, `rls-inventory`, `snapshot`, `outbox_event`, and `idempotency_ledger`.
+Glossary: `docs/superpowers/plans/2026-06-16-plan-set-index.md` defines overloaded terms such as tenant scope, snapshot, `outbox_event`, and `idempotency_ledger`.
 
 ## Scope
 
@@ -54,12 +54,72 @@ Use the existing `tsu-stack` architecture:
 Use existing package boundaries:
 
 - `packages/core`: shared schemas, contracts, pure helpers.
-- `packages/db`: Drizzle schema, migrations, database client, transaction helpers.
+- `packages/db`: Drizzle schema, migrations, database client, and query helpers.
 - `packages/auth`: Better Auth configuration and auth helpers.
 - `packages/api`: Hono/oRPC context and routers.
 - `apps/web`: TanStack Start UI.
 
 Do not introduce `packages/domain` or `packages/shared` as part of this plan set.
+
+## Architecture Overview
+
+The product architecture keeps owner workflows simple while preserving a
+deterministic accounting core.
+
+```mermaid
+flowchart TD
+  Owner["Owner UI<br/>plain business language"] --> Web["apps/web"]
+  Accountant["Accountant UI<br/>advanced review"] --> Web
+  Web --> API["@tsu-stack/api<br/>oRPC procedures"]
+  API --> Core["@tsu-stack/core<br/>shared contracts"]
+  API --> Auth["@tsu-stack/auth<br/>session, organization, role"]
+  API --> DB["@tsu-stack/db<br/>Drizzle + Postgres"]
+  API --> AccountingCore["packages/accounting-core<br/>pure posting rules"]
+  DB --> Audit["audit_event"]
+  DB --> Outbox["outbox_event"]
+  DB --> Idempotency["idempotency_ledger"]
+  DB --> Ledger["ledger_account<br/>journal_batch<br/>journal_line"]
+  Ledger --> Reports["trial balance<br/>general ledger"]
+```
+
+Posting flow:
+
+```mermaid
+sequenceDiagram
+  participant UI as Owner workflow
+  participant API as API service
+  participant Core as accounting-core
+  participant DB as tenant transaction
+  participant Ledger as journal tables
+  participant Audit as audit/outbox/idempotency
+
+  UI->>API: Post document or journal command
+  API->>DB: Start org-scoped transaction
+  API->>Audit: Claim idempotency key
+  API->>Core: Validate money, accounts, balance
+  Core-->>API: Valid posting draft
+  API->>Ledger: Insert journal_batch and journal_line rows
+  API->>Audit: Write audit_event and outbox_event
+  DB-->>API: Commit
+  API-->>UI: Posted result
+```
+
+Phase dependencies:
+
+```mermaid
+flowchart LR
+  P0["Phase 0<br/>Platform"] --> P1["Phase 1<br/>Ledger kernel"]
+  P1 --> P2["Phase 2<br/>Owner documents"]
+  P2 --> P3["Phase 3<br/>India GST"]
+  P2 --> P4["Phase 4<br/>Bank reconciliation"]
+  P3 --> P4
+  P4 --> P5["Phase 5<br/>AI suggestions"]
+  P5 --> P6["Phase 6<br/>API + integrations"]
+  P2 --> P7["Phase 7<br/>Service SMB"]
+  P1 --> P8["Phase 8<br/>Accountant mode"]
+  P2 --> P9["Phase 9<br/>Trade + inventory"]
+  P3 --> P10["Phase 10<br/>Country tax engine"]
+```
 
 ## Tenancy Model
 
@@ -75,7 +135,7 @@ Do not store accounting/legal/tax fields directly on Better Auth-owned tables. A
 
 There is no separate `business_entity` table in Phase 0-1.
 
-Every app-owned tenant table includes `organization_id` unless it is global reference data. Better Auth-owned tables are managed by Better Auth and excluded from app tenant RLS checks. RLS means PostgreSQL row-level security, the database guard that keeps one business from seeing another business's rows.
+Every app-owned tenant table includes `organization_id` unless it is global reference data. Better Auth-owned tables are managed by Better Auth and excluded from app tenant-scope checks. PostgreSQL row-level security is deferred for MVP; tenant isolation is enforced by server-side membership checks and explicit `organizationId` query predicates.
 
 Accountants are users who are members of multiple organizations. API keys are machine credentials for integrations, not human accountant access.
 
@@ -120,7 +180,7 @@ Acceptance criteria:
 - `outbox_event` table and transactional writer.
 - `idempotency_ledger` table and request-boundary service.
 - `currency` reference data.
-- RLS helpers and verification for app-owned tenant tables.
+- Tenant-scoped query helpers or service checks for app-owned tenant tables.
 - Database migrations.
 - Docker/Coolify deployment path documented.
 - Error logging and basic health checks.
@@ -213,7 +273,7 @@ Better Auth manages:
 - `invitation`.
 - `api_key` if the Better Auth API-key plugin is installed and version-compatible.
 
-The app may configure plugins, but these tables are not accounting-domain tables and are not included in app-owned RLS inventory. Here, inventory means the security checklist of tenant tables, not stock or warehouse inventory.
+The app may configure plugins, but these tables are not accounting-domain tables and are not included in app-owned tenant-scope inventory. Here, inventory means the security checklist of tenant tables and query paths, not stock or warehouse inventory.
 
 ### Phase 0 App-Owned Tables
 
@@ -298,7 +358,7 @@ Build now:
 - Zod contracts;
 - source-document links from postings;
 - clean error codes;
-- RLS helpers.
+- Tenant-scoped query helpers.
 
 Do not build now:
 

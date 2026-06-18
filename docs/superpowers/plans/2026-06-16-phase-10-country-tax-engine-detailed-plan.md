@@ -10,6 +10,36 @@
 
 ---
 
+## Architecture Flow
+
+```mermaid
+flowchart TD
+  TaxCore["packages/tax-core<br/>interfaces"] --> India["India GST pack"]
+  TaxCore --> CountryPack["future country packs"]
+  CountryPack --> Rules["tax_rule"]
+  CountryPack --> Reports["tax_report_template"]
+  CountryPack --> Docs["localized_document_schema"]
+  Documents["document services"] --> TaxCore
+  TaxCore --> Ledger["journal posting service"]
+  TaxCore --> Fixtures["tax_fixture + validation results"]
+```
+
+Country pack execution:
+
+```mermaid
+sequenceDiagram
+  participant Doc as Document service
+  participant Core as tax-core
+  participant Pack as Country pack
+  participant Ledger as Journal service
+
+  Doc->>Core: Calculate tax for country/context
+  Core->>Pack: Validate fields and compute components
+  Pack-->>Core: Tax result and report metadata
+  Core-->>Doc: Normalized tax output
+  Doc->>Ledger: Post tax-aware journal
+```
+
 ## Foundation Alignment
 
 Before executing this plan, reconcile it with `docs/superpowers/plans/2026-06-17-accounting-foundation-schema-revision-plan.md`.

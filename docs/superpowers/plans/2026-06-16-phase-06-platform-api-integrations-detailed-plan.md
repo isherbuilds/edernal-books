@@ -10,6 +10,42 @@
 
 ---
 
+## Architecture Flow
+
+```mermaid
+flowchart TD
+  External["External client"] --> Public["Hono /api/v1"]
+  Web["apps/web"] --> RPC["/rpc internal"]
+  Public --> Auth["API key + scopes"]
+  RPC --> Session["Better Auth session"]
+  Auth --> Services["Shared service layer"]
+  Session --> Services
+  Services --> Idem["idempotency_ledger"]
+  Services --> Outbox["outbox_event"]
+  Outbox --> Webhooks["webhook_delivery"]
+  Services --> OpenAPI["OpenAPI snapshots"]
+  Services --> MCP["MCP tools"]
+```
+
+Webhook delivery:
+
+```mermaid
+sequenceDiagram
+  participant Service as Domain service
+  participant Outbox as outbox_event
+  participant Worker as Delivery worker
+  participant Target as Webhook endpoint
+
+  Service->>Outbox: Write event in transaction
+  Worker->>Outbox: Claim pending event
+  Worker->>Target: Send signed payload
+  alt success
+    Worker->>Outbox: Mark delivered
+  else failure
+    Worker->>Outbox: Retry or dead-letter
+  end
+```
+
 ## Foundation Alignment
 
 Before executing this plan, reconcile it with `docs/superpowers/plans/2026-06-17-accounting-foundation-schema-revision-plan.md`.

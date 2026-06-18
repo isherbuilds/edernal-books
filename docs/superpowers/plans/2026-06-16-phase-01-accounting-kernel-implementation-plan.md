@@ -6,11 +6,48 @@
 
 **Goal:** Build the smallest durable double-entry kernel: fiscal years, accounting periods, hierarchical ledger accounts, number sequences, source-document shell, immutable journal batches/lines, reversals, trial balance, and general ledger.
 
-**Architecture:** Pure accounting rules live in `packages/accounting-core`. Shared API contracts live in `packages/core`. Database tables live in `packages/db` and are tenant-scoped through Phase 0 RLS helpers. API services post through `journal_batch` and `journal_line`; owner document workflows arrive in Phase 2.
+**Architecture:** Pure accounting rules live in `packages/accounting-core`. Shared API contracts live in `packages/core`. Database tables live in `packages/db` and are tenant-scoped through explicit `organizationId` predicates. API services post through `journal_batch` and `journal_line`; owner document workflows arrive in Phase 2.
 
 **Tech Stack:** TypeScript, Vitest, Drizzle, PostgreSQL, Zod, TanStack Start, Hono, oRPC, Vite Plus.
 
 ---
+
+## Architecture Map
+
+```mermaid
+flowchart TD
+  Web["apps/web<br/>advanced ledger UI"] --> API["packages/api<br/>accounting routers"]
+  API --> Contracts["packages/core/accounting<br/>Zod contracts"]
+  API --> Rules["packages/accounting-core<br/>pure money/posting/report rules"]
+  API --> TX["packages/db<br/>db.transaction"]
+  TX --> Periods["fiscal_year<br/>accounting_period"]
+  TX --> Accounts["ledger_account<br/>number_sequence"]
+  TX --> Source["source_document"]
+  TX --> Journal["journal_batch<br/>journal_line"]
+  TX --> Events["audit_event<br/>outbox_event<br/>idempotency_ledger"]
+  Journal --> Reports["trial balance<br/>general ledger"]
+```
+
+Posting flow:
+
+```mermaid
+sequenceDiagram
+  participant UI as Advanced posting UI
+  participant API as journalBatches.post
+  participant Core as accounting-core
+  participant TX as db.transaction
+  participant DB as accounting tables
+
+  UI->>API: Draft batch command
+  API->>TX: Claim idempotency and load period/accounts
+  API->>Core: validateBatchDraft
+  Core-->>API: ok or stable error code
+  API->>DB: Allocate number_sequence
+  API->>DB: Insert posted journal_batch
+  API->>DB: Insert journal_line rows
+  API->>DB: Write audit_event and outbox_event
+  API-->>UI: Posted batch
+```
 
 ## File Structure
 
@@ -360,7 +397,7 @@ rtk vp run -w db generate
 rtk vp run -w db migrate
 ```
 
-Expected: accounting kernel schema tests pass, migration contains only Phase 0/1 active tables, and RLS inventory passes for app-owned tenant tables.
+Expected: accounting kernel schema tests pass and the migration contains only Phase 0/1 active tables with tenant-owned tables carrying `organization_id`.
 
 - [ ] **Step 8: Commit**
 
@@ -624,7 +661,7 @@ Router/service tests should cover:
 
 - [ ] **Step 4: Implement posting procedure**
 
-`journalBatches.post` runs inside `withOrgTx`:
+`journalBatches.post` runs inside one `db.transaction` after membership has been verified:
 
 1. Claim/check `idempotency_ledger`.
 2. Load accounting period and reject hard lock.

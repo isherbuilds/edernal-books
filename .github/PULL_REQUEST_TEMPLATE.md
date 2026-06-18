@@ -10,6 +10,18 @@ Please provide enough information so that others can review your pull request:
 
 <!-- You can skip this if you're fixing a typo or adding an app to the Showcase. -->
 
+## Documentation
+
+List docs changed or explain why no docs were needed:
+
+- Root/docs index:
+- Package README/ARCHITECTURE:
+- ADR:
+- Agent docs:
+
+If the change touches env vars, package exports, public API behavior, auth,
+database schema, or accounting invariants, update the owning docs in the same PR.
+
 ## Testing
 
 Demonstrate the code is solid. Example: The exact commands you ran and their output, screenshots / videos if the pull request changes UI.

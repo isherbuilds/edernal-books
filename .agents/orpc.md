@@ -104,7 +104,7 @@ When a handler genuinely needs a durable outcome log, use one wide terminal even
 
   logger.set({
     procedure: "profile.edit",
-    profile: { id: context.session.user.id },
+    profile: { id: context.authSession.user.id },
   });
 
   const row = await updateProfile(input);
