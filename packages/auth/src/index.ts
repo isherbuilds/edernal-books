@@ -3,7 +3,7 @@ import { join } from "node:path/posix";
 import { drizzleAdapter } from "@better-auth/drizzle-adapter/relations-v2";
 import "@tanstack/react-start/server-only";
 import { betterAuth } from "better-auth";
-import { openAPI } from "better-auth/plugins";
+import { openAPI, organization } from "better-auth/plugins";
 
 import { db } from "@tsu-stack/db";
 import * as schema from "@tsu-stack/db/schema";
@@ -38,6 +38,7 @@ export const auth = betterAuth({
   },
 
   plugins: [
+    organization(),
     openAPI({
       theme: "deepSpace"
     })

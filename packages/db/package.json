@@ -7,7 +7,11 @@
   },
   "exports": {
     ".": "./src/index.ts",
-    "./schema": "./src/schema/index.ts"
+    "./client": "./src/client.ts",
+    "./migrate": "./src/migrate.ts",
+    "./queries": "./src/queries/index.ts",
+    "./schema": "./src/schema/index.ts",
+    "./utils/health": "./src/utils/health.ts"
   },
   "scripts": {
     "db": "pnpm dotenvx run -f ../env/.env -- drizzle-kit",
@@ -18,7 +22,8 @@
   "dependencies": {
     "@tsu-stack/logger": "workspace:*",
     "drizzle-orm": "catalog:",
-    "postgres": "catalog:"
+    "postgres": "catalog:",
+    "uuid": "catalog:"
   },
   "devDependencies": {
     "@dotenvx/dotenvx": "catalog:",
