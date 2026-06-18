@@ -49,7 +49,9 @@ RUN mkdir -p packages/db/migrations
 ARG SOURCE_COMMIT VITE_SERVER_URL VITE_WEB_URL DATABASE_URL BETTER_AUTH_SECRET
 ENV SOURCE_COMMIT=${SOURCE_COMMIT} \
     VITE_SERVER_URL=${VITE_SERVER_URL} \
-    VITE_WEB_URL=${VITE_WEB_URL}
+    VITE_WEB_URL=${VITE_WEB_URL} \
+    DATABASE_URL=${DATABASE_URL} \
+    BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
 
 # TODO: Uncomment this when you have `test:unit` or `test:e2e` scripts defined in your apps/*/package.json or packages/*/package.json files.
 RUN vp run test:unit:run

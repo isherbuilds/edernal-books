@@ -2,9 +2,15 @@ import { createEnv } from "@t3-oss/env-core";
 import { isProduction } from "std-env";
 import { z } from "zod";
 
+type ImportMetaWithEnv = ImportMeta & {
+  env?: Record<string, string | boolean | undefined>;
+};
+
+const runtimeEnv = (import.meta as ImportMetaWithEnv).env ?? process.env;
+
 console.debug("⏳ [ENV_WEB_ISOMORPHIC] Loading environment variables...", {
-  VITE_SERVER_URL: (import.meta.env ?? process.env).VITE_SERVER_URL,
-  VITE_WEB_URL: (import.meta.env ?? process.env).VITE_WEB_URL
+  VITE_SERVER_URL: runtimeEnv.VITE_SERVER_URL,
+  VITE_WEB_URL: runtimeEnv.VITE_WEB_URL
 });
 
 export const ENV_WEB_ISOMORPHIC = createEnv({
@@ -16,7 +22,7 @@ export const ENV_WEB_ISOMORPHIC = createEnv({
   },
   clientPrefix: "VITE_",
   emptyStringAsUndefined: true,
-  runtimeEnv: import.meta.env ?? process.env
+  runtimeEnv
 });
 
 console.debug("✅ [ENV_WEB_ISOMORPHIC] Successfully loaded environment variables.");
