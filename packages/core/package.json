@@ -9,6 +9,7 @@
     ".": "./src/index.ts",
     "./assets": "./src/assets/index.ts",
     "./health": "./src/health/index.ts",
+    "./organizations": "./src/organizations/index.ts",
     "./*": "./src/*.ts"
   },
   "scripts": {
