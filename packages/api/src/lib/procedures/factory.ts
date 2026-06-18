@@ -59,11 +59,11 @@ const requireOrganization = o.middleware(async ({ context, next }, input: OrgSlu
 
   return next({
     context: {
+      authSession,
       organizationId: membership.organizationId,
       organizationMembership: membership,
       organizationRole: membership.role,
-      organizationSlug: membership.organizationSlug,
-      authSession
+      organizationSlug: membership.organizationSlug
     }
   });
 });

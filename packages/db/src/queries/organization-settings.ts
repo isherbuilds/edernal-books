@@ -26,12 +26,13 @@ export type OrganizationSettingMutationInput = {
   tradeName?: string | null;
 };
 
-export type OrganizationSettingActivitySource = "user" | "system" | "api";
+export type OrganizationSettingAuditSource = "user" | "system" | "api";
 
-export type OrganizationSettingActivityInput = OrganizationSettingMutationInput & {
-  source?: OrganizationSettingActivitySource;
+export type OrganizationSettingAuditInput = OrganizationSettingMutationInput & {
+  source?: OrganizationSettingAuditSource;
   userId: string;
 };
+export type OrganizationSettingAuditRow = typeof auditEvent.$inferInsert;
 
 export async function getOrganizationSetting(
   dbOrTx: DatabaseOrTransaction,
@@ -72,20 +73,20 @@ export async function upsertOrganizationSetting(
     });
 }
 
-export function logOrganizationSettingActivity(
+export function logOrganizationSettingAudit(
   db: Database,
-  input: OrganizationSettingActivityInput
+  input: OrganizationSettingAuditInput
 ): void {
-  void insertOrganizationSettingActivity(db, input).catch((error) => {
+  void insertOrganizationSettingAudit(db, input).catch((error) => {
     log.warn({
       error,
-      event: "organization_setting_activity_failed",
+      event: "organization_setting_audit_failed",
       organizationId: input.organizationId
     });
   });
 }
 
-function toOrganizationSettingInsert(
+export function toOrganizationSettingInsert(
   input: OrganizationSettingMutationInput
 ): OrganizationSettingInsert {
   return {
@@ -102,14 +103,13 @@ function toOrganizationSettingInsert(
   };
 }
 
-async function insertOrganizationSettingActivity(
-  db: Database,
-  input: OrganizationSettingActivityInput
-): Promise<void> {
+export function buildOrganizationSettingAuditRow(
+  input: OrganizationSettingAuditInput
+): OrganizationSettingAuditRow {
   const values = toOrganizationSettingInsert(input);
 
-  await db.insert(auditEvent).values({
-    action: "organization_setting.saved",
+  return {
+    action: "organization_setting.upserted",
     entityId: input.organizationId,
     entityType: "organization_setting",
     organizationId: input.organizationId,
@@ -122,5 +122,12 @@ async function insertOrganizationSettingActivity(
     scopeId: input.organizationId,
     scopeType: "organization",
     userId: input.userId
-  });
+  };
+}
+
+async function insertOrganizationSettingAudit(
+  db: Database,
+  input: OrganizationSettingAuditInput
+): Promise<void> {
+  await db.insert(auditEvent).values(buildOrganizationSettingAuditRow(input));
 }

@@ -49,29 +49,35 @@ Done:
 - Workspace dependency catalog and lockfile refreshed.
 - Better Auth organization support enabled and generated into the DB schema.
 - `packages/db` split into client, migration, query, schema, health, and utility modules.
-- Foundation tables added: `organization_setting`, `currency`, `audit_event`, `outbox_event`, `idempotency_ledger`.
+- Foundation tables added: `organization_setting`, `currency`, `audit_event`, and `outbox_event`.
 - App-owned UUID primary keys use UUID-v7 runtime defaults.
 - API context carries eager `authSession`, DB client, and request logger.
 - `organizationProcedure` verifies membership from client-provided `orgSlug` and exposes canonical `organizationId`.
 - Organization settings get/upsert procedures are wired.
-- Organization settings upsert writes settings and best-effort user activity audit, then returns `{ ok: true, organizationId }`.
+- Organization settings upsert writes settings and best-effort user audit, then returns `{ ok: true, organizationId }`.
+- Currency seed migration inserts `INR`, `USD`, `EUR`, and `GBP`.
+- Role permission helpers/tests exist in `packages/auth`.
+- Organization membership, settings audit, and schema invariant tests exist.
 
 Not done:
 
-- Currency seed data.
 - Business onboarding/settings UI.
-- Role permission helper package/tests.
-- Idempotency claim/replay helper.
+- Local migration apply is blocked until local Postgres/Docker is running.
 - Transactional outbox writes for commands that have real async consumers.
 - Phase 1 accounting kernel schema and posting services.
 
-Important current decision: `outbox_event` is foundation infrastructure, not a blanket side effect for every mutation. For settings upsert, audit activity is fire-and-forget because no caller depends on it. Phase 1 posting and future integration commands should use awaited transactional audit/outbox when correctness, retries, or downstream delivery depend on those rows.
+Important current decision: `outbox_event` is foundation infrastructure, not a blanket side effect for every mutation. For settings upsert, audit is fire-and-forget because no caller depends on it. Phase 1 posting and future integration commands should use awaited transactional audit/outbox when correctness, retries, or downstream delivery depend on those rows.
+
+Idempotency decision: `requestId` is tracing only. Phase 0 does not include a
+generic `idempotency_ledger`; Phase 1 posting should use operation-local
+idempotency through a command key or domain-owned unique constraint. Reconsider
+a central replay store only for Phase 6 public API response-replay semantics.
 
 ## Execution Graph
 
 ```mermaid
 flowchart TD
-  P0["00 Platform Foundation<br/>org scope, audit, outbox, idempotency"] --> P1["01 Accounting Kernel<br/>periods, accounts, journal"]
+  P0["00 Platform Foundation<br/>org scope, audit, outbox"] --> P1["01 Accounting Kernel<br/>periods, accounts, journal, operation keys"]
   P1 --> P2["02 Owner Workflow MVP<br/>party, item, invoice, expense, payment"]
   P2 --> P3["03 India GST Core<br/>tax codes, GST reports, notes"]
   P2 --> P4["04 Bank + Reconciliation<br/>statement import, matching"]
@@ -101,7 +107,7 @@ Use these names across all plans:
 - `journal_batch` and `journal_line`, not a simple `journal` table.
 - `audit_event`, not `audit_log`.
 - `outbox_event`, not `internal_event`.
-- `idempotency_ledger`, not a simple idempotency ledger table.
+- operation-local idempotency keys, not a generic Phase 0 ledger.
 - `number_sequence`, not document-specific sequence tables.
 - `source_document` as the common document-to-ledger traceability shell.
 
@@ -122,7 +128,8 @@ Use these meanings when reading or implementing the plans:
 - `global reference table`: shared lookup data that is not owned by one business, such as `currency`.
 - `audit_event`: durable record that a sensitive action happened, who did it, and what changed.
 - `outbox_event`: a queued domain event written in the same database transaction as the business change, then processed later by jobs, webhooks, AI indexing, or integrations.
-- `idempotency_ledger`: request replay protection. It makes repeated create/post requests with the same key return the same result instead of creating duplicates.
+- `requestId`: per-attempt log correlation id. It is not replay protection.
+- `operation key`: domain command key used to prevent duplicate accounting commands, usually enforced with a per-organization unique constraint.
 - `source_document`: shared document header used to connect invoices, expenses, payments, and other business documents to accounting postings.
 - `journal_batch`: one accounting posting operation.
 - `journal_line`: one debit or credit line inside a `journal_batch`.
@@ -166,7 +173,7 @@ Before moving beyond Phase 1:
 - Role checks are server-enforced.
 - `audit_event` records sensitive mutations.
 - `outbox_event` rows are written transactionally for commands with durable async consumers.
-- `idempotency_ledger` prevents duplicate posting.
+- operation-local idempotency prevents duplicate posting.
 - App-owned tenant tables have `organization_id` and are only accessed through organization-scoped service/query paths.
 - Fiscal years and accounting periods exist.
 - `ledger_account` chart exists.

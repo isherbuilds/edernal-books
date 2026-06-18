@@ -20,20 +20,26 @@ Phase 0 is in progress. The current foundation slice has landed:
 
 - Better Auth organization plugin and generated organization/member/invitation schema.
 - DB client split into `client.ts`, `migrate.ts`, reusable queries, schema files, and health helpers.
-- App-owned foundation tables: `organization_setting`, `currency`, `audit_event`, `outbox_event`, and `idempotency_ledger`.
+- App-owned foundation tables: `organization_setting`, `currency`, `audit_event`, and `outbox_event`.
 - UUID-v7 runtime defaults for app-owned UUID primary keys.
 - oRPC auth context, `organizationProcedure`, membership verification by `orgSlug`, and organization settings get/upsert procedures.
-- Organization settings writes return a small success envelope and emit best-effort user activity in `audit_event`.
+- Organization settings writes return a small success envelope and emit best-effort user audit rows in `audit_event`.
+- Currency seed migration covers `INR`, `USD`, `EUR`, and `GBP`.
+- Auth package exports Phase 0 role permission helpers with unit tests.
+- Unit tests cover role permissions, organization membership resolution, settings audit rows, and schema tenant-scope invariants.
 
 Current deliberate gap: `outbox_event` exists, but organization settings upsert does not emit an outbox row yet because no worker/webhook/async consumer exists. Use awaited transactional outbox writes for accounting-critical commands once Phase 1 posting services start.
+
+Current idempotency decision: request ids are for tracing only. Phase 0 does
+not keep a generic `idempotency_ledger`; natural upserts use natural keys, and
+future posting commands should use operation-local command keys or domain-owned
+unique constraints. Reconsider a central replay store only when Phase 6 public
+API semantics need heterogeneous response replay.
 
 Next steps:
 
 - Apply the generated migration to local development DB.
-- Seed at least `INR`, `USD`, `EUR`, and `GBP` in `currency`.
-- Add role permission helpers/tests for Better Auth organization roles.
 - Build onboarding/business settings UI around the existing organization settings procedures.
-- Add idempotency claim/replay helper before create/post commands in Phase 1.
 - Start Phase 1 only after the Phase 0 gate below is true.
 
 ## Phase Plans
@@ -65,4 +71,4 @@ Compact overview: [plans/2026-06-16-phases-02-10-roadmap-plans.md](plans/2026-06
 - Corrections use reversals and new postings.
 - Sensitive mutations write `audit_event`.
 - Async intent uses `outbox_event` when there is a durable async consumer or retry requirement.
-- Replay protection uses `idempotency_ledger`.
+- Replay protection uses operation-local idempotency keys or natural unique keys; `requestId` is not a replay key.

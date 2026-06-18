@@ -11,7 +11,7 @@ modules.
 - Run production migrations safely through `migrateDatabase()`.
 - Check database readiness for health endpoints.
 - Keep tenant-owned app tables scoped by `organization_id`.
-- Own future reusable query modules.
+- Own reusable query modules for membership and settings.
 
 Does not own transport response shape, route handlers, React UI, auth cookies,
 or Better Auth membership checks.
@@ -58,7 +58,6 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for current and planned schema shape.
 | `src/schema/organization.ts`           | `currency` and `organization_setting`                                  |
 | `src/schema/audit.ts`                  | `audit_event`                                                          |
 | `src/schema/outbox.ts`                 | `outbox_event`                                                         |
-| `src/schema/idempotency.ts`            | `idempotency_ledger`                                                   |
 | `src/schema/migration.ts`              | Active Phase 0 migration exports                                       |
 | `src/schema/index.ts`                  | Active schema exports                                                  |
 | `src/schema/relations.ts`              | Drizzle relation config                                                |
@@ -69,14 +68,15 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for current and planned schema shape.
 
 ## Development Commands
 
-| Command                    | Purpose                          |
-| -------------------------- | -------------------------------- |
-| `rtk vp run db:dev:start`  | Start local PostgreSQL           |
-| `rtk vp run db:dev:stop`   | Stop local PostgreSQL            |
-| `rtk vp run db:generate`   | Generate Drizzle migration files |
-| `rtk vp run db:migrate`    | Apply migrations                 |
-| `rtk vp run db:studio`     | Open Drizzle Studio              |
-| `rtk vp run auth:generate` | Regenerate Better Auth schema    |
+| Command                                       | Purpose                          |
+| --------------------------------------------- | -------------------------------- |
+| `rtk vp run db:dev:start`                     | Start local PostgreSQL           |
+| `rtk vp run db:dev:stop`                      | Stop local PostgreSQL            |
+| `rtk vp run db:generate`                      | Generate Drizzle migration files |
+| `rtk vp run db:migrate`                       | Apply migrations                 |
+| `rtk vp run db:studio`                        | Open Drizzle Studio              |
+| `rtk vp run auth:generate`                    | Regenerate Better Auth schema    |
+| `rtk vp run --filter @tsu-stack/db test:unit` | Run DB package unit tests        |
 
 ## Migration Behavior
 
@@ -103,8 +103,12 @@ application/query layer:
 - Every tenant-scoped query must include the `organizationId` predicate.
 - Business writes that also need audit/outbox rows should happen in one
   transaction.
-- Best-effort activity logging may run after the business write and must catch
+- Best-effort audit logging may run after the business write and must catch
   its own errors; do not treat it as durable accounting audit.
+- Request ids are log correlation ids, not idempotency keys.
+- Operation-local idempotency belongs in the command or query module that owns
+  the mutation, using natural keys, command keys, provider request ids, or
+  domain-owned unique constraints.
 - App-owned UUID primary keys use UUIDv7 runtime defaults. Better Auth-owned
   text ids remain controlled by Better Auth.
 

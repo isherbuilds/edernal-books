@@ -35,25 +35,6 @@ CREATE TABLE "currency" (
 	"symbol" text NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "idempotency_ledger" (
-	"created_at" timestamp DEFAULT now() NOT NULL,
-	"error_summary_json" jsonb,
-	"expires_at" timestamp NOT NULL,
-	"id" uuid PRIMARY KEY,
-	"idempotency_key" text NOT NULL,
-	"locked_until" timestamp,
-	"organization_id" text NOT NULL,
-	"request_hash" text NOT NULL,
-	"response_json" jsonb,
-	"response_status_code" integer,
-	"route_key" text NOT NULL,
-	"scope_id" text NOT NULL,
-	"scope_type" text NOT NULL,
-	"status" text DEFAULT 'pending' NOT NULL,
-	"updated_at" timestamp DEFAULT now() NOT NULL,
-	"user_id" text
-);
---> statement-breakpoint
 CREATE TABLE "invitation" (
 	"id" text PRIMARY KEY,
 	"organization_id" text NOT NULL,
@@ -146,8 +127,6 @@ CREATE TABLE "verification" (
 CREATE INDEX "account_userId_idx" ON "account" ("user_id");--> statement-breakpoint
 CREATE INDEX "audit_event_organization_id_idx" ON "audit_event" ("organization_id");--> statement-breakpoint
 CREATE INDEX "audit_event_entity_idx" ON "audit_event" ("entity_type","entity_id");--> statement-breakpoint
-CREATE UNIQUE INDEX "idempotency_ledger_scope_route_key_uidx" ON "idempotency_ledger" ("scope_type","scope_id","route_key","idempotency_key");--> statement-breakpoint
-CREATE INDEX "idempotency_ledger_organization_id_idx" ON "idempotency_ledger" ("organization_id");--> statement-breakpoint
 CREATE INDEX "invitation_organizationId_idx" ON "invitation" ("organization_id");--> statement-breakpoint
 CREATE INDEX "invitation_email_idx" ON "invitation" ("email");--> statement-breakpoint
 CREATE INDEX "member_organizationId_idx" ON "member" ("organization_id");--> statement-breakpoint
@@ -160,8 +139,6 @@ CREATE INDEX "verification_identifier_idx" ON "verification" ("identifier");--> 
 ALTER TABLE "account" ADD CONSTRAINT "account_user_id_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "user"("id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "audit_event" ADD CONSTRAINT "audit_event_organization_id_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organization"("id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "audit_event" ADD CONSTRAINT "audit_event_user_id_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "user"("id") ON DELETE SET NULL;--> statement-breakpoint
-ALTER TABLE "idempotency_ledger" ADD CONSTRAINT "idempotency_ledger_organization_id_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organization"("id") ON DELETE CASCADE;--> statement-breakpoint
-ALTER TABLE "idempotency_ledger" ADD CONSTRAINT "idempotency_ledger_user_id_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "user"("id") ON DELETE SET NULL;--> statement-breakpoint
 ALTER TABLE "invitation" ADD CONSTRAINT "invitation_organization_id_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organization"("id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "invitation" ADD CONSTRAINT "invitation_inviter_id_user_id_fkey" FOREIGN KEY ("inviter_id") REFERENCES "user"("id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "member" ADD CONSTRAINT "member_organization_id_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organization"("id") ON DELETE CASCADE;--> statement-breakpoint

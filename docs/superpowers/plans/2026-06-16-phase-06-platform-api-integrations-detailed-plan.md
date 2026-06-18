@@ -20,7 +20,7 @@ flowchart TD
   RPC --> Session["Better Auth session"]
   Auth --> Services["Shared service layer"]
   Session --> Services
-  Services --> Idem["idempotency_ledger"]
+  Services --> Idem["public replay store<br/>if needed"]
   Services --> Outbox["outbox_event"]
   Outbox --> Webhooks["webhook_delivery"]
   Services --> OpenAPI["OpenAPI snapshots"]
@@ -50,7 +50,10 @@ sequenceDiagram
 
 Before executing this plan, reconcile it with `docs/superpowers/plans/2026-06-17-accounting-foundation-schema-revision-plan.md`.
 
-- Public mutations use `idempotency_ledger`.
+- Public mutations accept `Idempotency-Key` when they can create documents,
+  payments, postings, or delivery attempts. Phase 6 may add a central replay
+  store for public API terminal response replay; internal accounting commands
+  still use their operation-local keys.
 - Webhook delivery is fed from `outbox_event`.
 - API keys are Better Auth-owned machine credentials unless a separate decision creates an app-owned credential model.
 - External references map external IDs to existing domain rows; they do not replace source documents or journal batches.
