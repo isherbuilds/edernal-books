@@ -4,6 +4,11 @@ Date: 2026-06-17
 
 Status: Accepted source of truth for foundation schema and plan vocabulary.
 
+Updated: 2026-06-19. Phase 0 foundation schema is implemented in the worktree:
+Better Auth organization tables, `organization_setting`, `currency`,
+`audit_event`, `outbox_event`, and `idempotency_ledger`. App-owned UUID primary
+keys use UUID-v7 runtime defaults; Better Auth-owned IDs stay generated text IDs.
+
 Reference only: `/Users/docbook/edernal-company/temp-edernal-books`.
 
 Decision record: `docs/decisions/0001-accounting-foundation-spine.md`.
@@ -18,13 +23,127 @@ The right direction is:
 - Adopt durable foundation names: `organization_setting`, `ledger_account`, `journal_batch`, `source_document`, `number_sequence`, `audit_event`, `outbox_event`, `idempotency_ledger`.
 - Keep Phase 0/1 small. Do not add tables or fields until a phase has a service that writes and reads them.
 
+## Foundation Data Map
+
+```mermaid
+erDiagram
+  organization_setting {
+    text organization_id PK
+    text legal_name
+    text base_currency_code
+    date books_start_date
+  }
+  currency {
+    text code PK
+    text name
+    int decimal_places
+  }
+  audit_event {
+    uuid id PK
+    text organization_id
+    text entity_type
+    text action
+  }
+  outbox_event {
+    uuid id PK
+    text organization_id
+    text aggregate_type
+    text event_type
+    text status
+  }
+  idempotency_ledger {
+    uuid id PK
+    text organization_id
+    text route_key
+    text idempotency_key
+    text status
+  }
+  fiscal_year {
+    uuid id PK
+    text organization_id
+    date start_date
+    date end_date
+  }
+  accounting_period {
+    uuid id PK
+    text organization_id
+    uuid fiscal_year_id FK
+    text status
+  }
+  ledger_account {
+    uuid id PK
+    text organization_id
+    text code
+    text normal_balance
+  }
+  number_sequence {
+    uuid id PK
+    text organization_id
+    text entity_type
+    bigint next_number
+  }
+  source_document {
+    uuid id PK
+    text organization_id
+    text type
+    text status
+  }
+  journal_batch {
+    uuid id PK
+    text organization_id
+    uuid accounting_period_id FK
+    uuid source_document_id FK
+    uuid idempotency_ledger_id FK
+    text status
+  }
+  journal_line {
+    uuid id PK
+    text organization_id
+    uuid batch_id FK
+    uuid account_id FK
+    bigint base_debit_minor
+    bigint base_credit_minor
+  }
+  fiscal_year ||--o{ accounting_period : contains
+  accounting_period ||--o{ journal_batch : controls
+  source_document ||--o{ journal_batch : traces
+  idempotency_ledger ||--o{ journal_batch : dedupes
+  journal_batch ||--o{ journal_line : contains
+  ledger_account ||--o{ journal_line : classifies
+```
+
+## Foundation Write Path
+
+```mermaid
+sequenceDiagram
+  participant API as API service
+  participant Scope as Tenant scope
+  participant Idem as idempotency_ledger
+  participant Domain as deterministic service
+  participant Ledger as journal tables
+  participant Events as audit_event/outbox_event
+
+  API->>Scope: Verify membership and start transaction
+  API->>Idem: Claim route_key + idempotency_key
+  API->>Domain: Validate command and invariants
+  Domain-->>API: Safe write model
+  API->>Ledger: Write app-owned tenant rows
+  API->>Events: Write audit and outbox rows
+  API->>Idem: Store terminal response
+  Scope-->>API: Commit
+```
+
 ## Terminology Notes
 
-- `rls-inventory` is a security checklist for table-level RLS coverage. It is not the inventory/stock module.
-- `withOrgSnapshotRead` is a tenant-scoped read helper for reports/exports that should see one stable database view. It does not mean a saved organization profile snapshot.
+- Tenant-scope inventory is a security checklist for app-owned tables and query paths. It is not the inventory/stock module.
+- Report snapshot reads should use normal transaction/read-consistency tools when needed. They do not mean a saved organization profile snapshot.
 - `snapshot` has three meanings in these plans: database read consistency, immutable report/export copies, and OpenAPI schema snapshot tests. None of those meanings is stock inventory.
 - `organization` is Better Auth's internal term for a business tenant. Product UI should say "Business".
 - `outbox_event`, `audit_event`, and `idempotency_ledger` are infrastructure tables. They are included early because they protect correctness, replay behavior, and traceability before invoices/GST/bank/AI features exist.
+- Not every Phase 0 mutation must write all three infrastructure tables. Use
+  fire-and-forget audit activity only for non-critical history trails. Use
+  awaited transactional audit/outbox/idempotency for commands whose correctness,
+  replay, or downstream delivery depends on those rows.
 
 ## Decisions
 
@@ -44,7 +163,7 @@ Rules:
 - In this repo today, generated Better Auth IDs are text.
 - `organization_id` and `user_id` columns that reference Better Auth tables use text unless the generated Better Auth schema changes in a separate migration decision.
 - App-owned accounting table primary keys may use UUID-v7, but tenant foreign keys that point to Better Auth stay aligned with Better Auth IDs.
-- RLS compares `organization_id` as text. Do not cast `app.current_org_id` to UUID in this repo.
+- App-owned tenant foreign keys compare `organization_id` as text. Do not cast these Better Auth IDs to UUID in this repo.
 
 ### D2: Money
 
@@ -76,24 +195,17 @@ Why:
 - Duplicate protection belongs at the service/API boundary.
 - Multiple idempotency mechanisms create conflicting replay behavior.
 
-### D4: RLS Boundary
+### D4: Tenant Isolation Boundary
 
-Apply RLS to app-owned tenant tables from their first migration.
+Use app-enforced tenant isolation for MVP.
 
 Rules:
 
-- Better Auth-owned tables are excluded from app tenant RLS inventory.
-- App-owned tenant tables have `organization_id`, RLS enabled, and an organization isolation policy.
-- Service reads/writes use `withOrgTx`, `withOrgRead`, or `withOrgSnapshotRead` and set `app.current_org_id`.
-- The runtime database role must not own tenant tables and must not bypass RLS.
-
-Policy shape:
-
-```sql
-organization_id = nullif(current_setting('app.current_org_id', true), '')
-```
-
-Verification must prove every active app-owned tenant table has `organization_id`, RLS enabled, an organization isolation policy, and a runtime database role that neither owns tenant tables nor bypasses RLS.
+- Better Auth-owned tables are excluded from app tenant-scope inventory.
+- App-owned tenant tables have `organization_id`.
+- Service reads/writes verify Better Auth membership before using an `organizationId`.
+- Reusable DB query functions require `organizationId` in their input and include an organization predicate.
+- PostgreSQL RLS is deferred until after MVP.
 
 ### D5: Phase-Owned Migrations
 
@@ -103,7 +215,7 @@ Rules:
 
 - A table is not shipped until it is exported from `schema/migration.ts`.
 - Future draft schema files may exist only if clearly marked as future-phase drafts.
-- RLS inventory verifies active migration tables, not every experimental schema export.
+- Tenant-scope inventory verifies active migration tables, not every experimental schema export.
 - Phase plans must not add future-phase tables to the migration entrypoint early.
 
 ## Phase Ownership
@@ -112,13 +224,17 @@ Rules:
 
 Add:
 
-- Better Auth organization/member/invitation/API-key support.
+- Better Auth organization/member/invitation support.
 - `organization_setting`.
 - `currency`.
 - `audit_event`.
 - `outbox_event`.
 - `idempotency_ledger`.
-- RLS transaction helpers and verification.
+- Tenant-scoped query helpers as needed.
+
+Current implementation note: Better Auth organization/member/invitation support
+is enabled. API-key support remains future Phase 6 unless a concrete public API
+surface requires it.
 
 Do not add:
 
@@ -336,7 +452,7 @@ The other agent's June 17 direction makes sense at the accounting-spine level:
 - `journal_batch` as posting unit;
 - `source_document` as traceability backbone;
 - outbox/idempotency/audit from day one;
-- RLS as a real tenant boundary.
+- tenant isolation from day one.
 
 Changes needed before using it:
 
@@ -356,8 +472,8 @@ Changes needed before using it:
 - [ ] No `business_entity` table in Phase 0/1.
 - [ ] No forced Better Auth UUID-v7 migration.
 - [ ] `organization_id` references Better Auth IDs as text in this repo.
-- [ ] RLS policy compares text IDs and does not cast to UUID.
-- [ ] Runtime database role cannot own tenant tables or bypass RLS.
+- [ ] Tenant query predicates compare text IDs and do not cast to UUID.
+- [ ] Tenant-scoped services verify membership before querying.
 - [ ] Active migrations export only current phase-owned tables.
 - [ ] Phase 1 uses `ledger_account`.
 - [ ] Phase 1 uses `journal_batch`.

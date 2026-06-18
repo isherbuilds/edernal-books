@@ -10,6 +10,38 @@
 
 ---
 
+## Architecture Flow
+
+```mermaid
+flowchart TD
+  Owner["Owner UI"] --> Docs["Document services<br/>invoice, expense, payment"]
+  Docs --> Parties["party + item"]
+  Docs --> Source["source_document"]
+  Docs --> Ledger["journal posting service"]
+  Ledger --> Batch["journal_batch + journal_line"]
+  Docs --> Delivery["PDF + document_delivery"]
+  Docs --> Events["audit_event + outbox_event"]
+  Docs --> Idem["idempotency_ledger"]
+```
+
+Owner document posting:
+
+```mermaid
+sequenceDiagram
+  participant UI as Owner form
+  participant S as Document service
+  participant L as Journal service
+  participant DB as Tenant transaction
+
+  UI->>S: Post invoice/expense/payment
+  S->>DB: Claim idempotency
+  S->>DB: Validate party, item, document state
+  S->>L: Build balanced journal command
+  L->>DB: Insert journal batch and lines
+  S->>DB: Mark document posted and write events
+  S-->>UI: Posted document
+```
+
 ## Foundation Alignment
 
 Before executing this plan, reconcile it with `docs/superpowers/plans/2026-06-17-accounting-foundation-schema-revision-plan.md`.

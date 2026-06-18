@@ -10,6 +10,38 @@
 
 ---
 
+## Architecture Flow
+
+```mermaid
+flowchart TD
+  UI["Assistant UI"] --> API["AI oRPC routes"]
+  API --> Tools["Tool layer<br/>read + draft only"]
+  Tools --> Reports["reports/documents/bank data"]
+  API --> Provider["AI provider adapter"]
+  Provider --> Output["extractions/suggestions/messages"]
+  Output --> Evidence["source evidence + confidence"]
+  Output --> Review["Human approval"]
+  Review --> Services["existing deterministic services"]
+  Services --> Ledger["journal posting service"]
+```
+
+AI guardrail:
+
+```mermaid
+sequenceDiagram
+  participant UI as User
+  participant AI as Assistant service
+  participant Tool as Tool layer
+  participant Service as Deterministic service
+
+  UI->>AI: Ask/extract/suggest
+  AI->>Tool: Read allowed data or draft command
+  Tool-->>AI: Evidence-backed result
+  AI-->>UI: Suggestion with confidence
+  UI->>Service: Approve explicit action
+  Service-->>UI: Posted or saved result
+```
+
 ## Foundation Alignment
 
 Before executing this plan, reconcile it with `docs/superpowers/plans/2026-06-17-accounting-foundation-schema-revision-plan.md`.

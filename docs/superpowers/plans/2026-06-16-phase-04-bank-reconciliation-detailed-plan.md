@@ -10,6 +10,37 @@
 
 ---
 
+## Architecture Flow
+
+```mermaid
+flowchart TD
+  Import["CSV/XLSX import"] --> Parser["Statement parser"]
+  Parser --> Normalized["bank_transaction"]
+  Normalized --> Match["Matching engine"]
+  Match --> Suggestions["reconciliation_match"]
+  Suggestions --> Approval["Owner approval queue"]
+  Approval --> Payment["Payment/document services"]
+  Payment --> Ledger["journal posting service"]
+  Approval --> Events["audit_event + outbox_event"]
+```
+
+Reconciliation approval:
+
+```mermaid
+sequenceDiagram
+  participant UI as Reconciliation queue
+  participant Match as Matching service
+  participant Pay as Payment service
+  participant Ledger as Journal service
+  participant DB as Tenant transaction
+
+  UI->>Match: Approve suggestion
+  Match->>DB: Lock bank transaction
+  Match->>Pay: Link or draft payment
+  Pay->>Ledger: Post only when accounting impact exists
+  Match->>DB: Store reconciliation_match and events
+```
+
 ## Foundation Alignment
 
 Before executing this plan, reconcile it with `docs/superpowers/plans/2026-06-17-accounting-foundation-schema-revision-plan.md`.

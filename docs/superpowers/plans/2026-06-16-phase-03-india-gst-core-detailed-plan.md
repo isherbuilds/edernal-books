@@ -10,6 +10,36 @@
 
 ---
 
+## Architecture Flow
+
+```mermaid
+flowchart TD
+  Documents["Phase 2 documents"] --> TaxCalc["packages/india-tax<br/>deterministic GST rules"]
+  TaxCalc --> TaxLines["gst_line_tax"]
+  TaxCalc --> Details["gst_document_detail"]
+  Documents --> Ledger["journal posting service"]
+  Ledger --> TaxAccounts["GST ledger accounts"]
+  TaxLines --> Reports["GSTR-1 / GSTR-3B working reports"]
+  Details --> Reports
+  Reports --> Snapshots["return/report snapshots"]
+```
+
+Tax-aware posting:
+
+```mermaid
+sequenceDiagram
+  participant Doc as Document service
+  participant Tax as India tax package
+  participant Ledger as Journal service
+  participant DB as Tenant transaction
+
+  Doc->>Tax: Calculate place-of-supply and CGST/SGST/IGST
+  Tax-->>Doc: Tax lines + validation result
+  Doc->>Ledger: Post document with tax accounts
+  Ledger->>DB: Journal batch and lines
+  Doc->>DB: GST detail, line tax, audit/outbox
+```
+
 ## Foundation Alignment
 
 Before executing this plan, reconcile it with `docs/superpowers/plans/2026-06-17-accounting-foundation-schema-revision-plan.md`.
