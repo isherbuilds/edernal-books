@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 
 import { generateTanStackStartSeo } from "#@/tanstack-start/generate-tanstack-start-seo";
 import {
@@ -411,6 +411,43 @@ describe("generateTanStackStartSeo", () => {
         content: "ja",
         property: "og:locale"
       });
+    });
+
+    it("prefixes canonical and alternate links with a site base path after locale resolution", () => {
+      const result = generateTanStackStartSeo({
+        alternates: {
+          baseLocale: "en",
+          canonicalPath: "/",
+          locale: "en",
+          locales: ["en", "de"] as const
+        },
+        site: {
+          ...baseSite,
+          basePath: "/web"
+        }
+      });
+
+      expect(result.links).toEqual([
+        {
+          href: "https://example-app.example/web/",
+          rel: "canonical"
+        },
+        {
+          href: "https://example-app.example/web/",
+          hrefLang: "en",
+          rel: "alternate"
+        },
+        {
+          href: "https://example-app.example/web/de",
+          hrefLang: "de",
+          rel: "alternate"
+        },
+        {
+          href: "https://example-app.example/web/",
+          hrefLang: "x-default",
+          rel: "alternate"
+        }
+      ]);
     });
 
     it("serializes robots directives in a stable, crawler-friendly order", () => {

@@ -9,6 +9,8 @@ import { db } from "@tsu-stack/db";
 import * as schema from "@tsu-stack/db/schema";
 import { ENV_SERVER } from "@tsu-stack/env/server/env";
 
+import { organizationAccessControl, organizationRoles } from "#@/permissions";
+
 export const auth = betterAuth({
   baseURL: new URL(ENV_SERVER.VITE_SERVER_URL).origin,
   basePath: join(new URL(ENV_SERVER.VITE_SERVER_URL).pathname, "auth"),
@@ -38,15 +40,30 @@ export const auth = betterAuth({
   },
 
   plugins: [
-    organization(),
+    organization({
+      ac: organizationAccessControl,
+      creatorRole: "owner",
+      roles: organizationRoles,
+      schema: {
+        organization: {
+          additionalFields: {
+            onboardingCompletedAt: {
+              input: false,
+              required: false,
+              type: "date"
+            }
+          }
+        }
+      }
+    }),
     openAPI({
       theme: "deepSpace"
     })
-  ],
+  ]
 
-  telemetry: {
-    enabled: false
-  }
+  // telemetry: {
+  //   enabled: false
+  // }
 });
 
 export type AuthSession = typeof auth.$Infer.Session;

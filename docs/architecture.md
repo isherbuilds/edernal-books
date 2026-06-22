@@ -131,10 +131,10 @@ sequenceDiagram
   alt accounting command needing duplicate protection
     API->>DB: Use operation-local command key or natural unique key
   end
-  alt non-critical settings audit
-    API->>Audit: Fire-and-forget best-effort audit row
-  else accounting-critical audit/outbox
+  alt audited settings/accounting command
     API->>DB: Await audit/outbox in same transaction
+  else unaudited read-only command
+    API-->>Client: DTO without durable side effect
   end
   API-->>Client: Small success envelope or DTO
 ```
@@ -169,6 +169,42 @@ Performance decisions already present:
 - Root route preloads auth only outside router preload to avoid session spam.
 - Fonts are preloaded in the root shell.
 - Browser logs batch to HTTP rather than sending one request per event.
+- Heavy accounting lists use cursor pagination and `ssr: "data-only"` by
+  default; see
+  [Accounting Application Architecture Playbook](accounting-application-architecture-playbook.md)
+  for examples and sources.
+
+## Frontend File Boundaries
+
+App code in `apps/web/src` follows a Midday-style structure: `routes`,
+`components`, `hooks`, `utils`, `lib`, `providers`, `styles`, and `config`.
+Do not create `features`, `pages`, `widgets`, `entities`, `shared`, or frontend
+`api` folders in the web app.
+
+Route files use TanStack `_` pathless groups such as `_public`, `_guest`, and
+`_app`. They may compose UI directly when they stay readable and should usually
+remain under 250 lines. Stateful forms, tables, modals, repeated page sections,
+and cross-route UI move into `components/<area>/...`.
+
+Components are domain-first. A settings form lives at
+`components/settings/business-settings-form.tsx`; a members table lives at
+`components/members/members-table.tsx`. Generic app components stay flat, for
+example `components/form-fields.tsx`, `components/theme-switcher.tsx`, and
+`components/logo.tsx`. Generic app-agnostic primitives such as `Container`
+live in `packages/ui`. Do not create `components/shared`, `components/ui`,
+`components/forms`, `components/tables`, or `components/navigation`.
+
+TanStack Query integration is direct. Routes may inline
+`orpc.<router>.<procedure>.queryOptions(...)` inside `beforeLoad`. Components use
+hooks from `hooks/` when the hook owns mutation invalidation, query policy, or a
+clear domain contract. Do not create a `getXQueryOptions(...)` factory unless
+shared non-trivial policy justifies it.
+
+App code imports exact files. App barrel files are not allowed. Package-level
+entrypoints such as `packages/core/src/index.ts` remain allowed only when they
+are the declared public API for a package or domain and stay narrow.
+
+`routes/**/index.tsx` files are TanStack route files, not barrels.
 
 ## Accounting Target Architecture
 
@@ -301,6 +337,32 @@ erDiagram
 
 The planned Phase 1 ledger kernel and later accounting schema are documented in
 [schema revision plan](superpowers/plans/2026-06-17-accounting-foundation-schema-revision-plan.md).
+
+Phase 0 web routes:
+
+- `/` shows the public home page for anonymous users and redirects authenticated users to their active organization.
+- `/home` is the explicit public home page route for authenticated users who want to view it.
+- `/organizations/new` creates or joins a Better Auth business, then sends the user to organization onboarding.
+- `/$orgSlug/settings/business` reads and writes `organization_setting` through oRPC after server-side membership verification.
+
+Onboarding visibility follows server-backed user and organization state, not
+local storage. Protected app routing fetches the current user plus organization
+membership once, then gates organization routes with the Better Auth
+organization `onboardingCompletedAt` additional field. `organization_setting`
+can exist before onboarding is finished, so route guards must not infer
+completion from settings rows. The onboarding completion command writes the
+business settings and completion timestamp in one transaction, preserving the
+first completion timestamp on retry.
+Onboarding step progression is UI state carried in the route search param as a
+numeric `?step=1..N` value, so direct links and refreshes can resume the same
+visible step without making route guards depend on incomplete form state. Do not
+persist step progress without also persisting draft values.
+Do not add top-level compatibility redirects such as `/dashboard` or
+`/settings/business`; the canonical app entry is `/$orgSlug`.
+
+Local migration status: the fresh baseline migration is generated, but applying
+it locally requires Docker/Postgres to be running on the configured
+`DATABASE_URL`.
 
 Current idempotency decision: do not add a generic central
 `idempotency_ledger` table in Phase 0. Natural upserts such as organization

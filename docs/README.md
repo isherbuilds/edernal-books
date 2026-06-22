@@ -7,16 +7,17 @@ decisions exist.
 
 ## Start Here
 
-| Need                          | Read                                                                                                                                                     |
-| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Run the repo                  | [../README.md](../README.md)                                                                                                                             |
-| Deploy the repo               | [deployment.md](deployment.md)                                                                                                                           |
-| Understand architecture       | [architecture.md](architecture.md)                                                                                                                       |
-| Understand accounting roadmap | [superpowers/specs/2026-06-16-ai-native-accounting-foundation-design.md](superpowers/specs/2026-06-16-ai-native-accounting-foundation-design.md)         |
-| Execute accounting work       | [superpowers/plans/2026-06-16-plan-set-index.md](superpowers/plans/2026-06-16-plan-set-index.md)                                                         |
-| Understand schema vocabulary  | [superpowers/plans/2026-06-17-accounting-foundation-schema-revision-plan.md](superpowers/plans/2026-06-17-accounting-foundation-schema-revision-plan.md) |
-| Understand agent routing      | [../AGENTS.md](../AGENTS.md)                                                                                                                             |
-| Keep docs consistent          | [documentation-style-guide.md](documentation-style-guide.md)                                                                                             |
+| Need                                               | Read                                                                                                                                                     |
+| -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Run the repo                                       | [../README.md](../README.md)                                                                                                                             |
+| Deploy the repo                                    | [deployment.md](deployment.md)                                                                                                                           |
+| Understand architecture                            | [architecture.md](architecture.md)                                                                                                                       |
+| Understand accounting app performance architecture | [accounting-application-architecture-playbook.md](accounting-application-architecture-playbook.md)                                                       |
+| Understand accounting roadmap                      | [superpowers/specs/2026-06-16-ai-native-accounting-foundation-design.md](superpowers/specs/2026-06-16-ai-native-accounting-foundation-design.md)         |
+| Execute accounting work                            | [superpowers/plans/2026-06-16-plan-set-index.md](superpowers/plans/2026-06-16-plan-set-index.md)                                                         |
+| Understand schema vocabulary                       | [superpowers/plans/2026-06-17-accounting-foundation-schema-revision-plan.md](superpowers/plans/2026-06-17-accounting-foundation-schema-revision-plan.md) |
+| Understand agent routing                           | [../AGENTS.md](../AGENTS.md)                                                                                                                             |
+| Keep docs consistent                               | [documentation-style-guide.md](documentation-style-guide.md)                                                                                             |
 
 ## Architecture Docs
 
@@ -24,6 +25,9 @@ decisions exist.
   boundaries, runtime flows, and future accounting direction.
 - [deployment.md](deployment.md) - Docker/Coolify deployment, single database
   URL, production migrator, and tenant-isolation expectations.
+- [accounting-application-architecture-playbook.md](accounting-application-architecture-playbook.md) -
+  TanStack Start SSR policy, cursor pagination, URL state, route-first workflows,
+  and reference-backed performance examples.
 - [../apps/server/ARCHITECTURE.md](../apps/server/ARCHITECTURE.md) - Hono
   runtime composition, middleware order, auth, docs, and handlers.
 - [../packages/api/ARCHITECTURE.md](../packages/api/ARCHITECTURE.md) - oRPC
@@ -57,6 +61,8 @@ decisions exist.
 - [ADR-0001: Accounting Foundation Spine](decisions/0001-accounting-foundation-spine.md)
 - [ADR-0002: Defer PostgreSQL RLS for MVP](decisions/0002-defer-postgresql-rls-for-mvp.md)
 - [ADR-0003: Organization Context And Permission Cache Pattern](decisions/0003-organization-context-and-permission-cache-pattern.md)
+- [ADR-0004: Web App Midday-Style Structure](decisions/0004-web-app-midday-style-structure.md)
+- [ADR-0005: TanStack Start Hybrid SSR Performance Architecture](decisions/0005-tanstack-start-hybrid-ssr-performance.md)
 
 Add a new ADR when a decision changes package boundaries, persistence shape,
 auth strategy, public APIs, runtime deployment, accounting invariants, or any
