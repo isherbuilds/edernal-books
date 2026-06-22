@@ -2,130 +2,77 @@
 
 Use this when changing backend package shape, middleware, request context, public API surfaces, external callbacks, caching, or cross-package abstractions.
 
-This guide adapts patterns observed in Midday's production codebase while keeping this repo's stack choices: Hono + oRPC + Better Auth + Drizzle. Copy the composition principles, not Midday's Supabase, tRPC, replica, or early worker assumptions.
+This repo uses Hono + oRPC + Better Auth + Drizzle. Copy production composition ideas from Midday only when they fit this stack; do not copy Supabase, tRPC, replica, or worker assumptions before this repo needs them.
 
-Reference baseline:
+Related docs:
 
-- Midday API bootstrap: `midday-ai/midday/apps/api/src/index.ts`
-- Midday REST router/middleware split: `apps/api/src/rest/routers`, `apps/api/src/rest/middleware`
-- Midday DB package split: `packages/db/src/client.ts`, `packages/db/src/queries`, `packages/db/src/utils`
-- Midday cache/health/logger packages: `packages/cache`, `packages/health`, `packages/logger`
+- [oRPC patterns](./orpc.md) for procedure factories, routers, typed errors, and request-scoped logging.
+- [Core package patterns](./core.md) for shared schemas, enums, defaults, and formatters.
+- [Auth patterns](./auth.md) for Better Auth, protected route bootstrap, and organization state.
+- [Logging](./logging.md) only when changing durable logs.
+- [Environment variables](./environment-variables.md) when adding runtime config.
 
 ## Goals
 
 - Keep API handlers as transport orchestration, not domain dumping grounds.
-- Keep cross-package contracts explicit and easy to import.
-- Keep request identity, auth, org scope, logging, and errors consistent across all server entry points.
-- Extract only when a boundary is real: reuse, external integration complexity, or independent testability.
-- Prefer small domain modules over broad `utils` or `common` folders.
+- Keep request identity, auth, org scope, logging, and errors consistent across server entry points.
+- Extract only when reuse, external integration complexity, or independent testability makes a boundary real.
+- Prefer named domain modules over broad `utils`, `common`, or `shared` folders.
 
 ## Package Roles
 
 ### `apps/server`
 
-Runtime shell.
+Runtime shell. Owns Hono app creation, CORS, request logger middleware, Better Auth mounting, log ingestion, oRPC/OpenAPI handlers, global Hono error handling, and process startup.
 
-- Owns Hono app creation, CORS, request logger middleware, Better Auth route mounting, log ingestion, oRPC/OpenAPI handlers, global Hono error handling, and process startup.
-- Mount public Hono-only routes here before the catch-all oRPC/OpenAPI handler when they need raw request access, provider signature verification, file streaming, or custom status/body behavior.
-- Do not put domain business logic here. Delegate to `packages/api`, `packages/db`, or domain packages.
+Mount Hono-only routes here when they need raw request access, signature verification, file streaming, redirects, or custom response behavior. Do not put domain business logic here.
 
 ### `packages/api`
 
-Transport contract layer.
+Transport contract layer. Owns oRPC routers, procedure factories, request context, typed procedure errors, and API-local orchestration.
 
-- Owns oRPC routers, procedure factories, request context creation, typed procedure errors, and API-local orchestration.
-- Uses `packages/core` schemas for shared transport contracts.
-- Calls `packages/db/src/queries` when DB logic is reused, transactional, or non-trivial.
-- May own Hono external route modules when a public route is more than a small mount in `apps/server`.
+Use `packages/core` schemas for shared transport contracts. Call `packages/db/src/queries` when DB logic is reused, transactional, subtle, or not trivial.
 
 ### `packages/db`
 
-Persistence layer.
+Persistence layer. Owns Drizzle schema, relations, DB client, migrations, DB-local errors, and reusable query functions.
 
-- Owns Drizzle schema, relations, DB client, migrations, DB-local errors, and reusable query functions.
-- Query functions accept `db` or `tx` first, then one input object containing verified `organizationId` tenant scope.
-- No web, Hono, oRPC, Better Auth UI, or logger-request concepts inside query functions unless explicitly part of audit/outbox metadata.
-
-Preferred future shape:
-
-```text
-packages/db/src/
-  index.ts
-  client.ts
-  errors.ts
-  schema/
-  queries/
-    index.ts
-    <domain>.ts
-  utils/
-    <domain>.ts
-```
+Query functions accept `db` or `tx` first, then one input object. Every org-owned query requires verified `organizationId`.
 
 ### `packages/core`
 
-Runtime-agnostic shared domain contracts.
+Runtime-agnostic shared contracts. Owns pure schemas, enums, defaults, formatters, normalizers, and option builders consumed by more than one package. No DB, env, logger, network, React, Hono, or oRPC dependencies.
 
-- Owns pure schemas, enums, defaults, formatters, normalizers, and option builders consumed by more than one package.
-- No DB, env, logger, network, React, Hono, or oRPC dependencies.
-- Follow [Core package patterns](./core.md).
+### Domain Packages
 
-### Domain Integration Packages
-
-Create packages like `packages/banking`, `packages/import`, or `packages/invoice` only when the boundary is stable and useful outside one API router.
+Create packages like `packages/banking`, `packages/import`, or `packages/invoice` only when the boundary is useful outside one API router.
 
 Good triggers:
 
-- Provider SDK or external API logic needs adapter interfaces.
-- Logic is used by both API and jobs/workers.
-- Logic has independent tests, retries, provider error normalization, or rate limits.
-- Domain has enough surface that keeping it in `packages/api` hides intent.
+- provider SDK or external API adapters,
+- logic shared by API and jobs/workers,
+- independent retries, provider error normalization, rate limits, or tests,
+- domain surface large enough that `packages/api` hides intent.
 
 Bad triggers:
 
-- One helper used once.
-- A folder feels large but still has no independent boundary.
-- Generic "common" code without a domain name.
+- one helper used once,
+- a folder feels large but has no independent boundary,
+- generic code without a domain name.
 
-Preferred package shape:
+## API Surface
 
-```text
-packages/<domain>/src/
-  index.ts          # public domain API
-  types.ts          # schemas/types/error codes when package-local
-  provider.ts       # adapter interface or provider factory when needed
-  providers/
-    <provider>.ts
-  utils.ts          # package-local pure helpers only
-```
-
-Package export rules:
-
-- Export `"."` and a few intentional subpaths. Do not expose entire internals by wildcard unless provider adapters are explicitly public.
-- Tighten broad `"./*"` exports once a package API stabilizes. Public subpaths should be deliberate, documented by `package.json`, and safe for other packages to depend on.
-- Cross-package imports must use package public exports, for example `@tsu-stack/core/health`. Do not import another package's `src/*` files directly.
-- Every cross-package import must have a matching `package.json` dependency unless it is type-only tooling already covered by workspace policy.
-- Keep `index.ts` small: export public types, provider/factory, and stable helpers.
-- Use provider adapters when external services share one domain contract but differ in auth, rate limits, payloads, and errors.
-- Normalize provider errors into package-owned error codes before returning to API code.
-- Keep provider SDK clients and retry/rate-limit behavior inside the domain package.
-- Tests belong inside the package when logic can run without Hono/oRPC.
-
-## API Surface Rules
-
-### Internal App API
-
-Use oRPC by default.
+Use oRPC for internal app APIs.
 
 - Add procedures under `packages/api/src/routers/<slice>/index.ts`.
 - Use `publicProcedure` and `protectedProcedure` from `packages/api/src/lib/procedures/factory.ts`.
 - Define explicit input, output, and typed errors.
-- Keep TanStack Query wrappers in `apps/web` slice `api/` files per [API fetching patterns](./api-fetching-patterns.md).
+- Keep TanStack Query wrappers in `apps/web/src/hooks`; do not add frontend
+  `api/` folders.
 
-### Public REST Or Third-Party API
+Use Hono/OpenAPI only for stable external callers, SDK generation, webhooks, OAuth callbacks, file streaming, or provider-specific HTTP semantics.
 
-Use Hono/OpenAPI only when the route must be stable for external callers, SDK generation, webhooks, OAuth callbacks, file streaming, or provider-specific semantics.
-
-Default shape for a non-trivial external route:
+Default external route shape:
 
 ```text
 packages/api/src/external/<slice>/
@@ -135,324 +82,100 @@ packages/api/src/external/<slice>/
   handler.ts
 ```
 
-- `index.ts` exports the Hono router or route factory.
-- `schemas.ts` owns provider request/response schemas when they are not shared with web.
-- `verify.ts` owns signatures, callback state, token exchange guards, or safe-compare helpers.
-- `handler.ts` turns verified provider input into domain operations.
-- Validate public API responses against the declared output schema before returning them when that route is externally consumed or SDK-generated.
-- Define a consistent error envelope for the public route group. Do not mix `{ error }`, `{ message }`, raw framework exceptions, and ad hoc provider payloads in the same API surface.
+Small infrastructure routes such as `/health`, `/auth/*`, `/_logs/ingest`, `/docs`, and redirects can live directly in `apps/server`.
 
-Small one-off route exceptions can live directly in `apps/server` if they are infrastructure routes such as `/health`, `/auth/*`, `/_logs/ingest`, `/docs`, or redirects.
-
-## Router Composition
-
-Use explicit public/protected/external groups.
-
-```text
-packages/api/src/routers/
-  index.ts
-  health/
-    index.ts
-  <domain>/
-    index.ts
-    queries.ts      # only if API-local; promote to packages/db when reused
-    utils.ts        # only slice-local helpers
-```
-
-Rules:
+## Router And Middleware Rules
 
 - `routers/index.ts` only composes routers and exports router types.
-- Each domain router owns public procedure names and transport behavior.
 - Use simple procedure names: `list`, `byId`, `create`, `update`, `remove`, `search`.
-- Keep handler flow linear: validate through schema, read context, call query/service, map output, return.
-- Promote DB-heavy `queries.ts` into `packages/db/src/queries/<domain>.ts` once a second consumer appears or transaction/scoping logic becomes non-trivial.
-- Do not rely on "routes mounted before auth are public" as the only safety mechanism. Prefer explicit `publicRouter`, `protectedRouter`, or route-group auth markers so new routes cannot accidentally bypass auth.
+- Keep handler flow linear: validate input, read context, call query/service, map output, return.
+- Auth belongs in procedure middleware, not repeated in handlers.
+- Org/member/role checks become named middleware once reused.
+- Request-scoped logging comes from `context.logger`; handlers should not create standalone request loggers.
+- Do not rely on mount order as the only public/protected safety mechanism.
 
-## Middleware Order
-
-Global Hono middleware belongs in `apps/server` and should stay boring.
-
-Recommended order:
+Global Hono middleware order:
 
 1. CORS and security headers.
 2. Request logger/request id middleware.
-3. Infrastructure public routes: log ingestion, health, auth, docs redirects.
+3. Infrastructure public routes.
 4. Public external routes that need raw request access.
-5. One oRPC/OpenAPI dispatcher for RPC, docs/spec, and REST mapping.
-6. Global `app.onError` for unhandled Hono errors.
+5. One oRPC/OpenAPI dispatcher.
+6. Global `app.onError`.
 
-Procedure middleware belongs in `packages/api/src/lib/procedures/factory.ts`.
-
-- Auth belongs in `protectedProcedure`, not repeated in handlers.
-- Org/member/role checks should become named procedure middleware once used by multiple routers.
-- API-key/OAuth scopes should become named middleware or procedure factories once external API work starts. Route handlers should declare required scopes, not inspect scope arrays manually.
-- Request-scoped logging comes from `context.logger`; handlers should not create standalone request loggers.
-- Do not create parallel auth paths unless the caller type is truly different, for example `internalProcedure` or `apiKeyProcedure`.
-
-External route middleware should be route-group specific.
-
-- Webhooks: public DB/context middleware, provider signature verification, idempotency, then handler.
-- OAuth callbacks: public DB/context middleware, state verification, token exchange, then redirect/response.
-- Public API keys: API-key auth, scope check, org scope, rate limit, then handler.
-- File routes: signed-file token or object access middleware before streaming.
-
-## Request Identity
+## Request Identity And Tenant Scope
 
 Every backend entry point needs one correlation id.
 
-Preferred rule:
-
 - Use incoming `x-request-id` when present.
-- Otherwise use trusted platform trace header when present, for example `cf-ray`.
-- Otherwise create `crypto.randomUUID()`.
+- Else use a trusted platform trace header when present.
+- Else create `crypto.randomUUID()`.
 
-Propagation rules:
+Propagate `requestId` into API context, logs, public error envelopes, outbound provider calls, audit rows, outbox events, and jobs when they originate from a request. Never use it as auth, idempotency, or business identity.
 
-- Store request id in request logger context.
-- Include it in API context when downstream code needs audit, idempotency, outbox, or external provider calls.
-- Set `X-Request-Id` on external/public responses when practical.
-- Include request id in global error handling and public error envelopes.
-- Pass it into outbound provider calls, job payloads, audit rows, and outbox events when they originate from a request.
-- Never use request id as auth, idempotency key, or business identifier.
-
-## Auth And Org Scope
-
-Use Better Auth as the identity source. Use org/member context for tenant scope.
-
-Rules:
+Use Better Auth as identity source. Use org/member context for tenant scope.
 
 - Request context carries Better Auth `authSession` as `AuthSession | null`.
-- Auth-only routes use `protectedProcedure`; tenant routes use `organizationProcedure(inputSchema)`.
-- Handlers read `context.authSession` and org fields after procedure middleware narrows context; they do not parse cookies or headers directly.
-- Client-facing organization-scoped procedure inputs use `orgSlug` only.
-- `organizationProcedure` verifies slug membership and adds canonical `organizationId` to context.
+- Auth-only routes use `protectedProcedure`; tenant routes use org-scoping middleware/procedure.
+- Client-facing org-scoped inputs use `orgSlug`.
+- Middleware verifies slug membership and adds canonical `organizationId`.
 - DB query inputs include `organizationId` explicitly for org-owned data.
-- Never trust tenant scope from client input unless it is checked against current Better Auth membership.
-- External API keys and OAuth access tokens should resolve to the same internal shape: user, org, scopes, and request metadata.
+- Never trust tenant scope from client input without membership verification.
 
 ## DB Query Layer
 
-Use `packages/db/src/queries` when persistence behavior matters beyond one handler.
-
-Function shape:
-
-```ts
-export async function listInvoices(
-  db: DatabaseOrTransaction,
-  input: { organizationId: string; cursor?: string; limit?: number }
-) {
-  // Drizzle query here
-}
-```
+Promote persistence logic into `packages/db/src/queries/<domain>.ts` when it is reused, transactional, joins multiple tables, writes audit/outbox/idempotency data, or has subtle org scoping.
 
 Rules:
 
-- Pass `db` or `tx` as the first arg so callers can run transactions.
-- Pass one typed object as the second arg.
-- Require `organizationId` for every org-owned query.
-- Return DB-native records or clearly named projections; transport mapping stays in API unless projection is shared.
+- Pass `db` or `tx` first so callers can run transactions.
+- Pass one typed input object second.
+- Require `organizationId` for org-owned queries.
+- Return DB records or clearly named projections; transport mapping stays in API unless shared.
 - Keep audit/outbox/idempotency writes in the same transaction as the business write.
-- Fire-and-forget activity logging is allowed only for non-critical UX/history
-  trails, must catch/log its own failures, and must not be described as durable
-  accounting audit.
-- Avoid importing `db` singleton inside query functions. Let callers choose db/tx.
-
-## Cache
-
-Do not add Redis/cache by default. Add cache only for measurable cost, external rate limits, or repeated cross-request reads.
-
-Cache location:
-
-- In-memory, request-local: inside one function for deduping repeated work during one request.
-- Package-level Redis: future `packages/cache` only after at least two server instances or one expensive shared dependency needs it.
-- HTTP cache headers: only for public immutable or low-risk reads.
-
-Future `packages/cache` shape:
-
-```text
-packages/cache/src/
-  redis-client.ts
-  health.ts
-  <domain>-cache.ts
-```
-
-Rules:
-
-- One low-level client module, domain cache wrappers above it.
-- Domain wrappers own TTLs and key construction.
-- Cache package should not import DB query types. Define cache value types locally or in `packages/core` when shared.
-- Include a cheap health probe if Redis becomes a runtime dependency.
-
-Cache key rules:
-
-- Include namespace, entity, org scope, stable input hash, and version when shape can change.
-- Never cache raw tokens, cookies, authorization headers, or full sessions.
-- Keep auth/permission caches short-lived and invalidated by membership/key changes.
-- Prefer explicit invalidation on writes over long TTLs.
-- Do not cache org-mutable accounting data until correctness rules are clear.
-
-HTTP cache rules:
-
-- Default `Cache-Control: no-store` for auth, org data, finance data, and mutations.
-- Use `private, max-age=<short>` only when stale user-specific data is acceptable.
-- Use `public, immutable` only for content-addressed assets.
-- ETag support is useful for public or large stable reads, not first implementation of normal oRPC procedures.
-
-## Read-After-Write And Replicas
-
-No replica routing until there is a real replica.
-
-If replicas are introduced later:
-
-- Keep routing in `packages/db`, not per handler.
-- Mutations always use primary.
-- Reads after mutation should use primary for the affected org for a short TTL.
-- Use one org-scoped marker like `org:<organizationId>:primary-until`.
-- Middleware can mark primary-after-write, but query functions should not know about HTTP methods.
+- Avoid importing the `db` singleton inside query functions.
 
 ## External Routes And Webhooks
 
 External routes are not normal app procedures.
 
-Rules:
-
-- Mount them before the oRPC/OpenAPI catch-all.
-- Verify provider signatures before parsing into domain commands when raw body matters.
+- Mount before the oRPC/OpenAPI catch-all.
+- Verify signatures before parsing into domain commands when raw body matters.
 - Use constant-time comparison for signatures, tokens, state, and secrets.
-- Do not trust `x-forwarded-for` for allowlists unless the deployment has a known trusted proxy chain.
-- Store idempotency records for provider event ids or callback state before side effects.
-- Respond quickly after durable persistence; use outbox/jobs later for slow follow-up work.
+- Do not trust `x-forwarded-for` unless the deployment has a known trusted proxy chain.
+- Store idempotency records before side effects.
+- Respond quickly after durable persistence; add outbox/jobs only when slow follow-up work needs retry.
 - Normalize provider payloads into internal command objects before touching DB.
-- Keep provider-specific errors and retries in provider/domain packages, not route handlers.
-- Provider retry policy must be explicit: returning `2xx` acknowledges the event, returning `5xx` asks the provider to retry.
+- Returning `2xx` acknowledges provider events; returning `5xx` asks for retry.
 
-## Env And Config
+## Cache, Jobs, And Health
 
-Keep env access centralized.
+Do not add Redis, replicas, or worker packages by default.
 
-- Server runtime reads env from `@tsu-stack/env/server/env`.
-- Packages should receive config through constructors/functions unless they are env/bootstrap packages.
-- Do not scatter `process.env` reads through routers, middleware, provider clients, or query functions.
-- Do not use non-null env assertions in request code. Validate at startup or model optional behavior explicitly.
+- Add cache only for measured cost, external rate limits, or repeated cross-request reads.
+- Keep auth, org data, finance data, and mutations `Cache-Control: no-store` by default.
+- Add outbox before a worker package when durable async intent or retry is needed after DB commit.
+- Add worker/client packages only after a real separate worker runtime exists and at least two producers need the same enqueue/status API.
+- Health checks stay cheap: `/health/live` has no dependencies; `/health/ready` checks tier-1 dependencies with short timeouts.
 
-## Jobs, Outbox, And Workers
+## Extraction Timing
 
-Do not add worker packages early.
+- Inline first when there is one consumer and behavior is obvious.
+- Extract to slice-local helper when one router repeats a step or handler depth becomes hard to scan.
+- Extract to `packages/api/src/lib` for transport infrastructure, context, middleware, or error plumbing used by multiple routers.
+- Extract to `packages/db/src/queries` for reused or correctness-sensitive DB behavior.
+- Extract to `packages/core` for shared schemas, enums, defaults, formatters, or option lists.
+- Extract to a new package for provider adapters, SDK clients, independent tests, or runtime boundaries.
 
-Use the outbox table first for durable async intent when:
-
-- external side effects must run after DB commit,
-- retry is needed,
-- request latency would become unacceptable,
-- or provider callbacks must be processed exactly once.
-
-Add a job-client/worker package only when a separate worker process exists and at least two producers need the same enqueue/status API.
-
-When that time comes:
-
-- Split producer API (`packages/job-client`) from worker implementation (`packages/jobs`).
-- Keep a central typed job registry with Zod payload schemas.
-- Do not accept `payload: unknown` across package boundaries.
-- Encode queue name, job name, payload schema, result schema, retry policy, and idempotency key rules in one place.
-- Use separate DB lifecycle/client setup for worker runtime only after worker runtime exists.
-
-## Health Checks
-
-Health checks should be cheap and side-effect free.
-
-- `/health/live`: process alive; no DB/external calls.
-- `/health/ready`: tier-1 dependencies only, short timeouts.
-- `/health/dependencies`: optional detailed dependency report for operators.
-- Use per-probe timeout.
-- Cache expensive external probes briefly.
-- Failure of optional integrations should degrade feature status, not fail readiness.
-
-## Abstraction Timing
-
-Inline first when code has one consumer and the behavior is obvious.
-
-Extract to slice-local helper when:
-
-- one router needs the helper in multiple procedures,
-- the helper name clarifies a domain step,
-- or handler depth becomes hard to scan.
-
-Extract to `packages/api/src/lib` when:
-
-- two or more routers use it,
-- it is transport infrastructure,
-- or it is middleware/context/error plumbing.
-
-Extract to `packages/db/src/queries` when:
-
-- DB access is reused by API, jobs, external routes, or tests,
-- joins/transactions/audit/outbox need consistency,
-- or org scoping is subtle enough that duplication would be risky.
-
-Extract to `packages/core` when:
-
-- the same schema, enum, default, formatter, or option list drives API and web,
-- a client needs typed error/data handling,
-- or changing one domain value should update multiple packages by import.
-
-Extract to a new package when:
-
-- the domain has provider adapters or SDK clients,
-- it is consumed by multiple packages,
-- it has independent tests,
-- or it represents a deploy/runtime boundary.
-
-Do not extract to `utils`, `common`, or `shared` without a specific domain or infrastructure owner.
-
-Avoid package cycles. If two packages want each other's constants, event names, schemas, or notification metadata, move that neutral contract into `packages/core` instead of importing feature packages from DB or infrastructure packages.
-
-Use code-bearing errors for cross-package failures:
-
-- Package errors should expose stable `code` values, retryability where relevant, and safe metadata.
-- API layers map package errors into typed oRPC errors or public error envelopes.
-- Do not make frontend behavior depend on raw provider messages or string matching.
+Avoid package cycles. If two packages want each other's constants, event names, schemas, or metadata, move the neutral contract into `packages/core`.
 
 ## Naming
 
-- Use `orgSlug` for user-facing route/API inputs.
-- Use `organizationId` for the verified DB tenant boundary.
-- Use `requestId` for per-request correlation only.
-- Use `idempotencyKey` for deduping commands/events.
-- Use `providerEventId` for external webhook dedupe.
-- Use `snapshot` suffix only for immutable point-in-time copies.
-- Use `queries.ts` only while query logic is slice-local; promote to `packages/db/src/queries/<domain>.ts` later.
-- Use `handler.ts` for transport-agnostic external route actions.
-- Use `verify.ts` for signatures, state, and secret checks.
-
-## Glossary
-
-- `tenant-scope inventory`: checklist of app-owned tables that must carry
-  `organization_id` and be queried with explicit organization scope. It is not
-  stock/inventory management.
-- `orgSnapshot`: immutable copy of org settings at the time of an operation. Needed when invoices, journals, audit rows, or external exports must keep historical org details even if org settings change later.
-- `requestId`: correlation id for logs, audit, support, and tracing.
-- `idempotency`: dedupe mechanism that makes retried commands safe.
-- `outbox`: DB table of committed side-effect intents, processed later by workers or retry loops.
-- `external route`: public route called by third parties, providers, CLIs, SDKs, or webhooks, not the app frontend.
-- `read-after-write`: routing strategy that avoids stale replica reads immediately after mutations.
-- `scope`: permission string attached to API keys/OAuth tokens.
-
-## What To Copy From Midday
-
-- Clear split between runtime app bootstrap, routers, middleware, DB queries, cache, health, and logger packages.
-- Public/protected route grouping.
-- Thin route handlers that call DB query functions.
-- Provider adapter packages for banking/accounting/import-like domains.
-- Request trace id used in logs and perf diagnostics.
-- Health probes with timeouts and dependency tiers.
-- Cache wrappers with domain-specific names and TTLs.
-
-## What Not To Copy
-
-- Supabase RLS/auth assumptions.
-- tRPC-specific middleware shape.
-- Read replica routing before replicas exist.
-- BullMQ/job-client packages before worker runtime exists.
-- Large monolithic schema file style.
-- Logging every routine request or every provider call if the repo logger policy says not to.
-- Generic package explosion before a domain has multiple consumers.
+- `orgSlug`: user-facing route/API input.
+- `organizationId`: verified DB tenant boundary.
+- `requestId`: per-request correlation only.
+- `idempotencyKey`: deduping commands/events.
+- `providerEventId`: external webhook dedupe.
+- `snapshot`: immutable point-in-time copy.
+- `handler.ts`: external route action.
+- `verify.ts`: signatures, state, and secret checks.
