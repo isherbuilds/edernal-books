@@ -11,10 +11,11 @@ When a feature introduces shared contracts that should drive both API and fronte
 1. If the feature needs new data or persisted fields, update `packages/db` first.
 2. If the feature introduces shared enums, schemas, formatters, or defaults consumed across packages, update `packages/core` next.
 3. Define or extend the oRPC contract in `packages/api`.
-4. Add slice-local TanStack Query wrappers in `apps/web`.
+4. Add TanStack Query hooks in `apps/web/src/hooks` when a hook owns policy or
+   improves component readability.
 5. Handle user-visible client errors using the typed oRPC client pattern.
 6. Wire route preloading, guards, and UI composition in `apps/web`.
-7. Ask for or run validation only according to the user-approved cadence in [Workflow](./workflow.md), using [Choice flows](./choice-flows.md) when a human decision is needed.
+7. Run fixes and relevant validation according to [Workflow](./workflow.md), using [Choice flows](./choice-flows.md) only when a human decision is needed.
 
 ## Step 1: Database
 
@@ -38,8 +39,11 @@ When a feature introduces shared contracts that should drive both API and fronte
 ## Step 4: Web Data Layer
 
 - Use oRPC's TanStack Query integration from `@tsu-stack/api/client/tanstack-start/orpc`.
-- Follow [API fetching patterns](./api-fetching-patterns.md) for `*.query.ts`, `*.mutation.ts`, query keys, query options, and hook wrappers.
-- Keep `orpc` and TanStack Query wiring inside slice-local `api/` files, not inline in page components.
+- Follow [API fetching patterns](./api-fetching-patterns.md) for direct `orpc`
+  use, query keys, route preloading, and hook wrappers.
+- Do not add `api/` folders in `apps/web`. Simple route preloads may inline
+  `orpc.<router>.<procedure>.queryOptions(...)`; shared UI policy belongs in
+  hooks.
 
 ## Step 5: Client Error Handling
 
@@ -54,4 +58,4 @@ When a feature introduces shared contracts that should drive both API and fronte
 
 ## Validation
 
-- Follow [Workflow](./workflow.md) for user-directed validation timing and [Choice flows](./choice-flows.md) for human validation decisions. For larger planned work, such as implementing a `plan.md`, validate at the end of the plan or at substantial milestones/phases only when that cadence was requested or approved. Follow [Testing](./testing.md) only when tests are explicitly requested or the task is test-specific.
+- Follow [Workflow](./workflow.md) for fix cadence and validation scope. For larger planned work, such as implementing a `plan.md`, run fixes at substantial milestones/phases and once more before final handoff. Follow [Testing](./testing.md) for focused regression, unit, and e2e coverage when behavior changes.

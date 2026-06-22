@@ -1,46 +1,33 @@
-import interCyrillic from "@fontsource-variable/inter/files/inter-cyrillic-wght-normal.woff2?url";
-import interLatinExt from "@fontsource-variable/inter/files/inter-latin-ext-wght-normal.woff2?url";
 import interLatin from "@fontsource-variable/inter/files/inter-latin-wght-normal.woff2?url";
-import { a11yDevtoolsPlugin } from "@tanstack/devtools-a11y/react";
-import { TanStackDevtools } from "@tanstack/react-devtools";
-import { formDevtoolsPlugin } from "@tanstack/react-form-devtools";
 import { type QueryClient } from "@tanstack/react-query";
-import { ReactQueryDevtoolsPanel } from "@tanstack/react-query-devtools";
 import { HeadContent, Scripts, createRootRouteWithContext } from "@tanstack/react-router";
-import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
+import { Fragment, type ReactNode } from "react";
 
-import { type AuthQueryResult } from "@tsu-stack/auth/react/tanstack-start/queries";
-import { getAuthUserQueryOptions } from "@tsu-stack/auth/react/tanstack-start/queries";
 import { resolvePublicAssetUrl } from "@tsu-stack/core/assets";
 import { ENV_WEB_ISOMORPHIC } from "@tsu-stack/env/web/env.isomorphic";
-import { getLocale } from "@tsu-stack/i18n/runtime";
+import {
+  LocaleProvider,
+  useLocale
+} from "@tsu-stack/i18n/tanstack-start/components/locale-provider";
 import { Toaster } from "@tsu-stack/ui/components/sonner";
 
-import { generateAppSeo } from "@/shared/lib/seo";
-import { ProgressProvider } from "@/shared/providers/progress.provider";
-import appCss from "@/shared/styles/app.css?url";
-import { ThemeProvider } from "@/shared/ui/theme-switcher";
+import { ProgressProvider } from "@/providers/progress-provider";
 
-import { DefaultErrorPage } from "@/pages/default-error";
+import { generateAppSeo } from "@/lib/seo";
+
+import { DefaultErrorPage } from "@/components/errors/default-error-page";
+import { ThemeProvider } from "@/components/theme-switcher";
+
+import appCss from "@/styles/app.css?url";
 
 // Root route with shared context for the entire app, inject them in router.tsx
 type RouterAppContext = {
   queryClient: QueryClient;
-  user: AuthQueryResult;
 };
 
 export const Route = createRootRouteWithContext<RouterAppContext>()({
   errorComponent: DefaultErrorPage,
   shellComponent: RootDocument,
-  // Consider removing this if you don't need the auth state everywhere
-  // An example of when to KEEP it is when you conditionally display a sign-up button in the header based on the auth state
-  beforeLoad: ({ context, preload }) => {
-    // Don't prefetch during preload to prevent spamming the server with getSession requests
-    if (!preload) {
-      // Prefetch (don't await) the user data on app load to have it ready for any route that needs it, and to set the auth state early
-      void context.queryClient.prefetchQuery(getAuthUserQueryOptions());
-    }
-  },
   head: () => {
     const rootSeo = generateAppSeo({
       includeDocumentMeta: true
@@ -67,20 +54,6 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
           href: interLatin,
           crossOrigin: "anonymous"
         },
-        {
-          rel: "preload",
-          as: "font",
-          type: "font/woff2",
-          href: interLatinExt,
-          crossOrigin: "anonymous"
-        },
-        {
-          rel: "preload",
-          as: "font",
-          type: "font/woff2",
-          href: interCyrillic,
-          crossOrigin: "anonymous"
-        },
         { href: appCss, rel: "stylesheet" }
       ],
       meta: [...(rootSeo.meta ?? [])]
@@ -88,32 +61,33 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
   }
 });
 
-function RootDocument({ children }: { children: React.ReactNode }) {
+function RootDocument({ children }: { children: ReactNode }) {
   return (
-    <html suppressHydrationWarning lang={getLocale()}>
+    <LocaleProvider>
+      <RootDocumentInner>{children}</RootDocumentInner>
+    </LocaleProvider>
+  );
+}
+
+function RootDocumentInner({ children }: { children: ReactNode }) {
+  const { locale } = useLocale();
+
+  return (
+    <html suppressHydrationWarning lang={locale}>
       <head>
         <HeadContent />
       </head>
       <body>
         {/* We place the progress provider here otherwise we will get "Cannot render a <style> outside the main document" error */}
-        <ThemeProvider attribute="class" defaultTheme="dark">
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
           <ProgressProvider>
-            {children}
+            <Fragment key={locale}>{children}</Fragment>
             <Toaster richColors />
-            <TanStackDevtools
-              plugins={[
-                {
-                  name: "TanStack Query",
-                  render: <ReactQueryDevtoolsPanel />
-                },
-                {
-                  name: "TanStack Router",
-                  render: <TanStackRouterDevtoolsPanel />
-                },
-                formDevtoolsPlugin(),
-                a11yDevtoolsPlugin()
-              ]}
-            />
             <Scripts />
           </ProgressProvider>
         </ThemeProvider>

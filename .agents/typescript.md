@@ -16,12 +16,17 @@ src/<domain>/
 	index.ts
 ```
 
-For app-local or slice-local code, keep schemas next to the owning route, feature, or package instead of creating a global type folder.
+For app-local code, keep schemas next to the owning route-only helper,
+component area, hook, utility, or package instead of creating a global type
+folder.
 
 ## Schema Placement
 
-- Keep schemas close to the owning slice or package.
-- For app-local or package-local schemas, the default pattern is `types/thing.type.ts`.
+- Keep schemas close to the owning app area, route helper, or package.
+- For package-local schemas, the default pattern is `types/thing.type.ts`.
+- For `apps/web`, prefer a named schema file near the owner, for example
+  `routes/{-$locale}/_app/$orgSlug/-business-search.ts` for route-only search
+  validation or `utils/business-settings-defaults.ts` for pure app defaults.
 - When the same schema, enum, or default is consumed across packages, move it into `packages/core` instead of recreating literal unions in `apps/web` or `packages/api`.
 
 Example package-local schema:
@@ -71,4 +76,6 @@ ESLint-style comments (`eslint-disable-*`) also work for compatibility.
 
 ## Import Sorting (auto-enforced by Oxfmt)
 
-Order: builtins → external → `@tsu-stack/*` → `@/pages` → `@/widgets` → `@/features` → `@/entities` → `@/shared` → relative → styles
+Order: builtins → external → `@tsu-stack/*` → `@/config` → `@/providers` →
+`@/lib` → `@/utils` → `@/hooks` → `@/components` → `@/routes` → relative →
+styles

@@ -149,6 +149,16 @@ Use sibling files for helpers that are only used by that router.
 - `utils.ts` or `constants.ts` are fine when the helper is still router-local and not shared elsewhere.
 - Promote code into `packages/api/src/lib/` only when it is reused across multiple routers or is truly infrastructure-level.
 
+## Auth And Organization Procedures
+
+Prefer procedure-level authorization over trusting route guards.
+
+- Use `protectedProcedure` when authentication alone is sufficient.
+- Use `organizationProcedure(inputSchema)` for organization-owned data once the handler needs membership validation.
+- Let `organizationProcedure` verify `orgSlug`, resolve the organization, and expose `context.organizationId`.
+- Pass `context.organizationId` into DB queries instead of accepting organization IDs from the client.
+- Treat web route guards as UX and navigation gates only; server procedures still own authorization.
+
 ## Shared Contracts
 
 When an oRPC input or output schema represents a shared domain contract, source it from `packages/core` instead of redefining it locally.
@@ -159,7 +169,8 @@ When an oRPC input or output schema represents a shared domain contract, source 
 
 ## Client Error Handling
 
-Follow [API fetching patterns](./api-fetching-patterns.md) for query and mutation file structure.
+Follow [API fetching patterns](./api-fetching-patterns.md) for query and
+mutation hook structure.
 
 - Prefer type-safe client error handling for oRPC-backed mutations and user-visible failure states.
 - Import `isDefinedError` from `@orpc/client` when narrowing mutation or action errors.
@@ -177,30 +188,28 @@ import { toast } from "sonner";
 
 import { type client, orpc } from "@tsu-stack/api/client/tanstack-start/orpc";
 
-export function getEditProfileMutationOptions() {
-  return orpc.profile.edit.mutationOptions({
-    onError: (error) => {
-      if (isDefinedError(error)) {
-        switch (error.code) {
-          case "PROFILE_NOT_FOUND":
-            toast.error(error.message ?? "Profile not found.");
-            return;
-          case "RATE_LIMITED":
-            toast.error(`Try again in ${error.data.retryAfter} seconds.`);
-            return;
-          case "DATABASE_ERROR":
-            toast.error(error.message ?? "Failed to update profile.");
-            return;
-        }
-      }
-
-      toast.error(error instanceof Error ? error.message : "Failed to update profile.");
-    }
-  });
-}
-
 export function useEditProfileMutation() {
-  return useMutation(getEditProfileMutationOptions());
+  return useMutation(
+    orpc.profile.edit.mutationOptions({
+      onError: (error) => {
+        if (isDefinedError(error)) {
+          switch (error.code) {
+            case "PROFILE_NOT_FOUND":
+              toast.error(error.message ?? "Profile not found.");
+              return;
+            case "RATE_LIMITED":
+              toast.error(`Try again in ${error.data.retryAfter} seconds.`);
+              return;
+            case "DATABASE_ERROR":
+              toast.error(error.message ?? "Failed to update profile.");
+              return;
+          }
+        }
+
+        toast.error(error instanceof Error ? error.message : "Failed to update profile.");
+      }
+    })
+  );
 }
 
 export type EditProfileMutationResult = Awaited<ReturnType<typeof client.profile.edit>>;
@@ -214,4 +223,5 @@ export type EditProfileMutationResult = Awaited<ReturnType<typeof client.profile
 - Prefer `isDefinedError(error)` plus `error.code`/`error.data` for client-side branching.
 - Prefer sparse, request-scoped wide events over ad hoc per-step logs.
 - Prefer shared error handling over log-and-rethrow patterns in handlers.
-- Prefer [API fetching patterns](./api-fetching-patterns.md) for slice-local query and mutation wrappers, preloading, and cache invalidation.
+- Prefer [API fetching patterns](./api-fetching-patterns.md) for query hooks,
+  mutation hooks, preloading, and cache invalidation.

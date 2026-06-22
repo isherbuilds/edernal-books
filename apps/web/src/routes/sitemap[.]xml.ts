@@ -1,15 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { getRouteTreePathsLocalized } from "@tsu-stack/i18n/tanstack-start/lib/get-route-tree-paths-localized";
-import { stripLocalePrefix } from "@tsu-stack/i18n/tanstack-start/lib/strip-locale-prefix";
-import { type NavigateTo } from "@tsu-stack/i18n/tanstack-start/types";
-
 import { appConfig } from "@/config/app.config";
-import { routeTree } from "@/routeTree.gen";
 
-// TODO: Add routes you don't want included in the sitemap to this blacklist. Useful for routes that don't represent actual pages (e.g. redirect routes) or that you want to exclude for any reason.
-const ROUTE_BLACKLIST = [] as const satisfies ReadonlyArray<NavigateTo>;
-const ROUTE_BLACKLIST_SET = new Set<string>(ROUTE_BLACKLIST);
+const SITEMAP_PATHS = ["/", "/home", "/privacy-policy", "/terms-of-service"] as const;
 
 /**
  * If you're using subpaths, on your root domain, you need to make a sitemap index to link the subpath sitemaps.
@@ -20,30 +13,19 @@ export const Route = createFileRoute("/sitemap.xml")({
   server: {
     handlers: {
       GET: () => {
-        const allRoutes = getRouteTreePathsLocalized(routeTree);
         const { baseUrl } = appConfig.site;
         const { basePath } = appConfig.site;
-        const lastmod = new Date().toISOString().split("T")[0];
-
-        // Filter routes that should be included in sitemap
-        const routes = allRoutes.filter(shouldIncludeInSitemap);
+        const paths = getLocalizedSitemapPaths();
 
         // Remove duplicates (keep unique URLs only)
-        const uniqueUrls = new Map<string, (typeof routes)[0]>();
-        for (const route of routes) {
-          const url = normalizeUrl(baseUrl, basePath, route.path);
-          if (!uniqueUrls.has(url)) {
-            uniqueUrls.set(url, route);
-          }
-        }
+        const uniqueUrls = new Set(paths.map((path) => normalizeUrl(baseUrl, basePath, path)));
 
         const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${Array.from(
-  uniqueUrls.keys(),
+  uniqueUrls,
   (url) => `  <url>
     <loc>${escapeXml(url)}</loc>
-    <lastmod>${lastmod}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>`
@@ -76,8 +58,8 @@ function escapeXml(unsafe: string): string {
 }
 
 const BASE_PATH_REGEX = /\/+$/;
-const PATH_REGEX = /^\/+/;
 const DOUBLE_SLASH_REGEX = /([^:]\/)\/+/g;
+const PATH_REGEX = /^\/+/;
 
 function normalizeUrl(baseUrl: string, basePath: string, path: string): string {
   // Remove trailing slash from baseUrl
@@ -94,32 +76,14 @@ function normalizeUrl(baseUrl: string, basePath: string, path: string): string {
   return url.replace(BASE_PATH_REGEX, "");
 }
 
-function shouldIncludeInSitemap(route: { id: string; path: string }): boolean {
-  if (ROUTE_BLACKLIST_SET.has(stripLocalePrefix(route.path))) {
-    return false;
-  }
+function getLocalizedSitemapPaths(): string[] {
+  return appConfig.i18n.locales.flatMap((locale) =>
+    SITEMAP_PATHS.map((path) => {
+      if (locale === appConfig.i18n.baseLocale) {
+        return path;
+      }
 
-  const path = route.path.toLowerCase();
-
-  // Exclude API routes
-  if (path.includes("/_api/") || path.endsWith("/_api")) {
-    return false;
-  }
-
-  // Exclude file routes (sitemap, robots, etc)
-  if (path.includes(".")) {
-    return false;
-  }
-
-  // Exclude routes with dynamic segments that aren't in {-$locale}
-  if (path.includes("$") || path.includes(":")) {
-    return false;
-  }
-
-  // Exclude routes with special characters that might indicate internals
-  if (path.includes("_")) {
-    return false;
-  }
-
-  return true;
+      return path === "/" ? `/${locale}` : `/${locale}${path}`;
+    })
+  );
 }
