@@ -42,7 +42,8 @@ Decision record: `docs/decisions/0001-accounting-foundation-spine.md`
 
 ## Current Progress
 
-Phase 0 is the active phase.
+Phase 0 code is complete. Phase 1 remains paused until the local database
+migration is applied and the completion gate is verified.
 
 Done:
 
@@ -54,14 +55,15 @@ Done:
 - API context carries eager `authSession`, DB client, and request logger.
 - `organizationProcedure` verifies membership from client-provided `orgSlug` and exposes canonical `organizationId`.
 - Organization settings get/upsert procedures are wired.
-- Organization settings upsert writes settings and best-effort user audit, then returns `{ ok: true, organizationId }`.
-- Currency seed migration inserts `INR`, `USD`, `EUR`, and `GBP`.
+- Organization settings upsert writes settings and audit in one transaction, then returns `{ ok: true, organizationId }`.
+- Fresh baseline migration creates current schema and seeds `INR`, `USD`, `EUR`, and `GBP`.
 - Role permission helpers/tests exist in `packages/auth`.
 - Organization membership, settings audit, and schema invariant tests exist.
+- Business onboarding UI creates/selects a Better Auth business by slug.
+- Business settings UI reads and writes `organization_setting` through the organization settings procedures.
 
 Not done:
 
-- Business onboarding/settings UI.
 - Local migration apply is blocked until local Postgres/Docker is running.
 - Transactional outbox writes for commands that have real async consumers.
 - Phase 1 accounting kernel schema and posting services.

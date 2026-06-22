@@ -5,19 +5,24 @@ import {
 import { getLocalizedCanonicalPath } from "#@/tanstack-start/utils/get-localized-canonical-path";
 import { resolveRelativePathToAbsoluteUrl } from "#@/tanstack-start/utils/resolve-relative-path-to-absolute-url";
 
+const LEADING_SLASHES_REGEX = /^\/+/;
+const TRAILING_SLASHES_REGEX = /\/+$/;
+
 export function generateTanStackStartAlternateLinks({
   baseLocale,
+  basePath,
   baseUrl,
   canonicalPath,
   locale,
   locales
 }: TanStackStartSeoAlternates & {
+  basePath?: string;
   baseUrl: string;
 }): TanStackStartSeoLinkTag[] {
   const links: TanStackStartSeoLinkTag[] = [
     {
       href: resolveRelativePathToAbsoluteUrl(
-        getLocalizedCanonicalPath({ baseLocale, canonicalPath, locale }),
+        withBasePath(getLocalizedCanonicalPath({ baseLocale, canonicalPath, locale }), basePath),
         { baseUrl }
       ),
       rel: "canonical"
@@ -31,11 +36,14 @@ export function generateTanStackStartAlternateLinks({
   for (const currentLocale of locales) {
     links.push({
       href: resolveRelativePathToAbsoluteUrl(
-        getLocalizedCanonicalPath({
-          baseLocale,
-          canonicalPath,
-          locale: currentLocale
-        }),
+        withBasePath(
+          getLocalizedCanonicalPath({
+            baseLocale,
+            canonicalPath,
+            locale: currentLocale
+          }),
+          basePath
+        ),
         { baseUrl }
       ),
       hrefLang: currentLocale,
@@ -46,11 +54,14 @@ export function generateTanStackStartAlternateLinks({
   if (baseLocale) {
     links.push({
       href: resolveRelativePathToAbsoluteUrl(
-        getLocalizedCanonicalPath({
-          baseLocale,
-          canonicalPath,
-          locale: baseLocale
-        }),
+        withBasePath(
+          getLocalizedCanonicalPath({
+            baseLocale,
+            canonicalPath,
+            locale: baseLocale
+          }),
+          basePath
+        ),
         { baseUrl }
       ),
       hrefLang: "x-default",
@@ -59,4 +70,21 @@ export function generateTanStackStartAlternateLinks({
   }
 
   return links;
+}
+
+function withBasePath(path: `/${string}`, basePath: string | undefined): `/${string}` {
+  const normalizedBasePath = basePath
+    ?.trim()
+    .replace(LEADING_SLASHES_REGEX, "")
+    .replace(TRAILING_SLASHES_REGEX, "");
+
+  if (!normalizedBasePath) {
+    return path;
+  }
+
+  if (path === "/") {
+    return `/${normalizedBasePath}/`;
+  }
+
+  return `/${normalizedBasePath}/${path.replace(LEADING_SLASHES_REGEX, "")}`;
 }

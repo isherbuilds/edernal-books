@@ -82,6 +82,7 @@ export const organization = pgTable(
     slug: text("slug").notNull().unique(),
     logo: text("logo"),
     createdAt: timestamp("created_at").notNull(),
+    onboardingCompletedAt: timestamp("onboarding_completed_at"),
     metadata: text("metadata")
   },
   (table) => [uniqueIndex("organization_slug_uidx").on(table.slug)]

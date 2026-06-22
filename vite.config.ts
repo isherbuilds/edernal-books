@@ -1,7 +1,5 @@
 import { defineConfig } from "vite-plus";
 
-import { tanstackStartFsdLint } from "./tools/vite-plus/tanstack-start-fsd.lint.ts";
-
 /**
  * Defines top-level Vite+ configurations for the different tools in its ecosystem.
  * @see {@link https://viteplus.dev/config}
@@ -45,35 +43,45 @@ export default defineConfig({
           groupName: "@tsu-stack"
         },
         {
-          elementNamePattern: ["@/pages/**"],
-          groupName: "pages"
+          elementNamePattern: ["@/config/**"],
+          groupName: "config"
         },
         {
-          elementNamePattern: ["@/widgets/**"],
-          groupName: "widgets"
+          elementNamePattern: ["@/providers/**"],
+          groupName: "providers"
         },
         {
-          elementNamePattern: ["@/features/**"],
-          groupName: "features"
+          elementNamePattern: ["@/lib/**"],
+          groupName: "lib"
         },
         {
-          elementNamePattern: ["@/entities/**"],
-          groupName: "entities"
+          elementNamePattern: ["@/utils/**"],
+          groupName: "utils"
         },
         {
-          elementNamePattern: ["@/shared/**"],
-          groupName: "shared"
+          elementNamePattern: ["@/hooks/**"],
+          groupName: "hooks"
+        },
+        {
+          elementNamePattern: ["@/components/**"],
+          groupName: "components"
+        },
+        {
+          elementNamePattern: ["@/routes/**"],
+          groupName: "routes"
         }
       ],
       groups: [
         "builtin",
         "external",
         "@tsu-stack",
-        "shared",
-        "entities",
-        "features",
-        "widgets",
-        "pages",
+        "config",
+        "providers",
+        "lib",
+        "utils",
+        "hooks",
+        "components",
+        "routes",
         ["internal", "subpath"],
         ["parent", "sibling", "index"],
         "style",
@@ -111,6 +119,7 @@ export default defineConfig({
       "*.md"
     ],
     jsPlugins: [
+      { name: "vite-plus", specifier: "vite-plus/oxlint-plugin" },
       { name: "react-hooks-js", specifier: "eslint-plugin-react-hooks" },
       /**
        * FIXME: Plugins with "/" in name have to be aliased for now
@@ -139,17 +148,10 @@ export default defineConfig({
     ],
     // #endregion
 
-    // #region App-specific lint overrides
-    overrides: [
-      {
-        files: ["apps/web/src/**/*.ts", "apps/web/src/**/*.tsx"],
-        ...tanstackStartFsdLint
-      }
-    ],
-    // #endregion
-
     // #region Shared lint rules
     rules: {
+      // Rules from the original `vp create` default ruleset
+      "vite-plus/prefer-vite-plus-imports": "error",
       // Tanstack Router rules, ref: https://tanstack.com/router/latest/docs/eslint/eslint-plugin-router
       "eslint-tanstack-router/create-route-property-order": "error",
       // Tanstack Query rules, ref: https://tanstack.com/query/latest/docs/eslint/eslint-plugin-query

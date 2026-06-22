@@ -60,7 +60,7 @@
   }
 
   body {
-    /* Apply Tailwind background + text colors based on theme.css file */
+    /* Apply Tailwind background + text colors from base theme variables */
     @apply bg-background text-foreground;
   }
 

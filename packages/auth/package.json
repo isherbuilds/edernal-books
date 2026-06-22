@@ -20,7 +20,7 @@
     "@tsu-stack/tsconfig": "workspace:*",
     "@types/node": "catalog:",
     "typescript": "catalog:",
-    "vitest": "catalog:"
+    "vite-plus": "catalog:"
   },
   "peerDependencies": {
     "@tanstack/react-query": "catalog:",

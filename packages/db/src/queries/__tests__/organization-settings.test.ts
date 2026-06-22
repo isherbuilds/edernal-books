@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 
 import {
   buildOrganizationSettingAuditRow,
@@ -6,11 +6,15 @@ import {
 } from "#@/queries/organization-settings";
 
 describe("organization settings query helpers", () => {
-  it("normalizes settings writes with Phase 0 defaults", () => {
+  it("normalizes nullable settings write columns", () => {
     const values = toOrganizationSettingInsert({
+      baseCurrencyCode: "INR",
       booksStartDate: "2026-04-01",
+      countryCode: "IN",
+      fiscalYearStartMonth: 4,
       legalName: "Edernal Books",
-      organizationId: "org_1"
+      organizationId: "org_1",
+      timezone: "Asia/Kolkata"
     });
 
     expect(values).toMatchObject({
@@ -27,12 +31,16 @@ describe("organization settings query helpers", () => {
     });
   });
 
-  it("builds non-blocking user audit rows for settings upserts", () => {
+  it("builds user audit rows for settings upserts", () => {
     const row = buildOrganizationSettingAuditRow({
+      baseCurrencyCode: "INR",
       booksStartDate: "2026-04-01",
+      countryCode: "IN",
+      fiscalYearStartMonth: 4,
       legalName: "Edernal Books",
       organizationId: "org_1",
       source: "user",
+      timezone: "Asia/Kolkata",
       userId: "user_1"
     });
 

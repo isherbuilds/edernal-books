@@ -63,7 +63,7 @@ Move UI here only when it is:
 - free of route, locale, auth, env, and analytics dependencies;
 - useful outside one feature.
 
-Keep wrappers in `apps/web/src/shared/ui` when they need app behavior.
+Keep wrappers in `apps/web/src/components` when they need app behavior.
 
 ## Gotchas
 

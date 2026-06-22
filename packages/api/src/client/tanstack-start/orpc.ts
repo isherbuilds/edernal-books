@@ -6,7 +6,7 @@ import { createIsomorphicFn } from "@tanstack/react-start";
 import { getRequestHeaders } from "@tanstack/react-start/server";
 
 import { auth } from "@tsu-stack/auth/index";
-import { db } from "@tsu-stack/db";
+import { db } from "@tsu-stack/db/client";
 import { ENV_WEB_ISOMORPHIC } from "@tsu-stack/env/web/env.isomorphic";
 import { createLogger } from "@tsu-stack/logger/server";
 
