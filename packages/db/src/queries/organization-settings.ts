@@ -1,8 +1,6 @@
 import { eq } from "drizzle-orm";
 
-import { log } from "@tsu-stack/logger/server";
-
-import { type Database, type DatabaseOrTransaction } from "#@/client";
+import { type DatabaseOrTransaction } from "#@/client";
 import { auditEvent } from "#@/schema/audit";
 import { organizationSetting } from "#@/schema/organization";
 
@@ -73,17 +71,11 @@ export async function upsertOrganizationSetting(
     });
 }
 
-export function logOrganizationSettingAudit(
-  db: Database,
+export async function logOrganizationSettingAudit(
+  dbOrTx: DatabaseOrTransaction,
   input: OrganizationSettingAuditInput
-): void {
-  void insertOrganizationSettingAudit(db, input).catch((error) => {
-    log.warn({
-      error,
-      event: "organization_setting_audit_failed",
-      organizationId: input.organizationId
-    });
-  });
+): Promise<void> {
+  await insertOrganizationSettingAudit(dbOrTx, input);
 }
 
 export function toOrganizationSettingInsert(
@@ -126,8 +118,8 @@ export function buildOrganizationSettingAuditRow(
 }
 
 async function insertOrganizationSettingAudit(
-  db: Database,
+  dbOrTx: DatabaseOrTransaction,
   input: OrganizationSettingAuditInput
 ): Promise<void> {
-  await db.insert(auditEvent).values(buildOrganizationSettingAuditRow(input));
+  await dbOrTx.insert(auditEvent).values(buildOrganizationSettingAuditRow(input));
 }

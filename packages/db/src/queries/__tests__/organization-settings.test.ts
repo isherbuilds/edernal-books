@@ -51,4 +51,19 @@ describe("organization settings query helpers", () => {
       }
     });
   });
+
+  it("defaults audit metadata source to user when omitted", () => {
+    const row = buildOrganizationSettingAuditRow({
+      booksStartDate: "2026-04-01",
+      legalName: "Edernal Books",
+      organizationId: "org_1",
+      userId: "user_1"
+    });
+
+    expect(row.payloadJson).toMatchObject({
+      metadata: {
+        source: "user"
+      }
+    });
+  });
 });

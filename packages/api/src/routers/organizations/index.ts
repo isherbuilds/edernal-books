@@ -49,12 +49,13 @@ export const organizationsRouter = {
           tradeName: input.tradeName
         };
 
-        await upsertOrganizationSetting(context.db, settingInput);
-
-        logOrganizationSettingAudit(context.db, {
-          ...settingInput,
-          source: "user",
-          userId: context.authSession.user.id
+        await context.db.transaction(async (tx) => {
+          await upsertOrganizationSetting(tx, settingInput);
+          await logOrganizationSettingAudit(tx, {
+            ...settingInput,
+            source: "user",
+            userId: context.authSession.user.id
+          });
         });
 
         return {
@@ -66,7 +67,7 @@ export const organizationsRouter = {
 };
 
 function toOrganizationSettingOutput(row: OrganizationSettingRow): OrganizationSetting {
-  return {
+  return OrganizationSettingSchema.parse({
     baseCurrencyCode: row.baseCurrencyCode,
     booksStartDate: row.booksStartDate,
     countryCode: row.countryCode,
@@ -79,5 +80,5 @@ function toOrganizationSettingOutput(row: OrganizationSettingRow): OrganizationS
     timezone: row.timezone,
     tradeName: row.tradeName,
     updatedAt: row.updatedAt.toISOString()
-  };
+  });
 }

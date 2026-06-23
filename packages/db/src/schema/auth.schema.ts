@@ -79,7 +79,7 @@ export const organization = pgTable(
   {
     id: text("id").primaryKey(),
     name: text("name").notNull(),
-    slug: text("slug").notNull().unique(),
+    slug: text("slug").notNull(),
     logo: text("logo"),
     createdAt: timestamp("created_at").notNull(),
     metadata: text("metadata")
@@ -101,7 +101,7 @@ export const member = pgTable(
     createdAt: timestamp("created_at").notNull()
   },
   (table) => [
-    index("member_organizationId_idx").on(table.organizationId),
+    uniqueIndex("member_organizationId_userId_uidx").on(table.organizationId, table.userId),
     index("member_userId_idx").on(table.userId)
   ]
 );

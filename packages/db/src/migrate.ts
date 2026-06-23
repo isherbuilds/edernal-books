@@ -48,7 +48,7 @@ export async function migrateDatabase(): Promise<void> {
   for (let attempt = 1; attempt <= MIGRATION_MAX_ATTEMPTS; attempt++) {
     try {
       await migrate(db, {
-        migrationsFolder: join(import.meta.dirname, "migrations")
+        migrationsFolder: join(import.meta.dirname, "../migrations")
       });
       log.emit({ attempt, event: "database_migration_completed" });
       return;
