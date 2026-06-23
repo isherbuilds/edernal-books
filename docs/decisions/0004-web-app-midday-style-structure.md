@@ -11,9 +11,9 @@ Accepted
 ## Context
 
 The web app had UI split across `routes`, `pages`, `features`, `widgets`, and
-`shared`. That made ownership hard to read: the main route lived in one place,
-page composition in another, feature UI elsewhere, and app-wide wrappers under a
-large `shared` bucket.
+`shared`. That fragmented ownership: the main route lived in one place, page
+composition in another, feature UI elsewhere, and app-wide wrappers under a large
+`shared` bucket.
 
 Midday's dashboard app uses a flatter, more direct structure. Representative
 patterns:

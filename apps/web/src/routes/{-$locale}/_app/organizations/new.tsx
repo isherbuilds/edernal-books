@@ -13,7 +13,7 @@ export const Route = createFileRoute("/{-$locale}/_app/organizations/new")({
         canonicalPath: "/organizations/new",
         locale: params.locale
       },
-      description: "Create or join a business workspace for Edernal Books.",
+      description: `Create or join a business workspace for ${appConfig.site.shortName}.`,
       robots: {
         follow: false,
         index: false
