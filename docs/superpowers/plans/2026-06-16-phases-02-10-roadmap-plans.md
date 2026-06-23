@@ -22,9 +22,44 @@ All later phases build on:
 - `journal_line`.
 - `audit_event`.
 - `outbox_event`.
-- `idempotency_ledger`.
+- operation-local idempotency at posting boundaries.
 
 Do not reintroduce `business_profile`, `account_group`, simple `journal`, `internal_event`, `audit_log`, document-specific sequence tables, or app-owned API-key tables.
+
+## Roadmap Architecture Map
+
+```mermaid
+flowchart TD
+  Foundation["Phase 0-1 foundation<br/>tenant, audit, outbox, journal"] --> OwnerDocs["Phase 2 owner documents"]
+  OwnerDocs --> GST["Phase 3 GST"]
+  OwnerDocs --> Bank["Phase 4 bank"]
+  GST --> Bank
+  Bank --> AI["Phase 5 AI"]
+  AI --> Integrations["Phase 6 API/integrations"]
+  OwnerDocs --> Service["Phase 7 service SMB"]
+  Foundation --> Accountant["Phase 8 accountant mode"]
+  OwnerDocs --> Trade["Phase 9 trade/inventory"]
+  GST --> TaxEngine["Phase 10 country tax engine"]
+```
+
+Shared service pattern for every later phase:
+
+```mermaid
+sequenceDiagram
+  participant UI as Phase UI/API client
+  participant Service as Phase service
+  participant Core as Pure rules/contracts
+  participant Ledger as Journal posting service
+  participant DB as Tenant transaction
+  participant Events as Audit/outbox
+
+  UI->>Service: Command
+  Service->>Core: Validate deterministic rules
+  Service->>Ledger: Post or link journals when needed
+  Service->>DB: Write phase tables
+  Service->>Events: Audit and outbox
+  Service-->>UI: Result
+```
 
 ## Phase 02: Owner Workflow MVP
 

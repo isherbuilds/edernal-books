@@ -43,7 +43,7 @@ Transport contract layer.
 Persistence layer.
 
 - Owns Drizzle schema, relations, DB client, migrations, DB-local errors, and reusable query functions.
-- Query functions accept `db` or `tx` first, then one input object containing `orgId`/tenant scope.
+- Query functions accept `db` or `tx` first, then one input object containing verified `organizationId` tenant scope.
 - No web, Hono, oRPC, Better Auth UI, or logger-request concepts inside query functions unless explicitly part of audit/outbox metadata.
 
 Preferred future shape:
@@ -178,7 +178,7 @@ Recommended order:
 2. Request logger/request id middleware.
 3. Infrastructure public routes: log ingestion, health, auth, docs redirects.
 4. Public external routes that need raw request access.
-5. oRPC/OpenAPI catch-all with one context creation path.
+5. One oRPC/OpenAPI dispatcher for RPC, docs/spec, and REST mapping.
 6. Global `app.onError` for unhandled Hono errors.
 
 Procedure middleware belongs in `packages/api/src/lib/procedures/factory.ts`.
@@ -221,10 +221,13 @@ Use Better Auth as the identity source. Use org/member context for tenant scope.
 
 Rules:
 
-- Session auth stays inside `protectedProcedure` and `createContext`.
-- Handlers read `context.session` and org fields; they do not parse cookies or headers directly.
-- DB query inputs include `orgId` explicitly for org-owned data.
-- Never trust `orgId` from client input unless it is checked against current Better Auth membership.
+- Request context carries Better Auth `authSession` as `AuthSession | null`.
+- Auth-only routes use `protectedProcedure`; tenant routes use `organizationProcedure(inputSchema)`.
+- Handlers read `context.authSession` and org fields after procedure middleware narrows context; they do not parse cookies or headers directly.
+- Client-facing organization-scoped procedure inputs use `orgSlug` only.
+- `organizationProcedure` verifies slug membership and adds canonical `organizationId` to context.
+- DB query inputs include `organizationId` explicitly for org-owned data.
+- Never trust tenant scope from client input unless it is checked against current Better Auth membership.
 - External API keys and OAuth access tokens should resolve to the same internal shape: user, org, scopes, and request metadata.
 
 ## DB Query Layer
@@ -236,7 +239,7 @@ Function shape:
 ```ts
 export async function listInvoices(
   db: DatabaseOrTransaction,
-  input: { orgId: string; cursor?: string; limit?: number }
+  input: { organizationId: string; cursor?: string; limit?: number }
 ) {
   // Drizzle query here
 }
@@ -246,9 +249,12 @@ Rules:
 
 - Pass `db` or `tx` as the first arg so callers can run transactions.
 - Pass one typed object as the second arg.
-- Require `orgId` for every org-owned query.
+- Require `organizationId` for every org-owned query.
 - Return DB-native records or clearly named projections; transport mapping stays in API unless projection is shared.
 - Keep audit/outbox/idempotency writes in the same transaction as the business write.
+- Fire-and-forget activity logging is allowed only for non-critical UX/history
+  trails, must catch/log its own failures, and must not be described as durable
+  accounting audit.
 - Avoid importing `db` singleton inside query functions. Let callers choose db/tx.
 
 ## Cache
@@ -301,7 +307,7 @@ If replicas are introduced later:
 - Keep routing in `packages/db`, not per handler.
 - Mutations always use primary.
 - Reads after mutation should use primary for the affected org for a short TTL.
-- Use one org-scoped marker like `org:<orgId>:primary-until`.
+- Use one org-scoped marker like `org:<organizationId>:primary-until`.
 - Middleware can mark primary-after-write, but query functions should not know about HTTP methods.
 
 ## External Routes And Webhooks
@@ -408,7 +414,8 @@ Use code-bearing errors for cross-package failures:
 
 ## Naming
 
-- Use `orgId` for this repo's tenant boundary.
+- Use `orgSlug` for user-facing route/API inputs.
+- Use `organizationId` for the verified DB tenant boundary.
 - Use `requestId` for per-request correlation only.
 - Use `idempotencyKey` for deduping commands/events.
 - Use `providerEventId` for external webhook dedupe.
@@ -419,7 +426,9 @@ Use code-bearing errors for cross-package failures:
 
 ## Glossary
 
-- `RLS inventory`: checklist of tables and required row-level security behavior. It is not stock/inventory management.
+- `tenant-scope inventory`: checklist of app-owned tables that must carry
+  `organization_id` and be queried with explicit organization scope. It is not
+  stock/inventory management.
 - `orgSnapshot`: immutable copy of org settings at the time of an operation. Needed when invoices, journals, audit rows, or external exports must keep historical org details even if org settings change later.
 - `requestId`: correlation id for logs, audit, support, and tracing.
 - `idempotency`: dedupe mechanism that makes retried commands safe.

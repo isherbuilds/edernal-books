@@ -25,12 +25,19 @@ Adopt the durable accounting spine:
 
 - Better Auth `organization` is the business tenant.
 - App-owned tenant tables use `organization_id` matching the generated Better Auth organization ID type.
-- In this repo today, generated Better Auth IDs are text, so RLS, PostgreSQL row-level security, compares `organization_id` as text and does not cast to UUID.
-- Phase 0 owns `organization_setting`, `currency`, `audit_event`, `outbox_event`, `idempotency_ledger`, and RLS transaction helpers.
+- In this repo today, generated Better Auth IDs are text, so app-owned tenant
+  foreign keys store `organization_id` as text and do not cast to UUID.
+- Phase 0 owns `organization_setting`, `currency`, `audit_event`, and
+  `outbox_event`.
 - Phase 1 owns `fiscal_year`, `accounting_period`, `ledger_account`, `number_sequence`, minimal `source_document`, `journal_batch`, and `journal_line`.
 - `organization_setting` stays narrow. PAN, GSTIN, registered addresses, branch locations, invoice profile details, and tax registration data are added with the later workflows that consume them.
-- `source_document` is a traceability shell, not an idempotency authority. Raw idempotency keys stay only in `idempotency_ledger`.
-- Later phases must use `number_sequence`, `journal_batch`, `audit_event`, `outbox_event`, and `idempotency_ledger`; they must not reintroduce `document_sequence`, simple `journal`, `audit_log`, or `internal_event`.
+- `requestId` is tracing only. Duplicate protection for money-moving commands
+  uses operation-local command keys, provider ids, natural keys, or
+  domain-owned unique constraints.
+- `source_document` is a traceability shell, not a generic idempotency authority.
+- Later phases must use `number_sequence`, `journal_batch`, `audit_event`,
+  `outbox_event`, and operation-local idempotency; they must not reintroduce
+  `document_sequence`, simple `journal`, `audit_log`, or `internal_event`.
 
 ## Alternatives Considered
 
@@ -51,4 +58,6 @@ Rejected for now. Parties and taxes are important, but Phase 1 should prove the 
 - Implementation agents should read the plan-set index and schema revision before any phase plan.
 - The old v2 spine draft should not remain as an execution plan.
 - Any later decision to introduce `packages/domain`, `packages/shared`, or `@app/*` imports needs a new ADR.
-- RLS verification must check active migration tables and runtime role behavior, not only TypeScript schema shape. This is a tenant-data safety check, not stock/inventory behavior.
+- Tenant isolation is app-enforced for MVP. See
+  [ADR-0002](0002-defer-postgresql-rls-for-mvp.md) for the database URL and
+  PostgreSQL RLS decision.

@@ -10,6 +10,36 @@
 
 ---
 
+## Architecture Flow
+
+```mermaid
+flowchart TD
+  Quotes["quote"] --> DraftInvoice["draft invoice"]
+  Recurring["recurring_invoice_rule"] --> Run["recurring_invoice_run"]
+  Run --> DraftInvoice
+  Retainer["retainer"] --> Liability["liability journal"]
+  Retainer --> Application["retainer_application"]
+  Project["project + timesheet_entry"] --> DraftInvoice
+  DraftInvoice --> Phase2["Phase 2 invoice service"]
+  Phase2 --> Ledger["journal posting service"]
+```
+
+Recurring invoice run:
+
+```mermaid
+sequenceDiagram
+  participant Scheduler as Scheduler/job
+  participant Rule as Recurring rule service
+  participant Invoice as Invoice service
+  participant DB as Tenant transaction
+
+  Scheduler->>Rule: Run due rules
+  Rule->>DB: Claim recurring_invoice_run
+  Rule->>Invoice: Create draft invoice
+  Invoice->>DB: Save draft and events
+  Rule-->>Scheduler: Run result
+```
+
 ## Foundation Alignment
 
 Before executing this plan, reconcile it with `docs/superpowers/plans/2026-06-17-accounting-foundation-schema-revision-plan.md`.

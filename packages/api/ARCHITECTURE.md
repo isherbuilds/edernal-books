@@ -1,0 +1,123 @@
+# @tsu-stack/api Architecture
+
+`packages/api` is the transport layer between runtime apps and domain packages.
+Its job is to make procedure behavior explicit: context, auth, input/output,
+errors, OpenAPI metadata, and orchestration.
+
+## Current Router Graph
+
+```mermaid
+flowchart TD
+  AppRouter["appRouter"] --> Health["healthRouter"]
+  AppRouter --> Organizations["organizationsRouter"]
+  AppRouter --> Private["privateRouter"]
+  Health --> Public["publicProcedure"]
+  Private --> Protected["protectedProcedure"]
+  Organizations --> OrgProcedure["organizationProcedure(schema)"]
+  Protected --> AuthMiddleware["requireAuth middleware"]
+  OrgProcedure --> Membership["auth + membership lookup"]
+  Health --> HealthCore["@tsu-stack/core/health schemas"]
+  Health --> DBReady["@tsu-stack/db checkIsDbReady"]
+  Organizations --> OrgCore["@tsu-stack/core/organizations"]
+  Organizations --> OrgQueries["@tsu-stack/db/queries"]
+```
+
+## Procedure Factories
+
+```mermaid
+flowchart LR
+  OS["os.$context<OrpcContext>()"] --> Public["publicProcedure"]
+  Public --> Protected["protectedProcedure"]
+  Protected --> RequireAuth["requireAuth middleware"]
+  RequireAuth --> SessionContext["context.authSession narrowed"]
+  Protected --> OpenAPI["authCookie security metadata"]
+  Public --> OrgProcedure["organizationProcedure(inputSchema)"]
+  OrgProcedure --> OrgInput["top-level orgSlug input"]
+  OrgInput --> Membership["authSession + membership verification"]
+```
+
+`protectedProcedure` rejects when the Better Auth `authSession.user` is missing and adds
+OpenAPI security metadata.
+
+Tenant routes use `organizationProcedure(inputSchema)`. The schema parses a
+top-level `orgSlug`; the procedure loads `authSession`, verifies membership in
+the `member` table, and exposes `authSession`, `organizationId`,
+`organizationSlug`, `organizationRole`, and `organizationMembership` to
+handlers. Keep the membership check inline in the procedure factory while there
+is only one consumer. Role-specific authorization should be a separate named
+middleware when needed.
+
+## Context Contract
+
+Current `OrpcContext`:
+
+| Field                    | Source                                          | Purpose                                                         |
+| ------------------------ | ----------------------------------------------- | --------------------------------------------------------------- |
+| `db`                     | `@tsu-stack/db` request context                 | database client used by procedures and middleware               |
+| `authSession`            | `createContext`                                 | Better Auth session plus user, or `null` for anonymous requests |
+| `logger`                 | Hono logger middleware or server client context | request or operation logger                                     |
+| `organizationId`         | `organizationProcedure`                         | verified organization id for tenant-owned routes                |
+| `organizationSlug`       | `organizationProcedure`                         | verified organization slug for stable route references          |
+| `organizationRole`       | `organizationProcedure`                         | Better Auth member role                                         |
+| `organizationMembership` | `organizationProcedure`                         | membership row used for authorization decisions                 |
+
+Future accounting phases should pass request id and IP/user-agent through
+explicit contracts when audit metadata needs them. Idempotency belongs on the
+specific command input that needs duplicate protection, not in global context.
+
+## Organization Settings Router
+
+`routers/organizations` is the first tenant-scoped example:
+
+- input/output schemas live in `@tsu-stack/core/organizations`;
+- membership verification lives in `organizationProcedure`;
+- read/write helpers live in `@tsu-stack/db/queries`;
+- settings mutations return a tiny success envelope, not the full saved row;
+- settings writes emit best-effort audit rows without blocking
+  the response. Use durable awaited audit/outbox only for accounting-critical
+  writes or real async consumers.
+
+## Health Router
+
+```mermaid
+sequenceDiagram
+  participant Caller
+  participant Health as healthRouter.ready
+  participant DB as checkIsDbReady
+
+  Caller->>Health: GET ready
+  Health->>DB: SELECT 1 with timeout
+  alt all checks healthy
+    Health-->>Caller: status healthy + checks
+  else any check fails
+    Health-->>Caller: SERVICE_UNAVAILABLE + checks
+  end
+```
+
+Health routes stay public and explicitly clear security metadata.
+
+## Extension Pattern
+
+New internal app routers should follow:
+
+```text
+packages/api/src/routers/<domain>/
+  index.ts       # procedure definitions
+  helpers.ts     # transport-local helpers only
+```
+
+Promote helpers when:
+
+- shared schemas go to `packages/core`;
+- DB logic gets reused or needs transactions, then goes to `packages/db`;
+- provider/integration behavior gets its own domain package;
+- web query wrappers stay in `apps/web`, not here.
+
+## Public API Future
+
+Phase 6 adds stable public API. Until then:
+
+- do not promise `/api/v1` semantics;
+- do not expose API-key auth from normal app procedure middleware;
+- keep external route modules separate when raw requests/signatures matter;
+- use OpenAPI generation as docs for current app routes, not a third-party SLA.

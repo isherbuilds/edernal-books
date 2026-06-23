@@ -1,0 +1,354 @@
+# Architecture
+
+Edernal Books uses the existing `tsu-stack` monorepo as a platform for an
+owner-first accounting product. The architecture prioritizes type-safe
+boundaries, deterministic accounting services, explicit tenancy, and fast UI
+delivery.
+
+## Design Goals
+
+- Keep runtime shells thin.
+- Keep business contracts shared through `packages/core`.
+- Keep persistence and migrations inside `packages/db`.
+- Keep transport concerns in `packages/api`.
+- Keep owner-facing UI in `apps/web`, with shared primitives in `packages/ui`.
+- Keep accounting correctness in pure packages before wiring it into API/UI.
+- Prefer simple, measurable performance wins over speculative infrastructure.
+
+## Current Package Graph
+
+```mermaid
+flowchart LR
+  subgraph Apps
+    Web["apps/web<br/>TanStack Start"]
+    Server["apps/server<br/>Hono"]
+  end
+
+  subgraph Packages
+    API["packages/api<br/>oRPC routers/client"]
+    Auth["packages/auth<br/>Better Auth"]
+    Core["packages/core<br/>schemas/helpers"]
+    DB["packages/db<br/>Drizzle/Postgres"]
+    Env["packages/env<br/>Zod env"]
+    Logger["packages/logger<br/>evlog facade"]
+    I18n["packages/i18n<br/>Paraglide"]
+    SEO["packages/seo<br/>head helpers"]
+    UI["packages/ui<br/>shared primitives"]
+  end
+
+  Web --> API
+  Web --> Auth
+  Web --> Core
+  Web --> Env
+  Web --> I18n
+  Web --> Logger
+  Web --> SEO
+  Web --> UI
+
+  Server --> API
+  Server --> Auth
+  Server --> DB
+  Server --> Env
+  Server --> Logger
+
+  API --> Auth
+  API --> Core
+  API --> DB
+  API --> Env
+  API --> Logger
+  Auth --> DB
+  Auth --> Env
+  DB --> Env
+  DB --> Logger
+```
+
+## Runtime Boundaries
+
+| Boundary          | Owns                                                                    | Does not own                                                          |
+| ----------------- | ----------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `apps/web`        | Routes, route-level data loading, page composition, app wrappers        | DB queries, Hono middleware, reusable domain contracts                |
+| `apps/server`     | Process startup, Hono app, CORS, auth mount, docs mount, request logger | Domain business logic, reusable DB queries                            |
+| `packages/api`    | oRPC routers, context, procedure factories, typed transport errors      | React UI, process startup, schema migrations                          |
+| `packages/auth`   | Better Auth config, auth client/hooks/query helpers                     | App-specific accounting authorization rules beyond shared permissions |
+| `packages/core`   | Pure contracts, constants, formatters, shared Zod schemas               | DB, env, logger, React, Hono, oRPC                                    |
+| `packages/db`     | Drizzle schema, migrations, DB client, query helpers                    | UI, transport response shape, auth cookies                            |
+| `packages/env`    | Runtime env validation                                                  | Business logic and feature flags without code consumers               |
+| `packages/logger` | Client/server/request logging facade                                    | Analytics product logic or arbitrary console logging                  |
+| `packages/ui`     | App-agnostic components/styles/hooks                                    | Router, locale, auth, env, analytics                                  |
+
+## Server Request Flow
+
+```mermaid
+sequenceDiagram
+  participant Client as Web client
+  participant Hono as apps/server Hono
+  participant Log as logger middleware
+  participant Auth as Better Auth
+  participant API as oRPC handler
+  participant DB as Drizzle/Postgres
+
+  Client->>Hono: Request under /server
+  Hono->>Hono: CORS
+  Hono->>Log: Create request log
+  alt /_logs/ingest
+    Hono->>Log: Accept browser log batch
+  else /auth/*
+    Hono->>Auth: Delegate raw request
+  else /rpc/* or /docs/*
+    Hono->>API: createContext + handle request
+    API->>Auth: Read session
+    API->>DB: Execute query/mutation
+    DB-->>API: Result
+    API-->>Hono: Typed response
+  end
+  Hono-->>Client: Response
+```
+
+Middleware order lives in [../apps/server/ARCHITECTURE.md](../apps/server/ARCHITECTURE.md).
+
+## Tenant Mutation Flow
+
+Use this flow for organization-scoped app mutations:
+
+```mermaid
+sequenceDiagram
+  participant Client as Web client
+  participant Hono as apps/server Hono
+  participant Log as request logger
+  participant API as oRPC procedure
+  participant Auth as Better Auth
+  participant DB as Drizzle/Postgres
+  participant Audit as audit_event
+
+  Client->>Hono: Mutating request with orgSlug
+  Hono->>Log: Attach requestId for tracing
+  Hono->>API: Parse route and Zod input
+  API->>Auth: Require authSession.user
+  API->>DB: Check membership by userId + orgSlug
+  DB-->>API: organizationId + role
+  API->>Log: Add organization metadata
+  API->>DB: Run organization-scoped write with organizationId
+  alt accounting command needing duplicate protection
+    API->>DB: Use operation-local command key or natural unique key
+  end
+  alt non-critical settings audit
+    API->>Audit: Fire-and-forget best-effort audit row
+  else accounting-critical audit/outbox
+    API->>DB: Await audit/outbox in same transaction
+  end
+  API-->>Client: Small success envelope or DTO
+```
+
+`requestId` is observability only. It identifies one HTTP attempt in logs and
+audit metadata; it is not a duplicate-prevention key. Accounting commands that
+can create money-moving records must use operation-local idempotency, such as a
+posted batch command key, source document natural key, provider request id, or a
+domain-owned unique constraint.
+
+## Web Rendering Flow
+
+```mermaid
+flowchart TD
+  Route["TanStack route"] --> Root["__root.tsx shell"]
+  Root --> Query["React Query provider"]
+  Root --> LoggerProvider["Logger provider"]
+  Root --> Theme["Theme + progress providers"]
+  Route --> Loader["loader / beforeLoad"]
+  Loader --> APIClient["@tsu-stack/api client"]
+  Route --> SEO["@tsu-stack/seo route head"]
+  Route --> I18n["@tsu-stack/i18n messages/link hooks"]
+  Route --> UI["@tsu-stack/ui primitives"]
+```
+
+Performance decisions already present:
+
+- TanStack Router preloads links on intent.
+- React Query owns server-data caching.
+- Router structural sharing is enabled.
+- Route loaders should call `queryClient.ensureQueryData()` when fetching.
+- Root route preloads auth only outside router preload to avoid session spam.
+- Fonts are preloaded in the root shell.
+- Browser logs batch to HTTP rather than sending one request per event.
+
+## Accounting Target Architecture
+
+The accounting system is staged. Phase 0 builds tenant/platform guarantees.
+Phase 1 builds the double-entry kernel. Later phases add owner workflows, tax,
+banking, AI, integrations, services, accountant mode, inventory, and country tax
+plugins.
+
+```mermaid
+flowchart TD
+  OwnerUI["Owner UI<br/>Business language"] --> API["oRPC services"]
+  AccountantUI["Advanced/accountant UI"] --> API
+  API --> Core["packages/core<br/>shared contracts"]
+  API --> Auth["Better Auth session/org/member"]
+  API --> OrgGuard["requireOrganization<br/>org ref + membership"]
+  OrgGuard --> DBTX["packages/db<br/>organization-scoped queries"]
+  API --> AccountingCore["future packages/accounting-core<br/>pure invariants"]
+  DBTX --> Audit["audit_event"]
+  DBTX --> Outbox["outbox_event"]
+  DBTX --> OperationKey["operation-local idempotency key"]
+  DBTX --> Ledger["ledger_account<br/>journal_batch<br/>journal_line"]
+  Ledger --> Reports["trial balance<br/>general ledger"]
+```
+
+Accounting invariants:
+
+- Posted batches are immutable.
+- Corrections use reversal plus new posting.
+- Every batch balances before posting.
+- Money uses integer minor units.
+- Tenant-owned rows carry `organization_id`.
+- App routes accept client-provided `orgSlug`, verify membership, then use the
+  canonical `organizationId` for tenant data access.
+- Sensitive mutations write `audit_event`.
+- Async side effects start from `outbox_event`.
+- Accounting commands use operation-local idempotency; `requestId` stays a log
+  correlation id.
+
+The source of truth is
+[AI-native accounting foundation design](superpowers/specs/2026-06-16-ai-native-accounting-foundation-design.md).
+
+## Database Model Today
+
+Current worktree schema includes Better Auth identity/organization tables and
+Phase 0 app-owned platform tables:
+
+```mermaid
+erDiagram
+  user ||--o{ session : owns
+  user ||--o{ account : owns
+  user ||--o{ member : joins
+  user ||--o{ invitation : sends
+  organization ||--o{ member : has
+  organization ||--o{ invitation : receives
+  organization ||--|| organization_setting : configures
+  organization ||--o{ audit_event : records
+  organization ||--o{ outbox_event : emits
+  currency ||--o{ organization_setting : base_currency
+
+  user {
+    text id PK
+    text email
+    text name
+    boolean email_verified
+    timestamp created_at
+    timestamp updated_at
+  }
+  session {
+    text id PK
+    text token
+    text user_id FK
+    text active_organization_id
+    timestamp expires_at
+  }
+  account {
+    text id PK
+    text user_id FK
+    text provider_id
+    text account_id
+  }
+  verification {
+    text id PK
+    text identifier
+    text value
+    timestamp expires_at
+  }
+  organization {
+    text id PK
+    text name
+    text slug
+  }
+  member {
+    text id PK
+    text organization_id FK
+    text user_id FK
+    text role
+  }
+  invitation {
+    text id PK
+    text organization_id FK
+    text inviter_id FK
+    text email
+    text status
+  }
+  currency {
+    text code PK
+    text name
+    text symbol
+    int decimal_places
+  }
+  organization_setting {
+    text organization_id PK
+    text legal_name
+    text base_currency_code FK
+    date books_start_date
+  }
+  audit_event {
+    uuid id PK
+    text organization_id FK
+    text user_id FK
+    text action
+  }
+  outbox_event {
+    uuid id PK
+    text organization_id FK
+    text event_type
+    text status
+  }
+```
+
+The planned Phase 1 ledger kernel and later accounting schema are documented in
+[schema revision plan](superpowers/plans/2026-06-17-accounting-foundation-schema-revision-plan.md).
+
+Current idempotency decision: do not add a generic central
+`idempotency_ledger` table in Phase 0. Natural upserts such as organization
+settings use their natural key. Future accounting posting commands should carry
+a domain command key and enforce it inside the posting/source-document tables.
+A central replay store can be reconsidered for Phase 6 public APIs if external
+clients need response replay across heterogeneous endpoints.
+
+## Public API Strategy
+
+- Internal app calls use oRPC by default.
+- OpenAPI docs are generated from the oRPC router and Better Auth schema.
+- External stable public APIs wait until Phase 6.
+- Routes needing raw request behavior, provider signatures, streaming, or custom
+  response semantics should mount in Hono before the oRPC/OpenAPI catch-all.
+
+## Logging Strategy
+
+`packages/logger` wraps evlog for structured client/server logging:
+
+- Browser logs batch to `/_logs/ingest`.
+- Hono middleware creates request-scoped loggers.
+- Global Hono errors are parsed into response-safe fields.
+- Server packages use `createLogger` for non-request work.
+
+See [../packages/logger/ARCHITECTURE.md](../packages/logger/ARCHITECTURE.md).
+
+## Deployment Shape
+
+Current default shape runs two Node processes:
+
+- `apps/web`: TanStack Start/Nitro app on `/web`.
+- `apps/server`: Hono API server on `/server`.
+
+Docker Compose files support local and Coolify-style deployments. Merged
+web/server deployment is possible but should be treated as a deployment decision
+because it changes scaling and request-log behavior.
+
+Database deployment uses one server-side `DATABASE_URL` for runtime queries,
+Drizzle generation, and migrations. MVP tenant isolation is application-owned:
+API code verifies the caller-provided organization reference and DB queries
+include explicit `organizationId` predicates.
+
+See [deployment.md](deployment.md) for Docker and Coolify notes.
+
+## Documentation Style Source
+
+This architecture documentation follows the pattern used by strong package docs
+in Midday: local package READMEs, architecture diagrams where relationships are
+non-obvious, explicit data-flow sections, and clear "do not copy" boundaries.
+See [documentation-style-guide.md](documentation-style-guide.md).

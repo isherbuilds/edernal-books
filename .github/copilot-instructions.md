@@ -1,56 +1,94 @@
-# tsu!stack Project
+# Edernal Books Project
 
-An opinionated Vite+ monorepo. It uses `vp` (Vite+ CLI) to run scripts across packages, and `vpx` to run package binaries without installing them. You can run `vp run -w` to run a command in the workspace root `package.json` context.
+Edernal Books is an owner-first accounting app for India SMBs, built on the
+existing `tsu-stack` TypeScript monorepo.
+
+## Start Here
+
+- Root orientation: [../README.md](../README.md)
+- Documentation index: [../docs/README.md](../docs/README.md)
+- Architecture: [../docs/architecture.md](../docs/architecture.md)
+- Agent routing: [../AGENTS.md](../AGENTS.md)
+- Documentation style: [../docs/documentation-style-guide.md](../docs/documentation-style-guide.md)
 
 ## Tech Stack
 
-| Package        | Role                                               |
-| -------------- | -------------------------------------------------- |
-| TanStack Start | Full-stack React framework (SSR/SPA/ISR) via Nitro |
-| Hono           | Node.js API server (WinterCG-compliant)            |
-| oRPC           | RPC layer + OpenAPI/Scalar docs                    |
-| Drizzle ORM    | Type-safe ORM                                      |
-| PostgreSQL     | Primary database                                   |
-| Better Auth    | Self-hosted auth                                   |
-| Paraglide.js   | Compiled i18n                                      |
-| shadcn/ui      | Component library                                  |
+| Package        | Role                                                    |
+| -------------- | ------------------------------------------------------- |
+| TanStack Start | Full-stack React framework (SSR/SPA/ISR) via Nitro      |
+| Hono           | Node API runtime                                        |
+| oRPC           | Typed procedures, client, OpenAPI generation            |
+| Drizzle ORM    | Type-safe PostgreSQL schema/query layer                 |
+| Better Auth    | Self-hosted auth                                        |
+| Paraglide.js   | Compiled i18n                                           |
+| shadcn/base UI | Shared component primitives                             |
+| evlog          | Structured browser/server logging                       |
+| Vite Plus      | Workspace CLI, build, check, format, lint, test tooling |
 
 ## Monorepo Structure
 
+```text
+apps/web        - TanStack Start web app (port 3000, path /web)
+apps/server     - Hono API server (port 5000, path /server)
+packages/api    - oRPC routers, context, procedure factories, isomorphic client
+packages/auth   - Better Auth config and React/TanStack auth helpers
+packages/core   - runtime-agnostic shared contracts and pure helpers
+packages/db     - Drizzle schema, DB client, migrations, readiness checks
+packages/env    - validated runtime env surfaces
+packages/i18n   - Paraglide messages, runtime, Vite plugin, localized routing
+packages/logger - evlog client/server facade and request middleware
+packages/seo    - TanStack Start route head helpers
+packages/ui     - app-agnostic shared UI primitives
+tools/tsconfig  - shared TypeScript base config
+tools/vite-plus - shared Vite Plus lint helpers
 ```
-apps/server   - Hono API server (port 5000, path /server)
-apps/web      - TanStack Start web app (port 3000, path /web)
-packages/api  - oRPC routers & client where all the API logic lives with OpenAPI metadata
-packages/auth - Better Auth config
-packages/db   - Drizzle schemas & migrations, run `vp run -w db:*` to manage the database
-packages/env  - Shared env validation (.env lives here)
-packages/i18n - Paraglide i18n + Vite plugin
-packages/logger - Logtape isomorphic logger (client + server) with designated categories
-packages/ui   - shadcn/ui components shared across all apps/*
-tools/tsconfig - Shared TypeScript base config
-```
 
-## Key Commands
+## Command Rules
 
-> All scripts are run via `vp run <script>` (not `vp <script>`), because the script names overlap with Vite+ built-ins.
+Use `rtk` prefix and Vite Plus commands.
 
-| Command                  | Description                                              |
-| ------------------------ | -------------------------------------------------------- |
-| `vp run dev`             | Start all dev servers concurrently                       |
-| `vp run fix`             | Format, lint, and type-check (auto-runs on `git commit`) |
-| `vp run test`            | Run all tests                                            |
-| `vp run build`           | Build all packages                                       |
-| `vp run db:dev:start`    | Start local PostgreSQL (Docker)                          |
-| `vp run db:dev:stop`     | Stop local PostgreSQL                                    |
-| `vp run db:migrate`      | Run Drizzle migrations                                   |
-| `vp run db:generate`     | Generate Drizzle migration files                         |
-| `vp run db:studio`       | Open Drizzle Studio                                      |
-| `vp run auth:secret`     | Generate a Better Auth secret                            |
-| `vp run docker:up`       | Start full stack in Docker                               |
-| `vp run docker:up:build` | Rebuild and start full stack in Docker                   |
+| Command                    | Description                                   |
+| -------------------------- | --------------------------------------------- |
+| `rtk vp run dev`           | Start all dev servers concurrently            |
+| `rtk vp run build`         | Build all packages/apps                       |
+| `rtk vp run -w fix`        | Workspace format/lint/typecheck when approved |
+| `rtk vp check`             | Package-local check when approved             |
+| `rtk vp run db:dev:start`  | Start local PostgreSQL                        |
+| `rtk vp run db:dev:stop`   | Stop local PostgreSQL                         |
+| `rtk vp run db:migrate`    | Run Drizzle migrations                        |
+| `rtk vp run db:generate`   | Generate Drizzle migrations                   |
+| `rtk vp run db:studio`     | Open Drizzle Studio                           |
+| `rtk vp run auth:secret`   | Generate Better Auth secret                   |
+| `rtk vp run auth:generate` | Regenerate Better Auth schema                 |
 
-> `vpx <pkg>` is shorthand for `vp dlx <pkg>` (run a package binary without installing it).
+Validation timing is user-directed. Read
+[../.agents/workflow.md](../.agents/workflow.md) before running broad checks.
 
-## Environment Variables
+## Architecture Rules
 
-All environment variables live in `packages/env/.env` (copy from `packages/env/.env.example`).
+- Runtime apps stay thin.
+- `packages/api` owns transport contracts, not DB-heavy business logic.
+- `packages/core` must stay runtime-agnostic.
+- `packages/db` owns schema, migrations, and reusable query/transaction helpers.
+- `packages/ui` must not import app/router/env/auth behavior.
+- Browser/server logging goes through `@tsu-stack/logger`.
+- Env vars are validated in `packages/env/src` and documented in
+  `packages/env/README.md`.
+
+## Accounting Rules
+
+For accounting work, read
+[../docs/superpowers/README.md](../docs/superpowers/README.md) first.
+
+Core invariants:
+
+- Better Auth `organization` is the business tenant.
+- UI says "Business", not "organization".
+- Money uses integer minor units.
+- Posted journal batches are immutable.
+- Corrections use reversals and new postings.
+- Sensitive mutations write `audit_event`.
+- Async side effects start from `outbox_event`.
+- Replay protection uses operation-local idempotency through natural keys,
+  domain command keys, provider ids, or domain-owned unique constraints.
+- `rls-inventory` means security checklist, not stock inventory.

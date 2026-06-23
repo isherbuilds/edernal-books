@@ -10,6 +10,36 @@
 
 ---
 
+## Architecture Flow
+
+```mermaid
+flowchart TD
+  Orders["purchase_order / sales_order"] --> Movement["goods_receipt / delivery_note"]
+  Movement --> Stock["stock_ledger_entry"]
+  Movement --> Source["source_document"]
+  Source --> Ledger["journal posting service"]
+  Landed["landed_cost"] --> Stock
+  FX["exchange_rate"] --> Ledger
+  ImportExport["import_export_document"] --> Source
+```
+
+Goods movement vs accounting movement:
+
+```mermaid
+sequenceDiagram
+  participant Ops as Inventory operation
+  participant Stock as Stock ledger
+  participant Doc as Source document
+  participant Ledger as Journal service
+  participant DB as Tenant transaction
+
+  Ops->>DB: Validate warehouse/item/quantity
+  Ops->>Stock: Write stock movement
+  Ops->>Doc: Link business document
+  Ops->>Ledger: Post accounting impact when required
+  Ops->>DB: Audit/outbox
+```
+
 ## Foundation Alignment
 
 Before executing this plan, reconcile it with `docs/superpowers/plans/2026-06-17-accounting-foundation-schema-revision-plan.md`.

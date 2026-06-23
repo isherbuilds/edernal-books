@@ -7,18 +7,24 @@
   },
   "exports": {
     ".": "./src/index.ts",
-    "./schema": "./src/schema/index.ts"
+    "./client": "./src/client.ts",
+    "./migrate": "./src/migrate.ts",
+    "./queries": "./src/queries/index.ts",
+    "./schema": "./src/schema/index.ts",
+    "./utils/health": "./src/utils/health.ts"
   },
   "scripts": {
     "db": "pnpm dotenvx run -f ../env/.env -- drizzle-kit",
     "db:dev:start": "docker compose -f docker-compose.dev.yaml up -d",
     "db:dev:stop": "docker compose -f docker-compose.dev.yaml stop",
-    "auth:generate": "vp run -w auth:generate"
+    "auth:generate": "vp run -w auth:generate",
+    "test:unit": "vp test"
   },
   "dependencies": {
     "@tsu-stack/logger": "workspace:*",
     "drizzle-orm": "catalog:",
-    "postgres": "catalog:"
+    "postgres": "catalog:",
+    "uuid": "catalog:"
   },
   "devDependencies": {
     "@dotenvx/dotenvx": "catalog:",
@@ -26,7 +32,8 @@
     "@tsu-stack/tsconfig": "workspace:*",
     "@types/node": "catalog:",
     "drizzle-kit": "catalog:",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   },
   "peerDependencies": {
     "@tanstack/react-start": "catalog:"

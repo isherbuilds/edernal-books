@@ -10,6 +10,38 @@
 
 ---
 
+## Architecture Flow
+
+```mermaid
+flowchart TD
+  Owner["Owner UI"] --> Docs["Document services<br/>invoice, expense, payment"]
+  Docs --> Parties["party + item"]
+  Docs --> Source["source_document"]
+  Docs --> Ledger["journal posting service"]
+  Ledger --> Batch["journal_batch + journal_line"]
+  Docs --> Delivery["PDF + document_delivery"]
+  Docs --> Events["audit_event + outbox_event"]
+  Docs --> Idem["operation-local command keys"]
+```
+
+Owner document posting:
+
+```mermaid
+sequenceDiagram
+  participant UI as Owner form
+  participant S as Document service
+  participant L as Journal service
+  participant DB as Tenant transaction
+
+  UI->>S: Post invoice/expense/payment
+  S->>DB: Check operation key or document natural key
+  S->>DB: Validate party, item, document state
+  S->>L: Build balanced journal command
+  L->>DB: Insert journal batch and lines
+  S->>DB: Mark document posted and write events
+  S-->>UI: Posted document
+```
+
 ## Foundation Alignment
 
 Before executing this plan, reconcile it with `docs/superpowers/plans/2026-06-17-accounting-foundation-schema-revision-plan.md`.
@@ -17,7 +49,7 @@ Before executing this plan, reconcile it with `docs/superpowers/plans/2026-06-17
 - Use existing `number_sequence`; do not create `document_sequence`.
 - Posted documents link to `source_document` and the resulting `journal_batch`.
 - Write `audit_event` and `outbox_event`, not `audit_log` or `internal_event`.
-- Use `idempotency_ledger` at posting boundaries.
+- Use operation-local idempotency at posting boundaries.
 - Store ordinary money as `*_minor bigint`; any `*_amount` names below are conceptual and must become minor-unit columns.
 - Do not add GST/tax-code behavior in Phase 2. Phase 2 can keep tax totals at zero and leave tax UI hidden until Phase 3.
 - Shared contracts belong in `packages/core`; side-effectful services and oRPC procedures belong in `packages/api`.

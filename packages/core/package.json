@@ -9,6 +9,7 @@
     ".": "./src/index.ts",
     "./assets": "./src/assets/index.ts",
     "./health": "./src/health/index.ts",
+    "./organizations": "./src/organizations/index.ts",
     "./*": "./src/*.ts"
   },
   "scripts": {
@@ -21,6 +22,7 @@
     "@tsu-stack/tsconfig": "workspace:*",
     "@types/node": "catalog:",
     "typescript": "catalog:",
-    "vite-plus": "catalog:"
+    "vite-plus": "catalog:",
+    "vitest": "catalog:"
   }
 }

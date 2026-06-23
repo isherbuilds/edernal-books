@@ -10,6 +10,35 @@
 
 ---
 
+## Architecture Flow
+
+```mermaid
+flowchart TD
+  Accountant["Accountant user"] --> Workspace["multi-business workspace"]
+  Workspace --> Membership["Better Auth memberships"]
+  Workspace --> Review["review_item queue"]
+  Review --> Documents["documents/reconciliation/reports"]
+  Workspace --> Locks["accounting_period locks"]
+  Workspace --> Adjustments["adjustment batches"]
+  Adjustments --> Ledger["journal posting service"]
+  Workspace --> Exports["export_job + working_paper"]
+```
+
+Adjustment flow:
+
+```mermaid
+sequenceDiagram
+  participant Accountant
+  participant Review as Review service
+  participant Ledger as Journal service
+  participant DB as Tenant transaction
+
+  Accountant->>Review: Approve adjustment
+  Review->>DB: Verify membership and period status
+  Review->>Ledger: Post adjustment batch
+  Review->>DB: Close review item and write events
+```
+
 ## Foundation Alignment
 
 Before executing this plan, reconcile it with `docs/superpowers/plans/2026-06-17-accounting-foundation-schema-revision-plan.md`.
@@ -127,7 +156,7 @@ Public API exposure should be read-heavy. Adjustment and lock mutations require 
 - [ ] Test accountant sees organizations where membership role is accountant.
 - [ ] Test owner sees owned organizations.
 - [ ] Test API key cannot list accountant workspace.
-- [ ] Implement workspace list and active organization switching support.
+- [ ] Implement workspace list and route-based organization switching support.
 - [ ] Commit: `feat: add accountant workspace service`.
 
 ### Task 3: Review Queue

@@ -2,7 +2,7 @@
 
 Date: 2026-06-16
 
-Updated: 2026-06-17.
+Updated: 2026-06-19.
 
 Source spec: `docs/superpowers/specs/2026-06-16-ai-native-accounting-foundation-design.md`
 
@@ -40,6 +40,64 @@ Decision record: `docs/decisions/0001-accounting-foundation-spine.md`
 10. Phase 9: Trade, Inventory, Import, Export.
 11. Phase 10: Country-Agnostic Tax Engine.
 
+## Current Progress
+
+Phase 0 is the active phase.
+
+Done:
+
+- Workspace dependency catalog and lockfile refreshed.
+- Better Auth organization support enabled and generated into the DB schema.
+- `packages/db` split into client, migration, query, schema, health, and utility modules.
+- Foundation tables added: `organization_setting`, `currency`, `audit_event`, and `outbox_event`.
+- App-owned UUID primary keys use UUID-v7 runtime defaults.
+- API context carries eager `authSession`, DB client, and request logger.
+- `organizationProcedure` verifies membership from client-provided `orgSlug` and exposes canonical `organizationId`.
+- Organization settings get/upsert procedures are wired.
+- Organization settings upsert writes settings and best-effort user audit, then returns `{ ok: true, organizationId }`.
+- Currency seed migration inserts `INR`, `USD`, `EUR`, and `GBP`.
+- Role permission helpers/tests exist in `packages/auth`.
+- Organization membership, settings audit, and schema invariant tests exist.
+
+Not done:
+
+- Business onboarding/settings UI.
+- Local migration apply is blocked until local Postgres/Docker is running.
+- Transactional outbox writes for commands that have real async consumers.
+- Phase 1 accounting kernel schema and posting services.
+
+Important current decision: `outbox_event` is foundation infrastructure, not a blanket side effect for every mutation. For settings upsert, audit is fire-and-forget because no caller depends on it. Phase 1 posting and future integration commands should use awaited transactional audit/outbox when correctness, retries, or downstream delivery depend on those rows.
+
+Idempotency decision: `requestId` is tracing only. Phase 0 does not include a
+generic `idempotency_ledger`; Phase 1 posting should use operation-local
+idempotency through a command key or domain-owned unique constraint. Reconsider
+a central replay store only for Phase 6 public API response-replay semantics.
+
+## Execution Graph
+
+```mermaid
+flowchart TD
+  P0["00 Platform Foundation<br/>org scope, audit, outbox"] --> P1["01 Accounting Kernel<br/>periods, accounts, journal, operation keys"]
+  P1 --> P2["02 Owner Workflow MVP<br/>party, item, invoice, expense, payment"]
+  P2 --> P3["03 India GST Core<br/>tax codes, GST reports, notes"]
+  P2 --> P4["04 Bank + Reconciliation<br/>statement import, matching"]
+  P3 --> P4
+  P4 --> P5["05 AI Assistant<br/>suggestions and explanations"]
+  P5 --> P6["06 Platform API<br/>public API, webhooks, MCP"]
+  P2 --> P7["07 Service SMB<br/>quotes, retainers, recurring"]
+  P1 --> P8["08 Accountant Mode<br/>review, locks, exports"]
+  P2 --> P9["09 Trade + Inventory<br/>stock ledger, orders, FX"]
+  P3 --> P10["10 Country Tax Engine<br/>tax packs and fixtures"]
+```
+
+Execution rules:
+
+- Phase 0 and Phase 1 are hard gates.
+- Phase 3 should not start until Phase 2 document posting is stable.
+- Phase 5 can suggest and draft only after deterministic services exist.
+- Phase 6 exposes public contracts only after internal services are stable.
+- Phase 9 stock ledger is separate from tenant-scope inventory.
+
 ## Foundation Vocabulary
 
 Use these names across all plans:
@@ -49,7 +107,7 @@ Use these names across all plans:
 - `journal_batch` and `journal_line`, not a simple `journal` table.
 - `audit_event`, not `audit_log`.
 - `outbox_event`, not `internal_event`.
-- `idempotency_ledger`, not a simple idempotency ledger table.
+- operation-local idempotency keys, not a generic Phase 0 ledger.
 - `number_sequence`, not document-specific sequence tables.
 - `source_document` as the common document-to-ledger traceability shell.
 
@@ -60,18 +118,18 @@ Use these meanings when reading or implementing the plans:
 - `organization`: Better Auth's word for a business tenant. In the UI, call it "Business".
 - `tenant`: one isolated business's data. A user may belong to many tenants, especially accountants.
 - `organization_id`: the column that marks which business owns a row.
-- `RLS`: PostgreSQL row-level security. It prevents one business from reading or changing another business's rows even if application code has a bug.
-- `rls-inventory`: a security inventory of database tables that checks RLS coverage. It is not product inventory, stock, warehouses, or goods movement.
-- `app.current_org_id`: a per-transaction PostgreSQL setting used by RLS policies to know the active business.
-- `withOrgTx`: runs database writes inside a transaction after setting `app.current_org_id`.
-- `withOrgRead`: read-only equivalent of `withOrgTx`; it still sets the business context for RLS.
-- `withOrgSnapshotRead`: a read wrapper reserved for consistent report/export reads. "Snapshot" here means a stable database view during the transaction, not an inventory snapshot.
+- `tenant scope`: the active Better Auth business context used to filter app-owned rows.
+- `tenant-scope inventory`: a security checklist that verifies app-owned business tables have `organization_id` and query paths include explicit organization scope. It is not product inventory, stock, warehouses, or goods movement.
+- `PostgreSQL RLS`: row-level security. Deferred for MVP because this repo uses Better Auth with direct Drizzle/Postgres instead of Supabase Auth/PostgREST request context.
+- `organization-scoped transaction`: a normal database transaction where every tenant query includes `organizationId`.
+- `report snapshot`: a stable read view for reports/exports. It does not mean an organization data snapshot table or stock inventory.
 - `Better Auth-owned table`: a table generated and managed by Better Auth, such as `user`, `session`, `organization`, `member`, or `invitation`.
 - `app-owned table`: a table owned by this accounting app, such as `organization_setting`, `journal_batch`, or `invoice`.
 - `global reference table`: shared lookup data that is not owned by one business, such as `currency`.
 - `audit_event`: durable record that a sensitive action happened, who did it, and what changed.
 - `outbox_event`: a queued domain event written in the same database transaction as the business change, then processed later by jobs, webhooks, AI indexing, or integrations.
-- `idempotency_ledger`: request replay protection. It makes repeated create/post requests with the same key return the same result instead of creating duplicates.
+- `requestId`: per-attempt log correlation id. It is not replay protection.
+- `operation key`: domain command key used to prevent duplicate accounting commands, usually enforced with a per-organization unique constraint.
 - `source_document`: shared document header used to connect invoices, expenses, payments, and other business documents to accounting postings.
 - `journal_batch`: one accounting posting operation.
 - `journal_line`: one debit or credit line inside a `journal_batch`.
@@ -86,13 +144,13 @@ Use these meanings when reading or implementing the plans:
 - `OpenAPI snapshot`: a test fixture of the API schema used to detect accidental API changes. It is unrelated to stock inventory.
 - `report snapshot`: an immutable saved copy of a report/export at a point in time.
 - `MCP`: Model Context Protocol; future integration surface for AI/tools, not part of Phase 0/1.
-- `inventory` or `stock ledger`: actual stock/goods tracking. This starts in Phase 9 and is unrelated to `rls-inventory`.
+- `inventory` or `stock ledger`: actual stock/goods tracking. This starts in Phase 9 and is unrelated to tenant-scope inventory.
 
 ## Repo Baseline
 
 - Use `@tsu-stack/*` package names.
 - Use `packages/core` for shared contracts and pure helpers.
-- Use `packages/db` for schema/migrations/transaction helpers.
+- Use `packages/db` for schema, migrations, DB client, and query helpers.
 - Use `packages/auth` for Better Auth config.
 - Use `packages/api` for Hono/oRPC routers.
 - Use `apps/web` for TanStack Start UI.
@@ -114,9 +172,9 @@ Before moving beyond Phase 1:
 - `organization_setting` exists for each business.
 - Role checks are server-enforced.
 - `audit_event` records sensitive mutations.
-- `outbox_event` rows are written transactionally.
-- `idempotency_ledger` prevents duplicate posting.
-- App-owned tenant tables have RLS and organization policies.
+- `outbox_event` rows are written transactionally for commands with durable async consumers.
+- operation-local idempotency prevents duplicate posting.
+- App-owned tenant tables have `organization_id` and are only accessed through organization-scoped service/query paths.
 - Fiscal years and accounting periods exist.
 - `ledger_account` chart exists.
 - `number_sequence` exists.

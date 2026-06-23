@@ -4,6 +4,21 @@ SEO helpers for TanStack Start route `head()` objects.
 
 This package is intentionally small. It does not fetch data, inspect routes, or depend on `packages/env`. You pass it your site configuration and route-specific values, and it returns a TanStack Start-compatible head object.
 
+## Architecture
+
+```mermaid
+flowchart TD
+  AppConfig["apps/web site config"] --> Wrapper["generateAppSeo"]
+  Wrapper --> SEO["generateTanStackStartSeo"]
+  Route["TanStack route head()"] --> Wrapper
+  SEO --> Meta["meta tags"]
+  SEO --> Links["canonical + alternate links"]
+  SEO --> Scripts["optional JSON-LD scripts"]
+```
+
+The package stays pure: no route inspection, no env reads, no network calls, and
+no framework globals beyond returning the shape TanStack Start expects.
+
 ## Public API
 
 ```ts
