@@ -57,7 +57,7 @@ CREATE TABLE "member" (
 CREATE TABLE "organization" (
 	"id" text PRIMARY KEY,
 	"name" text NOT NULL,
-	"slug" text NOT NULL UNIQUE,
+	"slug" text NOT NULL,
 	"logo" text,
 	"created_at" timestamp NOT NULL,
 	"metadata" text
@@ -75,7 +75,8 @@ CREATE TABLE "organization_setting" (
 	"primary_phone" text,
 	"timezone" text DEFAULT 'Asia/Kolkata' NOT NULL,
 	"trade_name" text,
-	"updated_at" timestamp DEFAULT now() NOT NULL
+	"updated_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "organization_setting_fiscal_year_start_month_ck" CHECK ("fiscal_year_start_month" BETWEEN 1 AND 12)
 );
 --> statement-breakpoint
 CREATE TABLE "outbox_event" (
@@ -90,7 +91,9 @@ CREATE TABLE "outbox_event" (
 	"payload_json" jsonb NOT NULL,
 	"processed_at" timestamp,
 	"retry_count" integer DEFAULT 0 NOT NULL,
-	"status" text DEFAULT 'pending' NOT NULL
+	"status" text DEFAULT 'pending' NOT NULL,
+	CONSTRAINT "outbox_event_status_ck" CHECK ("status" IN ('pending','processing','processed','failed')),
+	CONSTRAINT "outbox_event_retry_count_ck" CHECK ("retry_count" >= 0)
 );
 --> statement-breakpoint
 CREATE TABLE "session" (
@@ -129,7 +132,7 @@ CREATE INDEX "audit_event_organization_id_idx" ON "audit_event" ("organization_i
 CREATE INDEX "audit_event_entity_idx" ON "audit_event" ("entity_type","entity_id");--> statement-breakpoint
 CREATE INDEX "invitation_organizationId_idx" ON "invitation" ("organization_id");--> statement-breakpoint
 CREATE INDEX "invitation_email_idx" ON "invitation" ("email");--> statement-breakpoint
-CREATE INDEX "member_organizationId_idx" ON "member" ("organization_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "member_organizationId_userId_uidx" ON "member" ("organization_id","user_id");--> statement-breakpoint
 CREATE INDEX "member_userId_idx" ON "member" ("user_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "organization_slug_uidx" ON "organization" ("slug");--> statement-breakpoint
 CREATE INDEX "outbox_event_organization_id_idx" ON "outbox_event" ("organization_id");--> statement-breakpoint

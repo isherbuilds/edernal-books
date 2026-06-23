@@ -89,5 +89,6 @@ Core invariants:
 - Corrections use reversals and new postings.
 - Sensitive mutations write `audit_event`.
 - Async side effects start from `outbox_event`.
-- Replay protection uses `idempotency_ledger`.
+- Replay protection uses operation-local idempotency through natural keys,
+  domain command keys, provider ids, or domain-owned unique constraints.
 - `rls-inventory` means security checklist, not stock inventory.

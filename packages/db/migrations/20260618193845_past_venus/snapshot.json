@@ -1402,14 +1402,21 @@
           "asc": true,
           "nullsFirst": false,
           "opclass": null
+        },
+        {
+          "value": "user_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
         }
       ],
-      "isUnique": false,
+      "isUnique": true,
       "where": null,
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "member_organizationId_idx",
+      "name": "member_organizationId_userId_uidx",
       "entityType": "indexes",
       "schema": "public",
       "table": "member"
@@ -1843,17 +1850,6 @@
       "schema": "public",
       "table": "verification",
       "entityType": "pks"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        "slug"
-      ],
-      "nullsNotDistinct": false,
-      "name": "organization_slug_key",
-      "schema": "public",
-      "table": "organization",
-      "entityType": "uniques"
     },
     {
       "nameExplicit": false,
