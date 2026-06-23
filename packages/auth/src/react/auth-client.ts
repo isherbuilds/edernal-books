@@ -6,7 +6,10 @@ import { ENV_WEB_ISOMORPHIC } from "@tsu-stack/env/web/env.isomorphic";
 import { type auth } from "#@/index";
 import { organizationAccessControl, organizationRoles } from "#@/permissions";
 
-export const API_AUTH_URL = `${ENV_WEB_ISOMORPHIC.VITE_SERVER_URL}/auth`;
+const apiAuthUrl = new URL(ENV_WEB_ISOMORPHIC.VITE_SERVER_URL);
+apiAuthUrl.pathname = `${apiAuthUrl.pathname.replace(/\/$/, "")}/auth`;
+
+export const API_AUTH_URL = apiAuthUrl.toString().replace(/\/$/, "");
 
 /**
  * IMPORTANT: Only use this for client-side operations (e.g. in React components or browser-only hooks).

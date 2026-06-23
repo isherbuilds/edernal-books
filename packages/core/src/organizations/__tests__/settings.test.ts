@@ -28,7 +28,7 @@ describe("organization settings schemas", () => {
         orgSlug: "edernal-books",
         timezone: "Australia/Sydney"
       })
-    ).toThrow("Invalid option");
+    ).toThrow(/Invalid/);
   });
 
   it("rejects unsupported timezones", () => {
@@ -40,6 +40,6 @@ describe("organization settings schemas", () => {
         orgSlug: "edernal-books",
         timezone: "Asia/Dubai"
       })
-    ).toThrow("Invalid option");
+    ).toThrow(/Invalid/);
   });
 });

@@ -279,4 +279,4 @@ Current concrete examples:
 
 - `queries/organizations.ts` verifies Better Auth membership for an active organization.
 - `queries/organization-settings.ts` reads and upserts organization settings
-  and emits non-blocking audit rows after saves.
+  and writes audit rows inside the caller's transaction when settings change.

@@ -50,14 +50,14 @@ CREATE TABLE "member" (
 	"id" text PRIMARY KEY,
 	"organization_id" text NOT NULL,
 	"user_id" text NOT NULL,
-	"role" text DEFAULT 'member' NOT NULL,
+	"role" text DEFAULT 'viewer' NOT NULL,
 	"created_at" timestamp NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "organization" (
 	"id" text PRIMARY KEY,
 	"name" text NOT NULL,
-	"slug" text NOT NULL UNIQUE,
+	"slug" text NOT NULL,
 	"logo" text,
 	"created_at" timestamp NOT NULL,
 	"onboarding_completed_at" timestamp,

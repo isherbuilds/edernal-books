@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
+import { appConfig } from "@/config/app.config";
+
 import { generateAppSeo } from "@/lib/seo";
 
 import { OrganizationSetupPage } from "@/components/organizations/organization-setup-page";
@@ -16,7 +18,7 @@ export const Route = createFileRoute("/{-$locale}/_app/organizations/new")({
         follow: false,
         index: false
       },
-      title: "Organization Setup"
+      title: `${appConfig.site.shortName} Organization Setup`
     }),
   component: RouteComponent
 });

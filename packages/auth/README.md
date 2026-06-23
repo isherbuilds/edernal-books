@@ -54,7 +54,7 @@ flowchart TD
 - `openAPI`: enabled with `deepSpace` theme.
 - telemetry disabled.
 
-## App Roles
+## Organization Roles
 
 Phase 0 organization roles:
 

@@ -10,7 +10,7 @@ allowBuilds:
 catalog:
   "@babel/core": 8.0.1
   "@base-ui/react": 1.6.0
-  "@better-auth/drizzle-adapter": https://pkg.pr.new/@better-auth/drizzle-adapter@652115b
+  "@better-auth/drizzle-adapter": 1.6.20
   "@bprogress/react": 1.2.7
   "@commitlint/cli": 21.0.2
   "@commitlint/config-conventional": 21.0.2

@@ -47,14 +47,14 @@ Detailed implementation examples live in
 
 ## Route policy
 
-| Route type | SSR mode | Data pattern |
-| --- | --- | --- |
-| Public marketing/legal | `ssr: true` | Direct render or small loaders |
-| Login/signup | `ssr: true` | Redirect guards only |
-| Protected app shell | `ssr: true` | Auth, organization, navigation data |
-| Dashboard | `ssr: true` | Server seed cheap summary data; lazy heavy charts |
-| Transactions/invoices/customers lists | `ssr: "data-only"` | Server seed first cursor page; client renders table |
-| Invoice/customer detail | `ssr: true` | Server render useful document/detail HTML |
+| Route type                            | SSR mode                                | Data pattern                                               |
+| ------------------------------------- | --------------------------------------- | ---------------------------------------------------------- |
+| Public marketing/legal                | `ssr: true`                             | Direct render or small loaders                             |
+| Login/signup                          | `ssr: true`                             | Redirect guards only                                       |
+| Protected app shell                   | `ssr: true`                             | Auth, organization, navigation data                        |
+| Dashboard                             | `ssr: true`                             | Server seed cheap summary data; lazy heavy charts          |
+| Transactions/invoices/customers lists | `ssr: "data-only"`                      | Server seed first cursor page; client renders table        |
+| Invoice/customer detail               | `ssr: true`                             | Server render useful document/detail HTML                  |
 | File imports/reconciliation workspace | `ssr: false` when browser APIs dominate | Client-only workspace, server mutations after confirmation |
 
 ## URL state policy
@@ -116,9 +116,7 @@ const rows = await db
 
 const page = rows.slice(0, limit);
 const last = page.at(-1);
-const nextCursor = rows.length > limit && last
-  ? encodeCursor([last.postingDate, last.id])
-  : null;
+const nextCursor = rows.length > limit && last ? encodeCursor([last.postingDate, last.id]) : null;
 ```
 
 ## Consequences
@@ -139,7 +137,7 @@ exceptions for performance.
 - [Sayr TanStack Start app](https://github.com/dorasto/sayr/tree/main/apps/start)
 - [Sayr shallow URL state hook](https://github.com/dorasto/sayr/blob/main/apps/start/src/hooks/useTasksSearchParams.ts)
 - [Midday dashboard source](https://github.com/midday-ai/midday/tree/main/apps/dashboard/src)
-- Local reference: `/Users/docbook/edernal-company/temp-edernal-books/apps/api/src/lib/cursor.ts`
-- Local reference: `/Users/docbook/edernal-company/temp-edernal-books/apps/api/src/services/invoices.ts`
-- Local reference: `/Users/docbook/edernal-company/temp-edernal-books/apps/web/src/components/documents/source-document-data.ts`
-- Local reference: `/Users/docbook/edernal-company/temp-edernal-books/docs/decisions/0007-route-first-accounting-workflows.md`
+- Internal reference: temp Edernal Books cursor helper.
+- Internal reference: temp Edernal Books invoice service.
+- Internal reference: temp Edernal Books document list query setup.
+- Internal reference: temp Edernal Books route-first accounting workflows ADR.

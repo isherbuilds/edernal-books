@@ -6,7 +6,7 @@ This playbook records the reusable architecture decisions for Edernal Books as a
 accounting application. Midday is the closest commercial reference for product
 shape, but these rules are not limited to Midday. They combine TanStack Start
 documentation, local repo constraints, Sayr performance patterns, and the
-finance-first reference repo at `/Users/docbook/edernal-company/temp-edernal-books`.
+finance-first reference repo used during architecture research.
 
 ## Core Position
 
@@ -24,14 +24,14 @@ This is not a full SPA. This is also not full SSR everywhere.
 
 ## Route Policy
 
-| Page type | Route SSR mode | Why |
-| --- | --- | --- |
-| Public/legal/auth | `ssr: true` | SEO, redirects, stable first paint |
-| App shell/org guard | `ssr: true` | no auth flash, server redirect, org bootstrap |
-| Dashboard | `ssr: true` | summary data useful in first HTML; lazy heavy charts |
-| Ledger/invoice/customer/vendor lists | `ssr: "data-only"` | server seed data, avoid server-rendering large tables |
-| Invoice/bill/customer detail | `ssr: true` | direct links should render useful document detail |
-| Import/reconciliation/file workspaces | `ssr: false` only when needed | File APIs, parsers, browser-only local state |
+| Page type                             | Route SSR mode                | Why                                                   |
+| ------------------------------------- | ----------------------------- | ----------------------------------------------------- |
+| Public/legal/auth                     | `ssr: true`                   | SEO, redirects, stable first paint                    |
+| App shell/org guard                   | `ssr: true`                   | no auth flash, server redirect, org bootstrap         |
+| Dashboard                             | `ssr: true`                   | summary data useful in first HTML; lazy heavy charts  |
+| Ledger/invoice/customer/vendor lists  | `ssr: "data-only"`            | server seed data, avoid server-rendering large tables |
+| Invoice/bill/customer detail          | `ssr: true`                   | direct links should render useful document detail     |
+| Import/reconciliation/file workspaces | `ssr: false` only when needed | File APIs, parsers, browser-only local state          |
 
 Example heavy list route:
 
@@ -166,9 +166,7 @@ const last = page.at(-1);
 return {
   invoices: page,
   nextCursor:
-    rows.length > limit && last
-      ? encodeCursor([toDateOnly(last.postingDate), last.id])
-      : null
+    rows.length > limit && last ? encodeCursor([toDateOnly(last.postingDate), last.id]) : null
 };
 ```
 
@@ -322,11 +320,7 @@ Avoid:
   <https://github.com/dorasto/sayr/blob/main/apps/start/TASK_VIEW_SYSTEM.md>
 - Midday dashboard source:
   <https://github.com/midday-ai/midday/tree/main/apps/dashboard/src>
-- Local temp reference cursor helper:
-  `/Users/docbook/edernal-company/temp-edernal-books/apps/api/src/lib/cursor.ts`
-- Local temp reference invoice list:
-  `/Users/docbook/edernal-company/temp-edernal-books/apps/api/src/services/invoices.ts`
-- Local temp reference list query setup:
-  `/Users/docbook/edernal-company/temp-edernal-books/apps/web/src/components/documents/source-document-data.ts`
-- Local temp reference route-first ADR:
-  `/Users/docbook/edernal-company/temp-edernal-books/docs/decisions/0007-route-first-accounting-workflows.md`
+- Internal research reference: cursor helper.
+- Internal research reference: invoice list.
+- Internal research reference: list query setup.
+- Internal research reference: route-first accounting workflow ADR.
