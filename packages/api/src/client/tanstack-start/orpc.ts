@@ -6,11 +6,11 @@ import { createIsomorphicFn } from "@tanstack/react-start";
 import { getRequestHeaders } from "@tanstack/react-start/server";
 
 import { auth } from "@tsu-stack/auth/index";
-import { db } from "@tsu-stack/db/client";
+import { db } from "@tsu-stack/db";
 import { ENV_WEB_ISOMORPHIC } from "@tsu-stack/env/web/env.isomorphic";
 import { createLogger } from "@tsu-stack/logger/server";
 
-import { appRouter } from "#@/routers/index";
+import { appRouter, type AppRouter } from "#@/routers/index";
 
 const getORPCClient = createIsomorphicFn()
   .server(() =>
@@ -19,7 +19,6 @@ const getORPCClient = createIsomorphicFn()
         const headers = getRequestHeaders();
         const authSession = await auth.api.getSession({ headers });
 
-        // ! TODO: Check if db should be passed here
         return {
           authSession,
           db,
@@ -28,7 +27,7 @@ const getORPCClient = createIsomorphicFn()
       }
     })
   )
-  .client((): RouterClient<typeof appRouter> => {
+  .client((): RouterClient<AppRouter> => {
     const link = new RPCLink({
       fetch(url, options) {
         return fetch(url, {
@@ -42,6 +41,6 @@ const getORPCClient = createIsomorphicFn()
     return createORPCClient(link);
   });
 
-export const client = getORPCClient();
+export const client = getORPCClient() as unknown as RouterClient<AppRouter>;
 
 export const orpc = createTanstackQueryUtils(client);

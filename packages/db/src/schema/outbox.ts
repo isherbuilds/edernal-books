@@ -1,4 +1,5 @@
-import { index, integer, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import { check, index, integer, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
 import { organization } from "#@/schema/auth.schema";
 import { createUuidV7 } from "#@/utils/id";
@@ -23,6 +24,11 @@ export const outboxEvent = pgTable(
   },
   (table) => [
     index("outbox_event_organization_id_idx").on(table.organizationId),
-    index("outbox_event_status_available_at_idx").on(table.status, table.availableAt)
+    index("outbox_event_status_available_at_idx").on(table.status, table.availableAt),
+    check(
+      "outbox_event_status_ck",
+      sql`${table.status} IN ('pending', 'processing', 'processed', 'failed')`
+    ),
+    check("outbox_event_retry_count_ck", sql`${table.retryCount} >= 0`)
   ]
 );

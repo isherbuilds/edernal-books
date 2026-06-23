@@ -17,7 +17,7 @@ import {
   useUpsertBusinessSettingsMutation
 } from "@/hooks/use-business-settings";
 
-import { BusinessSettingsForm } from "./business-settings-form";
+import { BusinessSettingsForm } from "@/components/settings/business-settings-form";
 
 type BusinessSettingsPageProps = {
   canManageSettings: boolean;

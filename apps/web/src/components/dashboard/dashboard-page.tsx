@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { lazy, Suspense } from "react";
 
+import { m } from "@tsu-stack/i18n/messages";
 import { Badge } from "@tsu-stack/ui/components/badge";
 import {
   Breadcrumb,
@@ -50,39 +51,39 @@ type DashboardPageProps = {
 };
 
 const CashMovementChart = lazy(() =>
-  import("./cash-movement-chart").then((module) => {
+  import("@/components/dashboard/cash-movement-chart").then((module) => {
     return { default: module.CashMovementChart };
   })
 );
 
 const metricCards = [
   {
-    description: "74 days runway after committed payouts",
-    label: "Cash balance",
+    description: m.dashboard_page__cash_balance_description,
+    label: m.dashboard_page__cash_balance_label,
     trend: "up",
     value: "INR 14.82L",
     variance: "+8.2%"
   },
   {
-    description: "42 invoices open across 18 customers",
-    label: "Receivables",
+    description: m.dashboard_page__receivables_description,
+    label: m.dashboard_page__receivables_label,
     trend: "up",
     value: "INR 8.46L",
     variance: "+11.4%"
   },
   {
-    description: "Vendor bills due before Friday",
-    label: "Payables",
+    description: m.dashboard_page__payables_description,
+    label: m.dashboard_page__payables_label,
     trend: "down",
     value: "INR 3.18L",
     variance: "-4.1%"
   },
   {
-    description: "GSTR-1 draft waiting review",
-    label: "Compliance",
+    description: m.dashboard_page__compliance_description,
+    label: m.dashboard_page__compliance_label,
     trend: "up",
-    value: "3 tasks",
-    variance: "2 due"
+    value: m.dashboard_page__compliance_value,
+    variance: m.dashboard_page__compliance_variance
   }
 ] as const;
 
@@ -96,58 +97,81 @@ const cashFlowData = [
   { date: "Jun 19", cashIn: 126, cashOut: 58 }
 ];
 
-const chartConfig = {
-  cashIn: {
-    color: "var(--chart-1)",
-    label: "Cash in"
-  },
-  cashOut: {
-    color: "var(--chart-2)",
-    label: "Cash out"
-  }
-} satisfies ChartConfig;
-
 const recentInvoices = [
   {
     amount: "INR 2,40,000",
     customer: "Northwind Labs",
     invoice: "INV-1045",
-    status: "Paid"
+    status: "paid"
   },
   {
     amount: "INR 89,000",
     customer: "Blue River Co.",
     invoice: "INV-1044",
-    status: "Pending"
+    status: "pending"
   },
   {
     amount: "INR 5,12,000",
     customer: "Oak Street Studio",
     invoice: "INV-1043",
-    status: "Paid"
+    status: "paid"
   },
   {
     amount: "INR 31,050",
     customer: "Harbor Freight LLC",
     invoice: "INV-1042",
-    status: "Overdue"
+    status: "overdue"
   }
 ] as const;
 
 const attentionItems = [
-  { count: "3", label: "Overdue invoices", meta: "Send reminders" },
-  { count: "2", label: "GST mismatches", meta: "Review HSN and tax rate" },
-  { count: "5", label: "Uncategorized expenses", meta: "Map ledger accounts" }
+  {
+    count: "3",
+    label: m.dashboard_page__attention_overdue_invoices,
+    meta: m.dashboard_page__attention_send_reminders
+  },
+  {
+    count: "2",
+    label: m.dashboard_page__attention_gst_mismatches,
+    meta: m.dashboard_page__attention_review_hsn
+  },
+  {
+    count: "5",
+    label: m.dashboard_page__attention_uncategorized_expenses,
+    meta: m.dashboard_page__attention_map_ledger
+  }
 ] as const;
 
 const taxEvents = [
-  { date: "Jun 20", label: "GSTR-3B payment", status: "Draft ready" },
-  { date: "Jun 25", label: "TDS challan check", status: "Needs review" },
-  { date: "Jun 30", label: "Bank reconciliation close", status: "Scheduled" }
+  {
+    date: m.dashboard_page__tax_event_gstr_date,
+    label: m.dashboard_page__tax_event_gstr_label,
+    status: m.dashboard_page__tax_event_draft_ready
+  },
+  {
+    date: m.dashboard_page__tax_event_tds_date,
+    label: m.dashboard_page__tax_event_tds_label,
+    status: m.dashboard_page__tax_event_needs_review
+  },
+  {
+    date: m.dashboard_page__tax_event_bank_date,
+    label: m.dashboard_page__tax_event_bank_label,
+    status: m.dashboard_page__tax_event_scheduled
+  }
 ] as const;
 
 export function DashboardPage({ user }: DashboardPageProps) {
   const userName = getDisplayName(user);
+  const chartConfig = {
+    cashIn: {
+      color: "var(--chart-1)",
+      label: m.dashboard_page__cash_in()
+    },
+    cashOut: {
+      color: "var(--chart-2)",
+      label: m.dashboard_page__cash_out()
+    }
+  } satisfies ChartConfig;
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -158,31 +182,31 @@ export function DashboardPage({ user }: DashboardPageProps) {
               <Breadcrumb>
                 <BreadcrumbList>
                   <BreadcrumbItem>
-                    <BreadcrumbPage>Dashboard</BreadcrumbPage>
+                    <BreadcrumbPage>{m.dashboard_page__dashboard()}</BreadcrumbPage>
                   </BreadcrumbItem>
                 </BreadcrumbList>
               </Breadcrumb>
               <div className="flex flex-col gap-1">
                 <h1 className="text-2xl font-semibold tracking-normal sm:text-3xl">
-                  Good morning, {userName}
+                  {m.dashboard_page__greeting({ name: userName })}
                 </h1>
                 <p className="max-w-2xl text-sm text-muted-foreground">
-                  Cash, compliance, and owner actions for the current business.
+                  {m.dashboard_page__subtitle()}
                 </p>
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant="secondary">
                 <ShieldCheckIcon data-icon="inline-start" />
-                Tenant secured
+                {m.dashboard_page__tenant_secured()}
               </Badge>
               <Button size="sm" variant="outline">
                 <SearchIcon data-icon="inline-start" />
-                Search
+                {m.dashboard_page__search()}
               </Button>
               <Button size="sm" variant="outline">
                 <BellIcon data-icon="inline-start" />
-                Alerts
+                {m.dashboard_page__alerts()}
               </Button>
             </div>
           </div>
@@ -193,21 +217,23 @@ export function DashboardPage({ user }: DashboardPageProps) {
               const TrendIcon = isPositive ? TrendingUpIcon : TrendingDownIcon;
 
               return (
-                <Card className="@container/card" key={metric.label}>
+                <Card className="@container/card" key={metric.label()}>
                   <CardHeader>
-                    <CardDescription>{metric.label}</CardDescription>
+                    <CardDescription>{metric.label()}</CardDescription>
                     <CardTitle className="text-2xl font-semibold tabular-nums @[260px]/card:text-3xl">
-                      {metric.value}
+                      {typeof metric.value === "function" ? metric.value() : metric.value}
                     </CardTitle>
                     <CardAction>
                       <Badge variant="outline">
                         <TrendIcon data-icon="inline-start" />
-                        {metric.variance}
+                        {typeof metric.variance === "function"
+                          ? metric.variance()
+                          : metric.variance}
                       </Badge>
                     </CardAction>
                   </CardHeader>
                   <CardFooter className="text-sm text-muted-foreground">
-                    {metric.description}
+                    {metric.description()}
                   </CardFooter>
                 </Card>
               );
@@ -220,12 +246,12 @@ export function DashboardPage({ user }: DashboardPageProps) {
         <div className="flex min-w-0 flex-col gap-4">
           <Card>
             <CardHeader>
-              <CardTitle>Cash movement</CardTitle>
-              <CardDescription>Daily cash in and cash out for the last 30 days.</CardDescription>
+              <CardTitle>{m.dashboard_page__cash_movement()}</CardTitle>
+              <CardDescription>{m.dashboard_page__cash_movement_description()}</CardDescription>
               <CardAction>
                 <Button size="sm" variant="outline">
                   <CalendarDaysIcon data-icon="inline-start" />
-                  Last 30 days
+                  {m.dashboard_page__last_30_days()}
                 </Button>
               </CardAction>
             </CardHeader>
@@ -240,12 +266,12 @@ export function DashboardPage({ user }: DashboardPageProps) {
 
           <Card>
             <CardHeader>
-              <CardTitle>Recent invoices</CardTitle>
-              <CardDescription>Open amounts and payment state.</CardDescription>
+              <CardTitle>{m.dashboard_page__recent_invoices()}</CardTitle>
+              <CardDescription>{m.dashboard_page__recent_invoices_description()}</CardDescription>
               <CardAction>
                 <Button size="sm" variant="outline">
                   <FileTextIcon data-icon="inline-start" />
-                  View all
+                  {m.dashboard_page__view_all()}
                 </Button>
               </CardAction>
             </CardHeader>
@@ -254,10 +280,10 @@ export function DashboardPage({ user }: DashboardPageProps) {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Customer</TableHead>
-                      <TableHead>Invoice</TableHead>
-                      <TableHead className="text-right">Amount</TableHead>
-                      <TableHead className="text-right">Status</TableHead>
+                      <TableHead>{m.dashboard_page__customer()}</TableHead>
+                      <TableHead>{m.dashboard_page__invoice()}</TableHead>
+                      <TableHead className="text-right">{m.dashboard_page__amount()}</TableHead>
+                      <TableHead className="text-right">{m.dashboard_page__status()}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -281,33 +307,32 @@ export function DashboardPage({ user }: DashboardPageProps) {
         <aside className="flex min-w-0 flex-col gap-4">
           <Card>
             <CardHeader>
-              <CardTitle>AI insight</CardTitle>
-              <CardDescription>Accounting checks that need owner attention.</CardDescription>
+              <CardTitle>{m.dashboard_page__ai_insight()}</CardTitle>
+              <CardDescription>{m.dashboard_page__ai_insight_description()}</CardDescription>
               <CardAction>
                 <Button size="sm" variant="outline">
                   <SparklesIcon data-icon="inline-start" />
-                  Ask
+                  {m.dashboard_page__ask()}
                 </Button>
               </CardAction>
             </CardHeader>
             <CardContent className="flex flex-col gap-4 text-sm">
-              <p className="leading-relaxed">
-                GST output tax trails collections by 2.1%. Review two invoices before filing
-                GSTR-3B.
-              </p>
+              <p className="leading-relaxed">{m.dashboard_page__ai_insight_body()}</p>
               <Separator />
               <div className="grid grid-cols-3 gap-3 text-center">
                 <div className="flex flex-col gap-1">
                   <span className="text-lg font-semibold tabular-nums">82%</span>
-                  <span className="text-xs text-muted-foreground">Matched</span>
+                  <span className="text-xs text-muted-foreground">
+                    {m.dashboard_page__matched()}
+                  </span>
                 </div>
                 <div className="flex flex-col gap-1">
                   <span className="text-lg font-semibold tabular-nums">12</span>
-                  <span className="text-xs text-muted-foreground">Rules</span>
+                  <span className="text-xs text-muted-foreground">{m.dashboard_page__rules()}</span>
                 </div>
                 <div className="flex flex-col gap-1">
                   <span className="text-lg font-semibold tabular-nums">3</span>
-                  <span className="text-xs text-muted-foreground">Flags</span>
+                  <span className="text-xs text-muted-foreground">{m.dashboard_page__flags()}</span>
                 </div>
               </div>
             </CardContent>
@@ -315,20 +340,20 @@ export function DashboardPage({ user }: DashboardPageProps) {
 
           <Card>
             <CardHeader>
-              <CardTitle>Needs attention</CardTitle>
-              <CardDescription>Small tasks blocking month-end close.</CardDescription>
+              <CardTitle>{m.dashboard_page__needs_attention()}</CardTitle>
+              <CardDescription>{m.dashboard_page__needs_attention_description()}</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-2">
               {attentionItems.map((item) => (
                 <Button
                   className="h-auto justify-between px-3 py-3"
-                  key={item.label}
+                  key={item.label()}
                   type="button"
                   variant="ghost"
                 >
                   <span className="flex min-w-0 flex-col items-start gap-1 text-left">
-                    <span className="truncate font-medium">{item.label}</span>
-                    <span className="truncate text-xs text-muted-foreground">{item.meta}</span>
+                    <span className="truncate font-medium">{item.label()}</span>
+                    <span className="truncate text-xs text-muted-foreground">{item.meta()}</span>
                   </span>
                   <Badge variant="secondary">{item.count}</Badge>
                 </Button>
@@ -338,18 +363,18 @@ export function DashboardPage({ user }: DashboardPageProps) {
 
           <Card>
             <CardHeader>
-              <CardTitle>Tax calendar</CardTitle>
-              <CardDescription>Upcoming compliance dates.</CardDescription>
+              <CardTitle>{m.dashboard_page__tax_calendar()}</CardTitle>
+              <CardDescription>{m.dashboard_page__tax_calendar_description()}</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
               {taxEvents.map((event) => (
-                <div className="flex items-start gap-3" key={event.label}>
+                <div className="flex items-start gap-3" key={event.label()}>
                   <div className="flex size-10 shrink-0 items-center justify-center rounded-lg border bg-muted text-xs font-medium tabular-nums">
-                    {event.date.split(" ")[1]}
+                    {event.date().split(" ")[1]}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="truncate text-sm font-medium">{event.label}</div>
-                    <div className="text-xs text-muted-foreground">{event.status}</div>
+                    <div className="truncate text-sm font-medium">{event.label()}</div>
+                    <div className="text-xs text-muted-foreground">{event.status()}</div>
                   </div>
                   <ArrowRightIcon
                     aria-hidden="true"
@@ -366,18 +391,18 @@ export function DashboardPage({ user }: DashboardPageProps) {
 }
 
 function InvoiceStatusBadge({ status }: { status: (typeof recentInvoices)[number]["status"] }) {
-  if (status === "Overdue") {
-    return <Badge variant="destructive">{status}</Badge>;
+  if (status === "overdue") {
+    return <Badge variant="destructive">{m.dashboard_page__status_overdue()}</Badge>;
   }
 
-  if (status === "Pending") {
-    return <Badge variant="outline">{status}</Badge>;
+  if (status === "pending") {
+    return <Badge variant="outline">{m.dashboard_page__status_pending()}</Badge>;
   }
 
   return (
     <Badge variant="secondary">
       <CheckCircle2Icon data-icon="inline-start" />
-      {status}
+      {m.dashboard_page__status_paid()}
     </Badge>
   );
 }
@@ -388,5 +413,5 @@ function getDisplayName(user: DashboardUser) {
     return name;
   }
 
-  return "Owner";
+  return m.dashboard_page__fallback_owner();
 }

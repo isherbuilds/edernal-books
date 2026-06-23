@@ -18,5 +18,7 @@ describe("getRedirectTo", () => {
   it("bounces guest pages back to root", () => {
     expect(getRedirectTo("/login?redirect=/acme")).toBe("/");
     expect(getRedirectTo("/de/signup")).toBe("/");
+    expect(getRedirectTo("/login/")).toBe("/");
+    expect(getRedirectTo("/signup/")).toBe("/");
   });
 });

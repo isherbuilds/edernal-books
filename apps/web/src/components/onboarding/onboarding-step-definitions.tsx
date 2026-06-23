@@ -19,7 +19,10 @@ import {
   ONBOARDING_STEP_KEYS
 } from "@/utils/onboarding";
 
-import { BusinessContactFields, BusinessDetailsFields } from "./onboarding-step-fields";
+import {
+  BusinessContactFields,
+  BusinessDetailsFields
+} from "@/components/onboarding/onboarding-step-fields";
 
 type OnboardingFeatureItem = () => string;
 

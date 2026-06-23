@@ -126,18 +126,18 @@ The app env template lives in [packages/env/.env.example](packages/env/.env.exam
 Docker Compose env examples live in [.env.docker.example](.env.docker.example).
 Validated env surfaces live in [packages/env/src](packages/env/src).
 
-| Variable                  | Surface                   | Required   | Notes                                                                      |
-| ------------------------- | ------------------------- | ---------- | -------------------------------------------------------------------------- |
-| `VITE_SERVER_URL`         | server, web client/server | production | API base URL, may include `/server` subpath                                |
-| `VITE_WEB_URL`            | server, web client/server | production | Web base URL, may include `/web` subpath                                   |
-| `DATABASE_URL`            | server                    | yes        | PostgreSQL URL used by runtime queries, Drizzle generation, and migrations |
-| `BETTER_AUTH_SECRET`      | server                    | yes        | Minimum 32 characters                                                      |
-| `ENABLE_OPEN_API_DOCS`    | server                    | no         | Enables `/docs` endpoint                                                   |
-| `SOURCE_COMMIT`           | server, web server        | no         | Build/deploy version string                                                |
-| `IS_BUILD`                | server, web server        | no         | Disables runtime-only behavior during build                                |
-| `NODE_ENV`                | server, web server        | no         | `development` or `production`                                              |
-| `VITE_IMGPROXY_URL`       | web client/server         | no         | Optional image proxy base URL                                              |
-| `VITE_IMGPROXY_SIGNATURE` | web client/server         | no         | Optional imgproxy signature segment                                        |
+| Variable                  | Surface            | Required   | Notes                                                                      |
+| ------------------------- | ------------------ | ---------- | -------------------------------------------------------------------------- |
+| `VITE_SERVER_URL`         | server, web client | production | API base URL, may include `/server` subpath                                |
+| `VITE_WEB_URL`            | server, web client | production | Web base URL, may include `/web` subpath                                   |
+| `DATABASE_URL`            | server             | yes        | PostgreSQL URL used by runtime queries, Drizzle generation, and migrations |
+| `BETTER_AUTH_SECRET`      | server             | yes        | Minimum 32 characters                                                      |
+| `ENABLE_OPEN_API_DOCS`    | server             | no         | Enables `/docs` endpoint                                                   |
+| `SOURCE_COMMIT`           | server, web server | no         | Build/deploy version string                                                |
+| `IS_BUILD`                | server, web server | no         | Disables runtime-only behavior during build                                |
+| `NODE_ENV`                | server, web server | no         | `development` or `production`                                              |
+| `VITE_IMGPROXY_URL`       | web client         | no         | Optional image proxy base URL                                              |
+| `VITE_IMGPROXY_SIGNATURE` | web client         | no         | Optional imgproxy signature segment                                        |
 
 When changing env, update validation, template, Docker propagation, and docs
 together. See [packages/env/README.md](packages/env/README.md).

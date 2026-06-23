@@ -71,6 +71,13 @@ export async function upsertOrganizationSetting(
     });
 }
 
+export async function logOrganizationSettingAudit(
+  dbOrTx: DatabaseOrTransaction,
+  input: OrganizationSettingAuditInput
+): Promise<void> {
+  await insertOrganizationSettingAudit(dbOrTx, input);
+}
+
 export function toOrganizationSettingInsert(
   input: OrganizationSettingMutationInput
 ): OrganizationSettingInsert {
@@ -110,7 +117,7 @@ export function buildOrganizationSettingAuditRow(
   };
 }
 
-export async function insertOrganizationSettingAudit(
+async function insertOrganizationSettingAudit(
   dbOrTx: DatabaseOrTransaction,
   input: OrganizationSettingAuditInput
 ): Promise<void> {

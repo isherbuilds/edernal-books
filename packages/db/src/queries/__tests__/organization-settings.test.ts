@@ -59,4 +59,23 @@ describe("organization settings query helpers", () => {
       }
     });
   });
+
+  it("defaults audit metadata source to user when omitted", () => {
+    const row = buildOrganizationSettingAuditRow({
+      baseCurrencyCode: "INR",
+      booksStartDate: "2026-04-01",
+      countryCode: "IN",
+      fiscalYearStartMonth: 4,
+      legalName: "Edernal Books",
+      organizationId: "org_1",
+      timezone: "Asia/Kolkata",
+      userId: "user_1"
+    });
+
+    expect(row.payloadJson).toMatchObject({
+      metadata: {
+        source: "user"
+      }
+    });
+  });
 });

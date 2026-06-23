@@ -16,7 +16,7 @@ export const Route = createFileRoute("/{-$locale}/_app")({
     if (!user) {
       throw redirect({
         search: {
-          redirect: getRedirectTo(stripLocalePrefix(location.href))
+          redirect: getRedirectTo(location.href)
         },
         to: "/login"
       });

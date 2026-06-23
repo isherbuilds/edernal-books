@@ -53,16 +53,16 @@ export function NavDocuments() {
                 side={isMobile ? "bottom" : "right"}
                 align={isMobile ? "end" : "start"}
               >
-                <DropdownMenuItem>
+                <DropdownMenuItem disabled>
                   <FolderIcon />
                   <span>{m.app_shell__open()}</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem>
+                <DropdownMenuItem disabled>
                   <ShareIcon />
                   <span>{m.app_shell__share()}</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem variant="destructive">
+                <DropdownMenuItem disabled variant="destructive">
                   <Trash2Icon />
                   <span>{m.app_shell__delete()}</span>
                 </DropdownMenuItem>
@@ -71,7 +71,7 @@ export function NavDocuments() {
           </SidebarMenuItem>
         ))}
         <SidebarMenuItem>
-          <SidebarMenuButton className="text-sidebar-foreground/70">
+          <SidebarMenuButton aria-disabled="true" className="text-sidebar-foreground/70" disabled>
             <MoreHorizontalIcon className="text-sidebar-foreground/70" />
             <span>{m.app_shell__more()}</span>
           </SidebarMenuButton>

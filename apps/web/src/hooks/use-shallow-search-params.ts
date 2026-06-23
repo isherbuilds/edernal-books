@@ -29,7 +29,7 @@ export function useShallowSearchParams(initialSearch = "") {
     const url = new URL(window.location.href);
 
     for (const [key, value] of Object.entries(updates)) {
-      if (value === null || value === "" || value === 0) {
+      if (value === null || value === "") {
         url.searchParams.delete(key);
       } else {
         url.searchParams.set(key, String(value));

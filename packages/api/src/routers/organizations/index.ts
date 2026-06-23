@@ -11,8 +11,8 @@ import {
 } from "@tsu-stack/core/organizations";
 import {
   getOrganizationSetting,
-  insertOrganizationSettingAudit,
   listOrganizationsForUser,
+  logOrganizationSettingAudit,
   markOrganizationOnboardingCompleted,
   type OrganizationListItem,
   type OrganizationSettingRow,
@@ -66,7 +66,7 @@ export const organizationsRouter = {
           organizationId: context.organizationId
         });
 
-        await insertOrganizationSettingAudit(tx, {
+        await logOrganizationSettingAudit(tx, {
           ...settingInput,
           source: "user",
           userId: context.authSession.user.id
@@ -122,7 +122,7 @@ export const organizationsRouter = {
 
         await context.db.transaction(async (tx) => {
           await upsertOrganizationSetting(tx, settingInput);
-          await insertOrganizationSettingAudit(tx, {
+          await logOrganizationSettingAudit(tx, {
             ...settingInput,
             source: "user",
             userId: context.authSession.user.id

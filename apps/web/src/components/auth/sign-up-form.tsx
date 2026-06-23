@@ -24,10 +24,9 @@ import { appConfig } from "@/config/app.config";
 
 import { useZodForm } from "@/hooks/use-zod-form";
 
+import { GoogleAuthButton } from "@/components/auth/google-auth-button";
 import { FormTextField } from "@/components/form-fields";
 import { LogoIcon } from "@/components/logo";
-
-import { GoogleAuthButton } from "./google-auth-button";
 
 const SignUpFormSchema = z
   .object({

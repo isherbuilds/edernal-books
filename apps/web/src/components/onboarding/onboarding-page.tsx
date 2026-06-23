@@ -27,7 +27,7 @@ import {
   getOnboardingStepDefinition,
   OnboardingChecklist,
   type OnboardingStepDefinition
-} from "./onboarding-step-definitions";
+} from "@/components/onboarding/onboarding-step-definitions";
 
 type OnboardingUser = {
   email?: string | null;
