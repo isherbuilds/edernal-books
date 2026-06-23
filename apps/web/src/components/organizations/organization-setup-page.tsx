@@ -19,11 +19,13 @@ import { FieldGroup } from "@tsu-stack/ui/components/field";
 import { Spinner } from "@tsu-stack/ui/components/spinner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@tsu-stack/ui/components/tabs";
 
-import { FormTextField } from "@/components/form-fields";
+import { isReservedOrganizationSlug, normalizeOrganizationSlug } from "@/utils/organization-slugs";
+
 import { organizationsQueryKeys } from "@/hooks/use-organizations";
 import { useSignOutAndResetSession } from "@/hooks/use-sign-out";
 import { useZodForm } from "@/hooks/use-zod-form";
-import { isReservedOrganizationSlug, normalizeOrganizationSlug } from "@/utils/organization-slugs";
+
+import { FormTextField } from "@/components/form-fields";
 
 type OrganizationSetupUser = {
   email?: string | null;

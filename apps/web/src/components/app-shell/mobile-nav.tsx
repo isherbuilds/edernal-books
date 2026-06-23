@@ -8,11 +8,12 @@ import { Button } from "@tsu-stack/ui/components/button";
 import { Portal, PortalBackdrop } from "@tsu-stack/ui/components/portal";
 import { cn } from "@tsu-stack/ui/lib/utils";
 
+import { useSignOutAndResetSession } from "@/hooks/use-sign-out";
+
 import { navLinks } from "@/components/app-shell/nav-links";
 import { NavbarAvatar } from "@/components/app-shell/navbar-avatar";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { ThemeSwitcher } from "@/components/theme-switcher";
-import { useSignOutAndResetSession } from "@/hooks/use-sign-out";
 
 export function MobileNav() {
   const [open, setOpen] = React.useState(false);

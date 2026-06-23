@@ -1,60 +1,31 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 
 import {
   canManageBusinessSettings,
-  canManageIntegrations,
-  canManageMembers,
-  canManageOwnerDocuments,
-  canPostJournals,
-  canReadBusiness,
-  hasOrganizationRole,
-  isAppRole,
-  parseOrganizationRoles,
-  type AppRole
+  organizationAccessControl,
+  organizationRoles
 } from "#@/permissions";
 
 describe("organization role permissions", () => {
-  it("allows owners to manage members", () => {
-    expect(canManageMembers("owner")).toBe(true);
+  it("allows owners to manage business settings", () => {
+    expect(canManageBusinessSettings("owner")).toBe(true);
   });
 
-  it("allows accountants to post journals", () => {
-    expect(canPostJournals("accountant")).toBe(true);
-  });
-
-  it("blocks operators from posting journals", () => {
-    expect(canPostJournals("operator" satisfies AppRole)).toBe(false);
-  });
-
-  it("allows operators to manage owner workflow documents", () => {
-    expect(canManageOwnerDocuments("operator")).toBe(true);
-  });
-
-  it("keeps developer access focused on integrations", () => {
-    expect(canManageIntegrations("developer")).toBe(true);
-    expect(canPostJournals("developer")).toBe(false);
-  });
-
-  it("keeps viewers read-only", () => {
-    expect(canReadBusiness("viewer")).toBe(true);
+  it("blocks non-owners from managing business settings", () => {
+    expect(canManageBusinessSettings("accountant")).toBe(false);
     expect(canManageBusinessSettings("viewer")).toBe(false);
-    expect(canManageMembers("viewer")).toBe(false);
   });
 
-  it("parses Better Auth comma-separated multi-role strings", () => {
-    expect(parseOrganizationRoles("operator, accountant,unknown")).toEqual([
-      "operator",
-      "accountant"
-    ]);
+  it("allows owners in Better Auth multi-role strings", () => {
+    expect(canManageBusinessSettings("viewer, owner")).toBe(true);
   });
 
-  it("checks any matching role in a multi-role string", () => {
-    expect(hasOrganizationRole("operator,accountant", "accountant")).toBe(true);
-    expect(hasOrganizationRole("operator,accountant", "developer")).toBe(false);
-  });
-
-  it("rejects unknown role strings", () => {
-    expect(isAppRole("admin")).toBe(false);
-    expect(parseOrganizationRoles("admin")).toEqual([]);
+  it("wires starter roles to Better Auth organization access control", () => {
+    expect(organizationAccessControl.statements.organization).toContain("update");
+    expect(organizationRoles.owner.authorize({ organization: ["update"] }).success).toBe(true);
+    expect(organizationRoles.accountant.authorize({ organization: ["update"] }).success).toBe(
+      false
+    );
+    expect(organizationRoles.viewer.authorize({ organization: ["update"] }).success).toBe(false);
   });
 });

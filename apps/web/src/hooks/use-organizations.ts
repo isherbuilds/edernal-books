@@ -1,10 +1,10 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { queryOptions, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { orpc } from "@tsu-stack/api/client/tanstack-start/orpc";
-import { authClient } from "@tsu-stack/auth/react/auth-client";
+
+import { queryTtl } from "@/lib/query-ttl";
 
 import { businessSettingsQueryKeys } from "@/hooks/use-business-settings";
-import { queryTtl } from "@/lib/query-ttl";
 
 export const organizationsQueryKeys = {
   list() {
@@ -12,6 +12,14 @@ export const organizationsQueryKeys = {
   }
 };
 
+export function getOrganizationsListQueryOptions() {
+  return queryOptions({
+    gcTime: queryTtl.organizationListGc,
+    queryKey: organizationsQueryKeys.list(),
+    queryFn: () => orpc.organizations.list.call(),
+    staleTime: queryTtl.organizationListStale
+  });
+}
 
 type UseCompleteOnboardingMutationOptions = {
   onError?: (error: unknown) => void;

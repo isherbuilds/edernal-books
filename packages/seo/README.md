@@ -208,7 +208,7 @@ If you omit `title`, the package uses `site.defaultTitle`.
 - It does not add favicon, sitemap, stylesheet, preload, or other non-SEO links for you. Keep those in the app shell or route.
 - `includeDocumentMeta` should only be used where you truly want root document tags. TanStack Start does not have Next.js-style metadata inheritance.
 - JSON-LD support is pass-through only. You must provide the final serialized payload yourself.
-- Canonical and alternate links are generated from `canonicalPath`, `baseUrl`, and locale config. If those inputs are wrong, the output URLs will also be wrong.
+- Canonical and alternate links are generated from `canonicalPath`, `baseUrl`, optional `basePath`, and locale config. If those inputs are wrong, the output URLs will also be wrong.
 - The package assumes one site-level SEO config per consuming app. If you have multiple brands or hosts, build that branching in the app wrapper.
 
 ## Recommended Integration Pattern
@@ -217,5 +217,6 @@ In the consuming app, keep:
 
 - one typed `site` object in a shared SEO module
 - one `generateAppSeo(...)` wrapper that injects locale defaults
+- `site.basePath` when the public app URL lives below the domain root, for example `/web`
 - root-only `includeDocumentMeta: true` in the root route
 - route-specific `title`, `description`, `robots`, and `canonicalPath` in each route

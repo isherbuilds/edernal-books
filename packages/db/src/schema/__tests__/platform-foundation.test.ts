@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 
 import { auditEvent, currency, organizationSetting, outboxEvent } from "#@/schema/index";
 

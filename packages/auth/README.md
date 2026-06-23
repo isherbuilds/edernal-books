@@ -10,7 +10,7 @@ client helpers used by the web app.
 - Enable Better Auth organization/member/invitation support.
 - Enable Better Auth OpenAPI plugin.
 - Export inferred `AuthSession` type.
-- Export Phase 0 app role helpers.
+- Export Phase 0 organization roles and permission helper.
 - Provide React auth client, hooks, queries, and middleware helpers.
 
 Does not own app-specific organization accounting data. Future business settings
@@ -34,7 +34,7 @@ flowchart TD
 | Import                                            | Purpose                           |
 | ------------------------------------------------- | --------------------------------- |
 | `@tsu-stack/auth/index`                           | `auth`, `AuthSession`             |
-| `@tsu-stack/auth/permissions`                     | App roles and permission helpers  |
+| `@tsu-stack/auth/permissions`                     | App organization roles and helper |
 | `@tsu-stack/auth/react/auth-client`               | Browser auth client               |
 | `@tsu-stack/auth/react/tanstack-start/hooks`      | React auth hooks                  |
 | `@tsu-stack/auth/react/tanstack-start/queries`    | TanStack Query options            |
@@ -49,23 +49,21 @@ flowchart TD
 - `secret`: `BETTER_AUTH_SECRET`.
 - `database`: Drizzle relations-v2 adapter.
 - `emailAndPassword.enabled`: true.
-- `organization()`: enabled for business tenant membership.
+- `organization()`: enabled for business tenant membership, with `owner`, `accountant`, and `viewer` roles and `onboardingCompletedAt` as a server-managed additional field.
 - `session.cookieCache`: enabled for 5 minutes.
 - `openAPI`: enabled with `deepSpace` theme.
 - telemetry disabled.
 
-## App Roles
+## Organization Roles
 
-Phase 0 app roles:
+Phase 0 organization roles:
 
-- `owner`: manages members, business settings, books, owner documents, and integrations.
-- `operator`: manages daily owner workflow documents.
-- `accountant`: posts journals, reversals, reports, exports, and owner workflow documents.
-- `developer`: manages API/integration surfaces later.
-- `viewer`: read-only business access.
+- `owner`: manages business settings, members, invitations, teams, and Better Auth organization configuration.
+- `accountant`: read-only Better Auth organization role for now; accounting write permissions are added only when accounting workflows ship.
+- `viewer`: read-only Better Auth organization role.
 
-Better Auth stores multiple organization roles as comma-separated strings, so
-`parseOrganizationRoles` normalizes strings and arrays before permission checks.
+Better Auth can store multiple organization roles as comma-separated strings.
+App permission helpers check the role string at the API boundary.
 
 ## Development Commands
 
@@ -82,7 +80,7 @@ Better Auth stores multiple organization roles as comma-separated strings, so
 - API context reads sessions with `auth.api.getSession`.
 - Web route guards should use auth query helpers rather than hand-parsing
   cookies.
-- Organization role helpers stay here until another package needs direct role
+- App permission helpers stay here until another package needs direct role
   contracts.
 
 ## Gotchas

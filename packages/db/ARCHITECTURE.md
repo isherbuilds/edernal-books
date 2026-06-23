@@ -58,6 +58,7 @@ erDiagram
     text id PK
     text name
     text slug
+    timestamp onboarding_completed_at
     text metadata
   }
   member {
@@ -267,10 +268,10 @@ Rules:
 - one typed input object second.
 - organization scope explicit.
 - transport mapping outside DB package unless projection is shared.
-- audit/outbox/idempotency in the same transaction as business writes only when
-  the side effect is part of the durable contract.
-- best-effort audit logging can be fire-and-forget only when the caller does
-  not depend on that row for correctness.
+- audit/outbox/idempotency in the same transaction as business writes when the
+  side effect is part of the durable contract.
+- avoid fire-and-forget persistence helpers; callers should decide whether a
+  write is durable, transactional, or intentionally omitted.
 - request ids are for tracing only; operation-local idempotency belongs in the
   command/query module that owns the mutation.
 
@@ -278,4 +279,4 @@ Current concrete examples:
 
 - `queries/organizations.ts` verifies Better Auth membership for an active organization.
 - `queries/organization-settings.ts` reads and upserts organization settings
-  and emits non-blocking audit rows after saves.
+  and writes audit rows inside the caller's transaction when settings change.

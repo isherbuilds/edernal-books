@@ -12,15 +12,15 @@ export type GetOrganizationSettingQueryInput = {
 };
 
 export type OrganizationSettingMutationInput = {
-  baseCurrencyCode?: string;
+  baseCurrencyCode: string;
   booksStartDate: string;
-  countryCode?: string;
-  fiscalYearStartMonth?: number;
+  countryCode: string;
+  fiscalYearStartMonth: number;
   legalName: string;
   organizationId: string;
   primaryEmail?: string | null;
   primaryPhone?: string | null;
-  timezone?: string;
+  timezone: string;
   tradeName?: string | null;
 };
 
@@ -82,15 +82,15 @@ export function toOrganizationSettingInsert(
   input: OrganizationSettingMutationInput
 ): OrganizationSettingInsert {
   return {
-    baseCurrencyCode: input.baseCurrencyCode ?? "INR",
+    baseCurrencyCode: input.baseCurrencyCode,
     booksStartDate: input.booksStartDate,
-    countryCode: input.countryCode ?? "IN",
-    fiscalYearStartMonth: input.fiscalYearStartMonth ?? 4,
+    countryCode: input.countryCode,
+    fiscalYearStartMonth: input.fiscalYearStartMonth,
     legalName: input.legalName,
     organizationId: input.organizationId,
     primaryEmail: input.primaryEmail ?? null,
     primaryPhone: input.primaryPhone ?? null,
-    timezone: input.timezone ?? "Asia/Kolkata",
+    timezone: input.timezone,
     tradeName: input.tradeName ?? null
   };
 }

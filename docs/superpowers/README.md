@@ -16,15 +16,17 @@ them as implementation instructions.
 
 Updated: 2026-06-19.
 
-Phase 0 is in progress. The current foundation slice has landed:
+Phase 0 code is complete. The current foundation slice has landed:
 
 - Better Auth organization plugin and generated organization/member/invitation schema.
 - DB client split into `client.ts`, `migrate.ts`, reusable queries, schema files, and health helpers.
 - App-owned foundation tables: `organization_setting`, `currency`, `audit_event`, and `outbox_event`.
 - UUID-v7 runtime defaults for app-owned UUID primary keys.
 - oRPC auth context, `organizationProcedure`, membership verification by `orgSlug`, and organization settings get/upsert procedures.
-- Organization settings writes return a small success envelope and emit best-effort user audit rows in `audit_event`.
-- Currency seed migration covers `INR`, `USD`, `EUR`, and `GBP`.
+- Organization settings writes return a small success envelope and write audit rows in the same DB transaction.
+- Fresh baseline migration covers schema plus seed currencies `INR`, `USD`, `EUR`, and `GBP`.
+- Web organization setup at `/organizations/new` creates/selects a business by slug.
+- Web business settings at `/$orgSlug/settings/business` reads and writes `organization_setting`.
 - Auth package exports Phase 0 role permission helpers with unit tests.
 - Unit tests cover role permissions, organization membership resolution, settings audit rows, and schema tenant-scope invariants.
 
@@ -36,11 +38,13 @@ future posting commands should use operation-local command keys or domain-owned
 unique constraints. Reconsider a central replay store only when Phase 6 public
 API semantics need heterogeneous response replay.
 
-Next steps:
+Current environment blocker:
 
-- Apply the generated migration to local development DB.
-- Build onboarding/business settings UI around the existing organization settings procedures.
-- Start Phase 1 only after the Phase 0 gate below is true.
+- Apply the generated migration to local development DB after Docker/Postgres is running. On 2026-06-19, `rtk vp run db:migrate` failed with `ECONNREFUSED` because nothing was listening on localhost port 5432 and the Docker daemon was not running.
+
+Next step:
+
+- Keep Phase 1 paused until the local database migration has been applied and one business settings row has been created through the UI.
 
 ## Phase Plans
 

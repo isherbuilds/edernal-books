@@ -1,6 +1,6 @@
 import { join } from "node:path/posix";
 
-import { drizzleAdapter } from "@better-auth/drizzle-adapter/relations-v2";
+import { drizzleAdapter } from "@better-auth/drizzle-adapter";
 import "@tanstack/react-start/server-only";
 import { betterAuth } from "better-auth";
 import { openAPI, organization } from "better-auth/plugins";
@@ -8,6 +8,8 @@ import { openAPI, organization } from "better-auth/plugins";
 import { db } from "@tsu-stack/db";
 import * as schema from "@tsu-stack/db/schema";
 import { ENV_SERVER } from "@tsu-stack/env/server/env";
+
+import { organizationAccessControl, organizationRoles } from "#@/permissions";
 
 export const auth = betterAuth({
   baseURL: new URL(ENV_SERVER.VITE_SERVER_URL).origin,
@@ -38,7 +40,22 @@ export const auth = betterAuth({
   },
 
   plugins: [
-    organization(),
+    organization({
+      ac: organizationAccessControl,
+      creatorRole: "owner",
+      roles: organizationRoles,
+      schema: {
+        organization: {
+          additionalFields: {
+            onboardingCompletedAt: {
+              input: false,
+              required: false,
+              type: "date"
+            }
+          }
+        }
+      }
+    }),
     openAPI({
       theme: "deepSpace"
     })

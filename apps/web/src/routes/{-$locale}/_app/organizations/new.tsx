@@ -1,0 +1,30 @@
+import { createFileRoute } from "@tanstack/react-router";
+
+import { appConfig } from "@/config/app.config";
+
+import { generateAppSeo } from "@/lib/seo";
+
+import { OrganizationSetupPage } from "@/components/organizations/organization-setup-page";
+
+export const Route = createFileRoute("/{-$locale}/_app/organizations/new")({
+  head: ({ params }) =>
+    generateAppSeo({
+      alternates: {
+        canonicalPath: "/organizations/new",
+        locale: params.locale
+      },
+      description: `Create or join a business workspace for ${appConfig.site.shortName}.`,
+      robots: {
+        follow: false,
+        index: false
+      },
+      title: `${appConfig.site.shortName} Organization Setup`
+    }),
+  component: RouteComponent
+});
+
+function RouteComponent() {
+  const { user } = Route.useRouteContext();
+
+  return <OrganizationSetupPage user={user} />;
+}

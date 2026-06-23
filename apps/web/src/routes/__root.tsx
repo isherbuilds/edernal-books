@@ -11,10 +11,12 @@ import {
 } from "@tsu-stack/i18n/tanstack-start/components/locale-provider";
 import { Toaster } from "@tsu-stack/ui/components/sonner";
 
+import { ProgressProvider } from "@/providers/progress-provider";
+
+import { generateAppSeo } from "@/lib/seo";
+
 import { DefaultErrorPage } from "@/components/errors/default-error-page";
 import { ThemeProvider } from "@/components/theme-switcher";
-import { generateAppSeo } from "@/lib/seo";
-import { ProgressProvider } from "@/providers/progress-provider";
 
 import appCss from "@/styles/app.css?url";
 

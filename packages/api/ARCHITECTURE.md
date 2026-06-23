@@ -73,9 +73,8 @@ specific command input that needs duplicate protection, not in global context.
 - membership verification lives in `organizationProcedure`;
 - read/write helpers live in `@tsu-stack/db/queries`;
 - settings mutations return a tiny success envelope, not the full saved row;
-- settings writes emit best-effort audit rows without blocking
-  the response. Use durable awaited audit/outbox only for accounting-critical
-  writes or real async consumers.
+- settings writes use owner-only permission checks and write audit rows in the
+  same DB transaction as the settings change.
 
 ## Health Router
 

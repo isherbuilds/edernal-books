@@ -20,11 +20,13 @@ import {
 import { Spinner } from "@tsu-stack/ui/components/spinner";
 import { cn } from "@tsu-stack/ui/lib/utils";
 
+import { appConfig } from "@/config/app.config";
+
+import { useZodForm } from "@/hooks/use-zod-form";
+
 import { GoogleAuthButton } from "@/components/auth/google-auth-button";
 import { FormTextField } from "@/components/form-fields";
 import { LogoIcon } from "@/components/logo";
-import { appConfig } from "@/config/app.config";
-import { useZodForm } from "@/hooks/use-zod-form";
 
 const LoginFormSchema = z.object({
   email: z.email(m.auth__invalid_email()),

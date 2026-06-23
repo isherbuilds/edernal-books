@@ -20,31 +20,55 @@ import { type FileRouteTypes } from "@/routeTree.gen";
 /**
  * IMPORTANT: We define this explicitly here instead of crawling from the root (/) because
  * crawling can sometimes miss i18n routes that are not directly linked from the root.
- * We type it as FileRouteTypes['fullPaths'][] since prerender needs to have the `/` suffix or else we will get `Error: redirect count exceeded` on build.
+ * We type it as FileRouteTypes['fullPaths'][] so route moves fail type-checks.
+ * The prerender config adds a trailing slash later because prerender without it can hit `Error: redirect count exceeded` on build.
  */
 const ROUTES_TO_PRERENDER: FileRouteTypes["fullPaths"][] = [
   "/{-$locale}/",
-  "/{-$locale}/playground/",
-  "/{-$locale}/privacy-policy/",
-  "/{-$locale}/sign-in/",
-  "/{-$locale}/create-an-account/",
+  "/{-$locale}/home",
+  "/{-$locale}/privacy-policy",
+  "/{-$locale}/terms-of-service",
+  "/{-$locale}/login",
+  "/{-$locale}/signup",
+  "/llms.txt",
   "/sitemap.xml",
   "/robots.txt"
 ];
 
+const LOCALIZED_ROUTES_TO_PRERENDER = ROUTES_TO_PRERENDER.filter((path) =>
+  path.includes("{-$locale}")
+);
+const STATIC_ROUTES_TO_PRERENDER = ROUTES_TO_PRERENDER.filter(
+  (path) => !path.includes("{-$locale}")
+);
+
+function withPrerenderTrailingSlash(path: string) {
+  if (path.endsWith("/") || path.includes(".")) {
+    return path;
+  }
+
+  return `${path}/`;
+}
+
 const PAGES_PRERENDER_CONFIG = [
   // Also prerender the default locale without the locale prefix
-  ...ROUTES_TO_PRERENDER.map((path) => {
+  ...LOCALIZED_ROUTES_TO_PRERENDER.map((path) => {
     return {
-      path: path.replace("{-$locale}/", ""),
+      path: withPrerenderTrailingSlash(path.replace("{-$locale}/", "")),
+      prerender: { enabled: true }
+    };
+  }),
+  ...STATIC_ROUTES_TO_PRERENDER.map((path) => {
+    return {
+      path: withPrerenderTrailingSlash(path),
       prerender: { enabled: true }
     };
   }),
   // Prerender all locales with their locale prefix (including base locale since the prefix is removed on the client via router)
   ...locales.flatMap((loc) =>
-    ROUTES_TO_PRERENDER.map((path) => {
+    LOCALIZED_ROUTES_TO_PRERENDER.map((path) => {
       return {
-        path: path.replace("{-$locale}", loc),
+        path: withPrerenderTrailingSlash(path.replace("{-$locale}", loc)),
         prerender: { enabled: true }
       };
     })
@@ -92,7 +116,8 @@ export default defineConfig({
     __BUILD_SOURCE_COMMIT__: JSON.stringify(ENV_WEB_SERVER.SOURCE_COMMIT)
   },
   server: {
-    port: 3000
+    port: 3000,
+    strictPort: true
   },
   plugins: [
     devtools({

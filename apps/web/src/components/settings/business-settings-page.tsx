@@ -12,11 +12,12 @@ import {
 import { Container } from "@tsu-stack/ui/components/container";
 import { Spinner } from "@tsu-stack/ui/components/spinner";
 
-import { BusinessSettingsForm } from "@/components/settings/business-settings-form";
 import {
   useBusinessSettingsQuery,
   useUpsertBusinessSettingsMutation
 } from "@/hooks/use-business-settings";
+
+import { BusinessSettingsForm } from "@/components/settings/business-settings-form";
 
 type BusinessSettingsPageProps = {
   canManageSettings: boolean;

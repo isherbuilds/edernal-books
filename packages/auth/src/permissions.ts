@@ -1,52 +1,37 @@
-export const APP_ROLES = ["owner", "operator", "accountant", "developer", "viewer"] as const;
+import { createAccessControl, type Role } from "better-auth/plugins/access";
 
-export type AppRole = (typeof APP_ROLES)[number];
+const ORGANIZATION_ROLES = ["owner", "accountant", "viewer"] as const;
 
-const roleSet = new Set<string>(APP_ROLES);
+export type OrganizationRole = (typeof ORGANIZATION_ROLES)[number];
 
-export function isAppRole(role: string): role is AppRole {
-  return roleSet.has(role);
-}
+export const organizationAccessControl = createAccessControl({
+  ac: ["create", "read", "update", "delete"],
+  invitation: ["create", "cancel"],
+  member: ["create", "update", "delete"],
+  organization: ["update", "delete"],
+  team: ["create", "update", "delete"]
+});
 
-export function parseOrganizationRoles(role: string | string[] | null | undefined): AppRole[] {
-  const roles = Array.isArray(role) ? role : (role ?? "").split(",");
+const readOnlyOrganizationRole = organizationAccessControl.newRole({
+  ac: ["read"],
+  invitation: [],
+  member: [],
+  organization: [],
+  team: []
+});
 
-  return roles.map((value) => value.trim()).filter(isAppRole);
-}
+export const organizationRoles = {
+  accountant: readOnlyOrganizationRole,
+  owner: organizationAccessControl.newRole({
+    ac: ["create", "read", "update", "delete"],
+    invitation: ["create", "cancel"],
+    member: ["create", "update", "delete"],
+    organization: ["update", "delete"],
+    team: ["create", "update", "delete"]
+  }),
+  viewer: readOnlyOrganizationRole
+} satisfies Record<OrganizationRole, Role>;
 
-export function hasOrganizationRole(
-  currentRole: string | string[] | null | undefined,
-  requiredRole: AppRole
-): boolean {
-  return parseOrganizationRoles(currentRole).includes(requiredRole);
-}
-
-export function canReadBusiness(role: AppRole): boolean {
-  return (
-    role === "owner" ||
-    role === "operator" ||
-    role === "accountant" ||
-    role === "developer" ||
-    role === "viewer"
-  );
-}
-
-export function canManageBusinessSettings(role: AppRole): boolean {
-  return role === "owner";
-}
-
-export function canManageMembers(role: AppRole): boolean {
-  return role === "owner";
-}
-
-export function canManageOwnerDocuments(role: AppRole): boolean {
-  return role === "owner" || role === "operator" || role === "accountant";
-}
-
-export function canPostJournals(role: AppRole): boolean {
-  return role === "owner" || role === "accountant";
-}
-
-export function canManageIntegrations(role: AppRole): boolean {
-  return role === "owner" || role === "developer";
+export function canManageBusinessSettings(role: string): boolean {
+  return role.split(",").some((value) => value.trim() === "owner");
 }

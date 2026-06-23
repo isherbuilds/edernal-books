@@ -21,6 +21,7 @@
     "test:unit": "vp test"
   },
   "dependencies": {
+    "@tsu-stack/core": "workspace:*",
     "@tsu-stack/logger": "workspace:*",
     "drizzle-orm": "catalog:",
     "postgres": "catalog:",
@@ -33,7 +34,7 @@
     "@types/node": "catalog:",
     "drizzle-kit": "catalog:",
     "typescript": "catalog:",
-    "vitest": "catalog:"
+    "vite-plus": "catalog:"
   },
   "peerDependencies": {
     "@tanstack/react-start": "catalog:"

@@ -1,9 +1,15 @@
-import { organizationClient } from "better-auth/client/plugins";
+import { inferOrgAdditionalFields, organizationClient } from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
 
 import { ENV_WEB_ISOMORPHIC } from "@tsu-stack/env/web/env.isomorphic";
 
-export const API_AUTH_URL = `${ENV_WEB_ISOMORPHIC.VITE_SERVER_URL}/auth`;
+import { type auth } from "#@/index";
+import { organizationAccessControl, organizationRoles } from "#@/permissions";
+
+const apiAuthUrl = new URL(ENV_WEB_ISOMORPHIC.VITE_SERVER_URL);
+apiAuthUrl.pathname = `${apiAuthUrl.pathname.replace(/\/$/, "")}/auth`;
+
+export const API_AUTH_URL = apiAuthUrl.toString().replace(/\/$/, "");
 
 /**
  * IMPORTANT: Only use this for client-side operations (e.g. in React components or browser-only hooks).
@@ -11,7 +17,13 @@ export const API_AUTH_URL = `${ENV_WEB_ISOMORPHIC.VITE_SERVER_URL}/auth`;
  */
 export const authClient = createAuthClient({
   baseURL: API_AUTH_URL,
-  plugins: [organizationClient()]
+  plugins: [
+    organizationClient({
+      ac: organizationAccessControl,
+      roles: organizationRoles,
+      schema: inferOrgAdditionalFields<typeof auth>()
+    })
+  ]
 });
 
 export type AuthSession = typeof authClient.$Infer.Session;

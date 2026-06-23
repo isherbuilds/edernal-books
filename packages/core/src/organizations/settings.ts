@@ -7,23 +7,38 @@ export const DEFAULT_ORGANIZATION_SETTINGS = {
   timezone: "Asia/Kolkata"
 } as const;
 
+export const SUPPORTED_ORGANIZATION_CURRENCY_CODES = ["INR", "USD", "EUR", "GBP"] as const;
+export const SUPPORTED_ORGANIZATION_COUNTRY_CODES = ["IN", "US", "GB"] as const;
+export const SUPPORTED_ORGANIZATION_TIMEZONES = [
+  "Asia/Kolkata",
+  "UTC",
+  "America/New_York",
+  "Europe/London"
+] as const;
+export const ORGANIZATION_FISCAL_YEAR_START_MONTHS = [
+  1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12
+] as const;
+
 const orgSlugReferenceShape = {
   orgSlug: z.string().trim().min(1).max(160)
 };
+const EmptyTextAsNullSchema = z
+  .string()
+  .trim()
+  .length(0)
+  .transform(() => null);
+
+function nullableTextInput(schema: z.ZodType<string>) {
+  return z.union([EmptyTextAsNullSchema, schema, z.null()]).optional();
+}
 
 export const OrgSlugInputSchema = z.object(orgSlugReferenceShape).strict();
 export type OrgSlugInput = z.infer<typeof OrgSlugInputSchema>;
 
-export const CountryCodeSchema = z
-  .string()
-  .trim()
-  .regex(/^[A-Z]{2}$/);
+export const CountryCodeSchema = z.enum(SUPPORTED_ORGANIZATION_COUNTRY_CODES);
 export type CountryCode = z.infer<typeof CountryCodeSchema>;
 
-export const CurrencyCodeSchema = z
-  .string()
-  .trim()
-  .regex(/^[A-Z]{3}$/);
+export const CurrencyCodeSchema = z.enum(SUPPORTED_ORGANIZATION_CURRENCY_CODES);
 export type CurrencyCode = z.infer<typeof CurrencyCodeSchema>;
 
 export const FiscalYearStartMonthSchema = z.number().int().min(1).max(12);
@@ -53,10 +68,10 @@ const organizationSettingInputShape = {
     DEFAULT_ORGANIZATION_SETTINGS.fiscalYearStartMonth
   ),
   legalName: z.string().trim().min(1).max(240),
-  primaryEmail: z.email().max(320).nullable().optional(),
-  primaryPhone: z.string().trim().max(64).nullable().optional(),
+  primaryEmail: nullableTextInput(z.string().trim().pipe(z.email().max(320))),
+  primaryPhone: nullableTextInput(z.string().trim().max(64)),
   timezone: z.string().trim().min(1).max(80).default(DEFAULT_ORGANIZATION_SETTINGS.timezone),
-  tradeName: z.string().trim().max(240).nullable().optional()
+  tradeName: nullableTextInput(z.string().trim().max(240))
 };
 
 export const GetOrganizationSettingInputSchema = OrgSlugInputSchema;

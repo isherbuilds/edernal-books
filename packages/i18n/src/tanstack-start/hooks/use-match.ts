@@ -25,7 +25,7 @@ type LocalizedMatchResult<
 /**
  * Localized wrapper for TanStack Router's `useMatch`.
  *
- * - `from`: accepts a locale-stripped route ID (e.g. `/(app-layout)/app/library`).
+ * - `from`: accepts a locale-stripped route ID (e.g. `/_app/$orgSlug/`).
  *   The `/{-$locale}` prefix is prepended automatically.
  * - `pathname` and `fullPath` in the returned match object have their locale
  *   prefix stripped so consumers always work with clean paths.

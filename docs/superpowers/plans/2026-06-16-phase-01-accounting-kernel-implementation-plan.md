@@ -64,11 +64,11 @@ sequenceDiagram
 - `packages/db/src/schema/journal.ts`: `journal_batch`, `journal_line`.
 - `packages/core/src/accounting/*.ts`: Zod contracts and shared accounting types.
 - `packages/api/src/routers/accounting.ts`: internal oRPC procedures for setup, posting, reversal, reports.
-- `apps/web/src/routes/settings/chart-of-accounts.tsx`: chart setup.
-- `apps/web/src/routes/settings/accounting-periods.tsx`: period lock view.
-- `apps/web/src/routes/accounting/journal-batches.tsx`: advanced batch register.
-- `apps/web/src/routes/reports/trial-balance.tsx`: trial balance view.
-- `apps/web/src/routes/reports/general-ledger.tsx`: general ledger view.
+- `apps/web/src/routes/{-$locale}/_app/$orgSlug/_shell/settings/chart-of-accounts.tsx`: chart setup.
+- `apps/web/src/routes/{-$locale}/_app/$orgSlug/_shell/settings/accounting-periods.tsx`: period lock view.
+- `apps/web/src/routes/{-$locale}/_app/$orgSlug/_shell/accounting/journal-batches.tsx`: advanced batch register.
+- `apps/web/src/routes/{-$locale}/_app/$orgSlug/_shell/reports/trial-balance.tsx`: trial balance view.
+- `apps/web/src/routes/{-$locale}/_app/$orgSlug/_shell/reports/general-ledger.tsx`: general ledger view.
 
 Do not create `party`, `tax_code`, `tax_code_component`, invoice, expense, payment, subledger, settlement, or balance-cache tables in Phase 1.
 
@@ -99,8 +99,7 @@ Do not create `party`, `tax_code`, `tax_code_component`, invoice, expense, payme
   "devDependencies": {
     "@tsu-stack/tsconfig": "workspace:*",
     "typescript": "catalog:",
-    "vite-plus": "catalog:",
-    "vitest": "catalog:"
+    "vite-plus": "catalog:"
   }
 }
 ```
@@ -108,7 +107,7 @@ Do not create `party`, `tax_code`, `tax_code_component`, invoice, expense, payme
 - [ ] **Step 2: Write money tests**
 
 ```ts
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { addMinor, toDecimalString, toMinor } from "./money";
 
 describe("money", () => {
@@ -208,7 +207,7 @@ rtk git commit -m "feat: add accounting core money helpers"
 - [ ] **Step 1: Add schema invariant test**
 
 ```ts
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import {
   accountingPeriod,
   fiscalYear,
@@ -417,7 +416,7 @@ rtk git commit -m "feat: add accounting kernel schema"
 - [ ] **Step 1: Add validation tests**
 
 ```ts
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { validateBatchDraft } from "./journal";
 
 describe("journal batch validation", () => {
@@ -518,7 +517,7 @@ rtk git commit -m "feat: validate journal batches"
 - [ ] **Step 1: Test default chart**
 
 ```ts
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { defaultIndiaOwnerChart } from "./default-chart";
 
 describe("default India owner chart", () => {
@@ -554,7 +553,7 @@ GST input/output accounts are seeded in Phase 3 when tax codes exist.
 - [ ] **Step 3: Test fiscal year helper**
 
 ```ts
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { makeIndiaFiscalYear } from "./fiscal-year";
 
 describe("fiscal year", () => {
@@ -615,7 +614,7 @@ rtk git commit -m "feat: add accounting setup services"
 - [ ] **Step 1: Test reversal helper**
 
 ```ts
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { reverseBatchLines } from "./journal";
 
 describe("journal batch reversal", () => {
@@ -700,17 +699,17 @@ rtk git commit -m "feat: add journal batch posting"
 - Create: `packages/accounting-core/src/reports/trial-balance.ts`
 - Create: `packages/accounting-core/src/reports/general-ledger.ts`
 - Create: `packages/api/src/routers/accounting-reports.ts`
-- Create: `apps/web/src/routes/settings/chart-of-accounts.tsx`
-- Create: `apps/web/src/routes/settings/accounting-periods.tsx`
-- Create: `apps/web/src/routes/accounting/journal-batches.tsx`
-- Create: `apps/web/src/routes/reports/trial-balance.tsx`
-- Create: `apps/web/src/routes/reports/general-ledger.tsx`
+- Create: `apps/web/src/routes/{-$locale}/_app/$orgSlug/_shell/settings/chart-of-accounts.tsx`
+- Create: `apps/web/src/routes/{-$locale}/_app/$orgSlug/_shell/settings/accounting-periods.tsx`
+- Create: `apps/web/src/routes/{-$locale}/_app/$orgSlug/_shell/accounting/journal-batches.tsx`
+- Create: `apps/web/src/routes/{-$locale}/_app/$orgSlug/_shell/reports/trial-balance.tsx`
+- Create: `apps/web/src/routes/{-$locale}/_app/$orgSlug/_shell/reports/general-ledger.tsx`
 - Test: `packages/accounting-core/src/reports/trial-balance.test.ts`
 
 - [ ] **Step 1: Test trial balance**
 
 ```ts
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { buildTrialBalance } from "./trial-balance";
 
 describe("trial balance", () => {
