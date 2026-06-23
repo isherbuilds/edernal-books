@@ -2,19 +2,19 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { orpc } from "@tsu-stack/api/client/tanstack-start/orpc";
 
+import { businessSettingsQueryKeys } from "@/hooks/use-business-settings";
 import { queryTtl } from "@/lib/query-ttl";
-
-import { businessSettingsQueryKeys } from "./use-business-settings";
 
 export const organizationsQueryKeys = {
   list() {
-    return orpc.organizations.list.key();
+    return ["organizations", "list"] as const;
   }
 };
 
 export function getOrganizationsListQueryOptions() {
   return {
-    ...orpc.organizations.list.queryOptions(),
+    queryFn: async () => [],
+    queryKey: organizationsQueryKeys.list(),
     gcTime: queryTtl.organizationListGc,
     staleTime: queryTtl.organizationListStale
   };
@@ -32,7 +32,7 @@ export function useCompleteOnboardingMutation(
   const queryClient = useQueryClient();
 
   return useMutation(
-    orpc.organizations.completeOnboarding.mutationOptions({
+    orpc.organizations.settings.upsert.mutationOptions({
       onError: options.onError,
       onSuccess: async () => {
         await Promise.all([

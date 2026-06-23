@@ -12,22 +12,20 @@ import { Badge } from "@tsu-stack/ui/components/badge";
 import { Button } from "@tsu-stack/ui/components/button";
 import { Spinner } from "@tsu-stack/ui/components/spinner";
 
+import {
+  FeatureStepSummary,
+  getOnboardingStepDefinition,
+  OnboardingChecklist,
+  type OnboardingStepDefinition
+} from "@/components/onboarding/onboarding-step-definitions";
+import { useCompleteOnboardingMutation } from "@/hooks/use-organizations";
+import { useZodForm } from "@/hooks/use-zod-form";
 import { getDateInputValue } from "@/utils/form-input";
 import {
   ONBOARDING_STEP_KEYS,
   type OnboardingFormInput,
   type OnboardingStepKey
 } from "@/utils/onboarding";
-
-import { useCompleteOnboardingMutation } from "@/hooks/use-organizations";
-import { useZodForm } from "@/hooks/use-zod-form";
-
-import {
-  FeatureStepSummary,
-  getOnboardingStepDefinition,
-  OnboardingChecklist,
-  type OnboardingStepDefinition
-} from "./onboarding-step-definitions";
 
 type OnboardingUser = {
   email?: string | null;

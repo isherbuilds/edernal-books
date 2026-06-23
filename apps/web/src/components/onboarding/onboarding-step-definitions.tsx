@@ -14,12 +14,14 @@ import { Badge } from "@tsu-stack/ui/components/badge";
 import { cn } from "@tsu-stack/ui/lib/utils";
 
 import {
+  BusinessContactFields,
+  BusinessDetailsFields
+} from "@/components/onboarding/onboarding-step-fields";
+import {
   type OnboardingFormInput,
   type OnboardingStepKey,
   ONBOARDING_STEP_KEYS
 } from "@/utils/onboarding";
-
-import { BusinessContactFields, BusinessDetailsFields } from "./onboarding-step-fields";
 
 type OnboardingFeatureItem = () => string;
 

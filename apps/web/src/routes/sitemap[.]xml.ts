@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { appConfig } from "@/config/app.config";
 
-const SITEMAP_PATHS = ["/", "/home", "/privacy-policy", "/terms-of-service"] as const;
+const SITEMAP_PATHS = [] as const;
 
 /**
  * If you're using subpaths, on your root domain, you need to make a sitemap index to link the subpath sitemaps.

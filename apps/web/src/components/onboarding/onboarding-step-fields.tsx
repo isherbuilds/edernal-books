@@ -4,14 +4,13 @@ import { DEFAULT_ORGANIZATION_SETTINGS } from "@tsu-stack/core/organizations";
 import { m } from "@tsu-stack/i18n/messages";
 import { FieldGroup } from "@tsu-stack/ui/components/field";
 
+import { FormSelectField, FormTextField } from "@/components/form-fields";
 import { type OnboardingFormInput, type OnboardingFormValues } from "@/utils/onboarding";
 import {
   countryCodeOptions,
   currencyCodeOptions,
   getFiscalYearStartMonthOptions
 } from "@/utils/organization-settings-options";
-
-import { FormSelectField, FormTextField } from "@/components/form-fields";
 
 export function BusinessDetailsFields() {
   const fiscalYearStartMonthOptions = getFiscalYearStartMonthOptions();

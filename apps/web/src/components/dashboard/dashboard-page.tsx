@@ -50,7 +50,7 @@ type DashboardPageProps = {
 };
 
 const CashMovementChart = lazy(() =>
-  import("./cash-movement-chart").then((module) => {
+  import("@/components/dashboard/cash-movement-chart").then((module) => {
     return { default: module.CashMovementChart };
   })
 );

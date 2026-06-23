@@ -16,9 +16,8 @@ import {
   DropdownMenuTrigger
 } from "@tsu-stack/ui/components/dropdown-menu";
 
-import { useSignOutAndResetSession } from "@/hooks/use-sign-out";
-
 import { NavbarAvatar } from "@/components/app-shell/navbar-avatar";
+import { useSignOutAndResetSession } from "@/hooks/use-sign-out";
 
 export function UserDropdown() {
   const { user } = useAuthSuspense();

@@ -1,10 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { appConfig } from "@/config/app.config";
-
-import { generateAppSeo } from "@/lib/seo";
+import { useAuthSuspense } from "@tsu-stack/auth/react/tanstack-start/hooks";
 
 import { DashboardPage } from "@/components/dashboard/dashboard-page";
+import { appConfig } from "@/config/app.config";
+import { generateAppSeo } from "@/lib/seo";
 
 export const Route = createFileRoute("/{-$locale}/_app/$orgSlug/_shell/")({
   head: ({ params }) =>
@@ -24,7 +24,7 @@ export const Route = createFileRoute("/{-$locale}/_app/$orgSlug/_shell/")({
 });
 
 function RouteComponent() {
-  const { user } = Route.useRouteContext();
+  const { user } = useAuthSuspense();
 
-  return <DashboardPage user={user} />;
+  return <DashboardPage user={user ?? {}} />;
 }
