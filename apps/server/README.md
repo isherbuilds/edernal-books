@@ -39,11 +39,9 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for middleware order and handler details.
 
 ## Public Entrypoints
 
-| Export           | Purpose                                            |
-| ---------------- | -------------------------------------------------- |
-| `app`            | Hono app, useful for merged deployment experiments |
-| `openApiHandler` | oRPC OpenAPI/Scalar handler                        |
-| `rpcHandler`     | oRPC RPC handler                                   |
+| Export | Purpose                                            |
+| ------ | -------------------------------------------------- |
+| `app`  | Hono app, useful for merged deployment experiments |
 
 ## Routes
 

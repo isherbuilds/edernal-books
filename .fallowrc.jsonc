@@ -16,7 +16,6 @@
     // Linting packages that are not directly imported, but used
     "@tanstack/eslint-plugin-query",
     "@tanstack/eslint-plugin-router",
-    "eslint-plugin-fsd-lint",
     "eslint-plugin-react-hooks",
     // Custom pnpm-workspace.yaml package specifiers
     "@voidzero-dev/vite-plus-test",

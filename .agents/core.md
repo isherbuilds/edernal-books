@@ -89,6 +89,10 @@ Keep a small domain barrel that re-exports the public API for that domain.
 
 Consumers should import the domain surface, not deep internal files.
 
+This is a package/domain public API exception. Do not copy this pattern into
+`apps/web`; web routes, components, hooks, utils, lib, and providers import exact
+owner files instead of local `index.ts` barrels.
+
 ## Propagation Rule
 
 Unless explicitly told not to, shared domain enums and validation logic should propagate from `packages/core` into both the frontend and API.
@@ -98,7 +102,8 @@ That means:
 - `apps/web` route validators should import shared schemas and defaults from core instead of repeating `z.enum([...])` literals.
 - Frontend filters, tabs, and select options should use core-derived helpers or schema values, not duplicated local arrays.
 - `packages/api` procedures should validate shared inputs and outputs with core schemas when the contract crosses package boundaries.
-- Slice query modules in `apps/web` may re-export shared types for convenience, but they should not redefine local literal unions if core already owns the contract.
+- Hook files in `apps/web` may re-export shared types for convenience, but they
+  should not redefine local literal unions if core already owns the contract.
 
 If adding one enum value requires hand-editing multiple literal unions in `apps/web` or `packages/api`, the contract probably belongs in `packages/core`.
 
@@ -122,7 +127,7 @@ Move logic into `packages/core` when:
 - `packages/auth` and `packages/api` share the same normalization or validation rule
 - a shared enum, default, or format should drive frontend behavior automatically
 
-Keep logic local when it is truly slice-specific, UI-only, router-only, or persistence-only.
+Keep logic local when it is truly route-only, UI-only, app-only, or persistence-only.
 
 ## Introducing A New Shared Enum Or Contract
 

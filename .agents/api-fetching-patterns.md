@@ -1,144 +1,162 @@
 # API Fetching Patterns
 
-Use this when adding or refactoring TanStack Query code in `apps/web` slices.
+Use this when adding or refactoring TanStack Query code in `apps/web`.
 
 ## Goals
 
-- Keep route files thin.
-- Keep `orpc` and TanStack Query wiring inside slice-local `api/` modules.
-- Keep page and feature components consuming hooks, not raw `useQuery(orpc...)` or `useMutation(orpc...)` calls.
-
-## File Naming
-
-- Queries use `*.query.ts`.
-- Mutations use `*.mutation.ts`.
-- Prefer one operation per file.
-- Match the filename to the exported hook name.
-
-Examples:
-
-- `get-profile.query.ts` → `useGetProfileQuery`
-- `search-profiles.query.ts` → `useSearchProfilesQuery`
-- `create-profile.mutation.ts` → `useCreateProfileMutation`
+- Keep route files obvious when routes preload data.
+- Keep query, mutation, invalidation, and UI policy in `hooks/`.
+- Avoid top-level `api/`, slice-local `api/`, global query registries, and
+  pass-through wrappers that only hide the real oRPC procedure.
+- Prefer direct `orpc` query options at the call site until a wrapper carries
+  real policy or reuse.
 
 ## Placement
 
-Put these files in the slice that owns the behavior.
+Use `apps/web/src/hooks` for React hooks and TanStack Query hooks:
 
 ```text
-pages/profile/
-  api/
-    get-profile.query.ts
-  ui/
-    profile-id-page.tsx
-  index.ts
+src/hooks/use-business-settings.ts
+src/hooks/use-organizations.ts
+src/hooks/use-user.ts
+src/hooks/use-zod-form.ts
 ```
 
-Do not centralize app queries in a global `queries.ts` or `mutations.ts` file when the behavior belongs to one page or feature slice.
+Do not create `apps/web/src/api`. Do not create `api/` folders under routes or
+components.
 
-When a filter, category, sort, or other domain type is shared across packages, import it from `packages/core`. Do not redefine the same literal union locally. Follow [Core package patterns](./core.md) when introducing that shared contract.
+Use `apps/web/src/utils` for pure input defaults, option builders, formatters,
+and mappers. Use `apps/web/src/lib` for app services and integration glue.
 
-## Query Module Shape
+## Inline First
 
-Each query file should usually export:
-
-- query keys object
-- query options factory
-- hook wrapper
-- result type when useful
+Inline `orpc` usage when the call has no policy:
 
 ```ts
-import { useQuery } from "@tanstack/react-query";
+const settingsQuery = useQuery(
+  orpc.organizations.settings.get.queryOptions({
+    input: { orgSlug }
+  })
+);
+```
+
+Route preloading may inline the same query options:
+
+```ts
+await context.queryClient.ensureQueryData(
+  orpc.organizations.settings.get.queryOptions({
+    input: { orgSlug: params.orgSlug }
+  })
+);
+```
+
+This follows Midday's practical pattern: route files inline `queryOptions()` for
+prefetching, while client hooks/components inline `queryOptions()` where they
+read.
+
+## Hook Extraction Rule
+
+Create `useXQuery` or `useXMutation` when it improves the component contract or
+owns real behavior:
+
+- mutation invalidation, optimistic updates, or shared success/error handling
+- explicit stale time, refetch behavior, enabled conditions, or selectors
+- input normalization before reaching `orpc`
+- result mapping into a UI-facing shape
+- repeated usage across components
+- readable domain name for a component that should not know the oRPC path
+
+Do not create `getXQueryOptions(...)` by default. Create a query option factory
+only when the same non-trivial options are shared across three or more call
+sites, or when one shared policy must stay identical between route preloading
+and component reads.
+
+## Hook File Shape
+
+Keep a small domain's query, mutation, keys, and result types in one hook file:
+
+```ts
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { type client, orpc } from "@tsu-stack/api/client/tanstack-start/orpc";
 
-export const profileQueryKeys = {
-  byId(id: string) {
-    return orpc.profile.byId.key({ input: { id } });
+export const businessSettingsQueryKeys = {
+  detail(orgSlug: string) {
+    return orpc.organizations.settings.get.key({ input: { orgSlug } });
   }
 };
 
-export function getProfileQueryOptions(id: string) {
-  return orpc.profile.byId.queryOptions({
-    input: { id }
-  });
+export function useBusinessSettingsQuery(orgSlug: string) {
+  return useQuery(
+    orpc.organizations.settings.get.queryOptions({
+      input: { orgSlug }
+    })
+  );
 }
 
-export function useGetProfileQuery(id: string) {
-  return useQuery(getProfileQueryOptions(id));
-}
-
-export type ProfileQueryResult = Awaited<ReturnType<typeof client.profile.byId>>;
-```
-
-## Mutation Module Shape
-
-Each mutation file should usually export:
-
-- mutation options factory
-- hook wrapper
-- any helper invalidation logic or key helpers the slice needs
-
-```ts
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-
-import { type client, orpc } from "@tsu-stack/api/client/tanstack-start/orpc";
-
-import { profileQueryKeys } from "@/pages/profile/api/get-profile.query";
-
-export function createProfileMutationOptions() {
-  return orpc.profile.create.mutationOptions();
-}
-
-export function useCreateProfileMutation() {
+export function useUpsertBusinessSettingsMutation(orgSlug: string) {
   const queryClient = useQueryClient();
 
   return useMutation(
-    orpc.profile.create.mutationOptions({
-      onSuccess: async (profile) => {
+    orpc.organizations.settings.upsert.mutationOptions({
+      onSuccess: async () => {
         await queryClient.invalidateQueries({
-          queryKey: profileQueryKeys.byId(profile.id)
+          queryKey: businessSettingsQueryKeys.detail(orgSlug)
         });
       }
     })
   );
 }
 
-export type CreateProfileMutationResult = Awaited<ReturnType<typeof client.profile.create>>;
+export type BusinessSettingsResult = Awaited<ReturnType<typeof client.organizations.settings.get>>;
 ```
+
+Split a hook file only when it becomes hard to scan, operations gain separate
+owners, or another area needs a narrow import.
 
 ## Route Integration
 
-Route files should import query option factories from the slice barrel and preload them in `beforeLoad`.
+Routes import `orpc` directly for simple preloading:
 
 ```ts
-export const Route = createFileRoute("/{-$locale}/(root-layout)/profile/$id/")({
-  beforeLoad: ({ context, params }) => {
-    void context.queryClient.ensureQueryData(getProfileQueryOptions(params.id));
+import { createFileRoute } from "@tanstack/react-router";
+
+import { orpc } from "@tsu-stack/api/client/tanstack-start/orpc";
+
+export const Route = createFileRoute("/{-$locale}/_app/$orgSlug/_shell/settings/business")({
+  beforeLoad: async ({ context, params }) => {
+    await context.queryClient.ensureQueryData(
+      orpc.organizations.settings.get.queryOptions({
+        input: { orgSlug: params.orgSlug }
+      })
+    );
   },
-  component: ProfileIdPage
+  component: BusinessSettingsRoute
 });
 ```
 
-Use React Query for caching. Do not rely on the router loader cache.
+Use `ensureQueryData(...)` when route entry needs data. Use `prefetchQuery(...)`
+for optional warmups. Do not rely on the router loader cache for server data
+that components read through TanStack Query.
 
 ## Component Usage
 
-- Use the exported hook in the page, feature, or widget component.
-- Do not call `useQuery(orpc...)` or `useMutation(orpc...)` inline in app UI code.
-- Keep invalidation logic using exported query key helpers.
+Components use the named hook when one exists:
 
 ```ts
-const profileQuery = useGetProfileQuery(profileId);
-
-await queryClient.invalidateQueries({
-  queryKey: profileQueryKeys.byId(profileId)
-});
+const settingsQuery = useBusinessSettingsQuery(orgSlug);
+const upsertSettings = useUpsertBusinessSettingsMutation(orgSlug);
 ```
 
-## Naming Rules
+Use direct `useQuery(orpc...)` inside a component only when the call is local,
+one-off, and has no shared policy.
 
-- `get-*` query files export `useGet*Query`.
-- Non-`get` query files keep the same verb in the hook name.
-- Mutation hooks use `use<CreateVerb><Entity>Mutation`.
-- Query option factories should read naturally from the operation name: `getProfileQueryOptions`, `searchProfilesQueryOptions`, `getArticlesQueryOptions`.
+## Anti-Patterns
+
+- `src/api` or slice-local `api/` folders in `apps/web`.
+- `getXQueryOptions(...)` for every query by habit.
+- Query key helpers that are never used for invalidation or cache reads.
+- Hook wrappers that obscure the oRPC procedure without adding naming,
+  readability, reuse, or policy.
+- Duplicating shared domain literals instead of importing contracts from
+  `packages/core`.

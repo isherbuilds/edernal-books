@@ -8,21 +8,31 @@ This file is the source of truth for app UI composition, extraction decisions, a
 
 - Prefer existing primitives from `@tsu-stack/ui` before creating new app-local ones.
 - Keep `packages/ui` reusable and app-agnostic.
-- Keep route files thin and UI composition in pages, features, widgets, or `shared/ui`.
+- Keep app UI in `apps/web/src/components`, with route files composing imported
+  components directly when the route stays readable.
 - Extract shared UI only when reuse and app-agnostic boundaries are real.
 
 ## Default Sources
 
 - Prefer existing components from `@tsu-stack/ui/components/*` before creating new app-local primitives.
-- Prefer app wrappers from `apps/web/src/shared/ui` when the app already owns routing, image, locale, or other app-specific integration details.
+- Prefer app wrappers from `apps/web/src/components` when the app already owns routing, image, locale, or other app-specific integration details.
 - Use `lucide-react` for icons unless an existing asset or brand graphic is the better fit.
 - Use `@tsu-stack/ui/lib/utils` `cn(...)` for class composition.
 
 ## App Composition
 
-- Build page UI in `pages/`, composite sections in `widgets/` and `features/`, and app-level primitives in `shared/ui`.
+- Build app screens from route files plus `components/<area>/...`.
+- Use domain-first component folders such as `components/settings` or
+  `components/members`.
+- Use flat generic app components such as `components/form-fields.tsx` and
+  `components/logo.tsx`.
+- Do not create `components/shared`, `components/ui`, `components/forms`,
+  `components/tables`, or other type buckets.
 - Prefer composing `@tsu-stack/ui` primitives instead of duplicating styling across many leaf components.
-- Keep route files thin. Put UI composition in page, feature, widget, or shared components, not in route files.
+- Keep route files under roughly 250 lines. Route files may compose UI directly,
+  but table state, form state, modal state, and repeated UI move into
+  `components/<area>/...`.
+- The app uses React Compiler. For new UI code, prefer plain local functions and derived values; add `useMemo`, `useCallback`, or `memo` only when a dependency boundary, third-party API, or measured hotspot requires manual control.
 
 ## Extraction Rule
 
@@ -75,9 +85,12 @@ type CardProps = {
 ## shadcn Usage
 
 - The repo uses shadcn with the `base-nova` style, `neutral` base color, `lime` theme, `sky` charts, CSS variables, Inter fonts, and Lucide icons. Theme tokens are based on preset `b5J4sHFTc`; keep Lucide unless explicitly migrating component icons.
+- In `apps/web/components.json`, keep shadcn `ui`, `utils`, `lib`, and `hooks`
+  aliases pointed at `@tsu-stack/ui`; keep `components` pointed at app
+  components for app-level blocks and wrappers.
 - Add reusable shadcn-derived components to `packages/ui` when they can stay app-agnostic.
 - Keep a component in `apps/web` when it depends directly on app routing, auth, SEO, locale, or app config.
-- Keep app-level wrappers and glue code in `apps/web/src/shared/ui`.
+- Keep app-level wrappers and glue code in `apps/web/src/components`.
 
 ## Images And Links
 
@@ -89,7 +102,7 @@ type CardProps = {
 
 - Do keep `packages/ui` reusable and free of app imports.
 - Do keep styling and accessibility inside the shared component.
-- Do extract app-specific wrappers into `apps/web/src/shared/ui`.
+- Do extract app-specific wrappers into `apps/web/src/components`.
 - Don't hardcode router, locale, analytics, or env behavior into `packages/ui`.
 - Don't introduce React context or excessive prop drilling for shared UI state when a colocated store is enough.
 - Don't expose app-specific implementation details unless reuse requires them.
