@@ -24,6 +24,7 @@ export function ThemeSwitcher({
   return (
     <Button
       {...props}
+      type="button"
       aria-label="Switch color theme."
       className={className}
       onClick={() => {

@@ -177,7 +177,12 @@ export function BusinessSettingsForm({
           label={m.business_settings__primary_email()}
           placeholder="accounts@example.com"
           type="email"
-          {...register("primaryEmail")}
+          {...register("primaryEmail", {
+            setValueAs: (value: string) => {
+              const trimmed = value.trim();
+              return trimmed === "" ? null : trimmed;
+            }
+          })}
         />
 
         <FormTextField
@@ -215,8 +220,8 @@ function getBusinessSettingsDefaultValues(
       setting?.fiscalYearStartMonth ?? DEFAULT_ORGANIZATION_SETTINGS.fiscalYearStartMonth,
     legalName: setting?.legalName ?? "",
     orgSlug,
-    primaryEmail: setting?.primaryEmail ?? "",
-    primaryPhone: setting?.primaryPhone ?? "",
+    primaryEmail: setting?.primaryEmail ?? null,
+    primaryPhone: setting?.primaryPhone ?? null,
     timezone: setting?.timezone ?? DEFAULT_ORGANIZATION_SETTINGS.timezone,
     tradeName: setting?.tradeName ?? ""
   };

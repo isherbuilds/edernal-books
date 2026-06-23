@@ -6,6 +6,7 @@ import {
   LogOutIcon
 } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 
 import { useAuthSuspense } from "@tsu-stack/auth/react/tanstack-start/hooks";
 import { m } from "@tsu-stack/i18n/messages";
@@ -54,6 +55,8 @@ export function NavUser() {
 
     try {
       await signOutAndReset();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : m.app_shell__sign_out_failed());
     } finally {
       setIsSigningOut(false);
     }
@@ -118,10 +121,7 @@ export function NavUser() {
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem
-              disabled={isSigningOut}
-              onClick={() => void signOut().catch(() => undefined)}
-            >
+            <DropdownMenuItem disabled={isSigningOut} onClick={() => void signOut()}>
               <LogOutIcon />
               {m.app_shell__log_out()}
             </DropdownMenuItem>

@@ -18,9 +18,10 @@ export function getRedirectTo(to: string | undefined): RedirectTo {
   }
 
   const pathname = stripLocalePrefix(url.pathname);
-  if (GUEST_PATHS.has(pathname)) {
+  const normalizedPath = pathname !== "/" ? pathname.replace(/\/+$/, "") || "/" : "/";
+  if (GUEST_PATHS.has(normalizedPath)) {
     return "/";
   }
 
-  return `${pathname}${url.search}${url.hash}` as RedirectTo;
+  return `${normalizedPath}${url.search}${url.hash}` as RedirectTo;
 }

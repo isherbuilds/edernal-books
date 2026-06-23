@@ -26,5 +26,9 @@ export const Route = createFileRoute("/{-$locale}/_app/$orgSlug/_shell/")({
 function RouteComponent() {
   const { user } = useAuthSuspense();
 
-  return <DashboardPage user={user ?? {}} />;
+  if (!user) {
+    return null;
+  }
+
+  return <DashboardPage user={user} />;
 }

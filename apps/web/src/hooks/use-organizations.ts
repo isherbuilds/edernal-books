@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { orpc } from "@tsu-stack/api/client/tanstack-start/orpc";
+import { authClient } from "@tsu-stack/auth/react/auth-client";
 
 import { businessSettingsQueryKeys } from "@/hooks/use-business-settings";
 import { queryTtl } from "@/lib/query-ttl";
@@ -11,14 +12,6 @@ export const organizationsQueryKeys = {
   }
 };
 
-export function getOrganizationsListQueryOptions() {
-  return {
-    queryFn: async () => [],
-    queryKey: organizationsQueryKeys.list(),
-    gcTime: queryTtl.organizationListGc,
-    staleTime: queryTtl.organizationListStale
-  };
-}
 
 type UseCompleteOnboardingMutationOptions = {
   onError?: (error: unknown) => void;

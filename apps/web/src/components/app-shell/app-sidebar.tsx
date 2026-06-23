@@ -1,6 +1,7 @@
 import { SquareLibraryIcon } from "lucide-react";
 import { type ComponentProps } from "react";
 
+import { Link } from "@tsu-stack/i18n/tanstack-start/components/link";
 import {
   Sidebar,
   SidebarContent,
@@ -24,7 +25,7 @@ export function AppSidebar(props: ComponentProps<typeof Sidebar>) {
           <SidebarMenuItem>
             <SidebarMenuButton
               className="data-[slot=sidebar-menu-button]:p-1.5!"
-              render={<a href="/" aria-label="Edernal Books" />}
+              render={<Link to="/" aria-label="Edernal Books" />}
             >
               <SquareLibraryIcon />
               <span className="text-base font-semibold">Edernal Books</span>

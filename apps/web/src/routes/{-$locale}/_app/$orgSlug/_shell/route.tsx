@@ -15,7 +15,7 @@ function OrganizationLayout() {
       <AppSidebar />
 
       <SidebarInset>
-        <SiteHeader title="Something" />
+        <SiteHeader />
 
         <div className="flex min-h-0 flex-1 flex-col">
           <Outlet />
