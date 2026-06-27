@@ -8,6 +8,10 @@
 
 **Tech Stack:** TanStack Start, React Hook Form, Zod, Hono, oRPC, PostgreSQL, Drizzle, core accounting, object storage, PDF renderer, email provider abstraction.
 
+**Current readiness:** Phase 0 and Phase 1 are complete on `main`. Before
+implementation, rerun the local DB integration gate with Postgres available and
+refresh this plan through a Phase 2 design review.
+
 ---
 
 ## Architecture Flow

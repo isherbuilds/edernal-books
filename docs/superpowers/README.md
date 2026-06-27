@@ -14,9 +14,9 @@ them as implementation instructions.
 
 ## Current Status
 
-Updated: 2026-06-26.
+Updated: 2026-06-27.
 
-Phase 0 code is complete. The current foundation slice has landed:
+Phase 0 and Phase 1 code are complete on `main`. Phase 0 landed:
 
 - Better Auth organization plugin and generated organization/member/invitation schema.
 - DB client split into `client.ts`, `migrate.ts`, reusable queries, schema files, and health helpers.
@@ -30,7 +30,7 @@ Phase 0 code is complete. The current foundation slice has landed:
 - Auth package exports Phase 0 role permission helpers with unit tests.
 - Unit tests cover role permissions, organization membership resolution, settings audit rows, and schema tenant-scope invariants.
 
-Phase 1 backend foundation has started. The target shape after June 26 scope review is:
+Phase 1 landed:
 
 - `packages/core/src/accounting` default chart, journal validation, report arithmetic, and oRPC-safe DTOs that serialize minor units as strings.
 - `fiscal_year`, `accounting_period`, `ledger_account`, `number_sequence`, `source_document`, `journal_entry`, and `journal_line`.
@@ -43,6 +43,8 @@ Phase 1 backend foundation has started. The target shape after June 26 scope rev
 - `number_sequence` allocation uses atomic `UPDATE ... RETURNING`.
 - Posting takes a narrow operation-key transaction lock before number allocation so duplicate retries replay without voucher-number gaps.
 - DB integration tests cover duplicate operation keys, concurrent sequence allocation, fiscal-year sequence reset, rollback semantics, posting date checks, reversal behavior, and settings locks.
+- Web accounting surfaces exist for chart of accounts, accounting periods, manual/opening journal posting, reversal, journal register, trial balance, and general ledger.
+- Owner/accountant accounting access is explicit; viewer has no accounting-kernel report or action access by default.
 
 Current deliberate gap: `outbox_event` exists, but Phase 1 does not emit outbox rows because no worker/webhook/public API/integration/async consumer exists.
 
@@ -54,12 +56,18 @@ inside the transaction before number allocation to preserve voucher-number
 continuity under concurrent retries. Reconsider a central replay store only when
 Phase 6 public API semantics need heterogeneous response replay.
 
+Verification note: `rtk vp check` and `rtk vp run -r test:unit` passed on
+2026-06-27. `rtk vp run --filter @tsu-stack/db test:integration` requires
+local Postgres on the configured `DATABASE_URL`; rerun it after
+`rtk vp run db:dev:start` and `rtk vp run db:migrate` before the first Phase 2
+schema change.
+
 Next step:
 
-- Simplify Phase 1 backend to the reviewed kernel shape before UI work.
-- Keep posting hot path Frappe-like: command carries posting date, accounts, and base minor amounts; server loads period/account state, but does not fetch or write per-line currency.
-- Add Phase 1 UI surfaces: chart setup/read view, period view, manual journal/opening-balance helper, journal entry register, trial balance, and general ledger.
-- Design Phase 1 UI permissions around owner/accountant access only. Viewer has no accounting-kernel report access by default.
+- Grill and refresh Phase 2 owner workflow design before implementation.
+- Keep Phase 2 limited to customers/vendors, items, invoices, expenses, receipts/payments, PDFs/share, delivery logs, and dashboard workflows.
+- Route every posted owner document through the Phase 1 journal posting service.
+- Keep GST, bank reconciliation, AI, public API, recurring workflows, and inventory out of Phase 2.
 
 ## Phase Plans
 
