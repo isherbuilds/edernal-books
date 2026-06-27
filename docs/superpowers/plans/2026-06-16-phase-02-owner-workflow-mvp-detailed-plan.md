@@ -4,9 +4,9 @@
 
 **Goal:** Build owner-facing customers, vendors, items, invoices, expenses, payments, PDFs, delivery logs, and dashboard workflows on top of the Phase 1 accounting kernel.
 
-**Architecture:** UI speaks owner language while backend posts deterministic accounting journals through the existing journal posting service. Document services create drafts, post documents, allocate payments, write audit events, emit outbox events, and preserve source links from documents to journals. Public external API remains disabled in this phase, but oRPC contracts are shaped so Phase 6 can expose stable OpenAPI endpoints without rewriting business logic.
+**Architecture:** UI speaks owner language while backend posts deterministic accounting journals through the existing journal posting service. Document services create drafts, post documents, allocate payments, write audit events, and preserve source links from documents to journals. Public external API remains disabled in this phase, but oRPC contracts are shaped so Phase 6 can expose stable OpenAPI endpoints without rewriting business logic. Do not emit outbox events until a durable async consumer exists.
 
-**Tech Stack:** TanStack Start, React Hook Form, Zod, Hono, oRPC, PostgreSQL, Drizzle, accounting-core, object storage, PDF renderer, email provider abstraction.
+**Tech Stack:** TanStack Start, React Hook Form, Zod, Hono, oRPC, PostgreSQL, Drizzle, core accounting, object storage, PDF renderer, email provider abstraction.
 
 ---
 
@@ -18,9 +18,9 @@ flowchart TD
   Docs --> Parties["party + item"]
   Docs --> Source["source_document"]
   Docs --> Ledger["journal posting service"]
-  Ledger --> Batch["journal_batch + journal_line"]
+  Ledger --> Batch["journal_entry + journal_line"]
   Docs --> Delivery["PDF + document_delivery"]
-  Docs --> Events["audit_event + outbox_event"]
+  Docs --> Events["audit_event"]
   Docs --> Idem["operation-local command keys"]
 ```
 
@@ -37,7 +37,7 @@ sequenceDiagram
   S->>DB: Check operation key or document natural key
   S->>DB: Validate party, item, document state
   S->>L: Build balanced journal command
-  L->>DB: Insert journal batch and lines
+  L->>DB: Insert journal entry and lines
   S->>DB: Mark document posted and write events
   S-->>UI: Posted document
 ```
@@ -47,8 +47,9 @@ sequenceDiagram
 Before executing this plan, reconcile it with `docs/superpowers/plans/2026-06-17-accounting-foundation-schema-revision-plan.md`.
 
 - Use existing `number_sequence`; do not create `document_sequence`.
-- Posted documents link to `source_document` and the resulting `journal_batch`.
-- Write `audit_event` and `outbox_event`, not `audit_log` or `internal_event`.
+- Posted documents link to `source_document` and the resulting `journal_entry`.
+- Write `audit_event`, not `audit_log`.
+- Start `outbox_event` writes only when an async consumer, integration, webhook, AI indexer, or public API delivery workflow exists.
 - Use operation-local idempotency at posting boundaries.
 - Store ordinary money as `*_minor bigint`; any `*_amount` names below are conceptual and must become minor-unit columns.
 - Do not add GST/tax-code behavior in Phase 2. Phase 2 can keep tax totals at zero and leave tax UI hidden until Phase 3.
@@ -109,7 +110,7 @@ Constraints:
 - `amount_due`
 - `notes`
 - `terms`
-- `journal_batch_id`
+- `journal_entry_id`
 - `pdf_attachment_id`
 - `posted_by`
 - `posted_at`
@@ -119,8 +120,11 @@ Constraints:
 Constraints:
 
 - Unique `(organization_id, invoice_number)`.
-- Posted invoice has `journal_batch_id`.
+- Posted invoice has `journal_entry_id`.
 - Amount due equals total minus paid.
+- Draft invoices do not consume final invoice numbers.
+- Posted/issued invoices cannot be deleted. Voided invoices retain their invoice number so later numbers do not shift.
+- Accounting-impacting fields on posted invoices are immutable. Corrections use void/credit/debit-note workflows, not in-place edits.
 
 ### `invoice_line`
 
@@ -156,7 +160,7 @@ Constraints:
 - `amount_due`
 - `payment_due_date`
 - `notes`
-- `journal_batch_id`
+- `journal_entry_id`
 - `receipt_attachment_id`
 - `posted_by`
 - `posted_at`
@@ -195,7 +199,7 @@ Constraints:
 - `deposit_account_id`
 - `reference`
 - `notes`
-- `journal_batch_id`
+- `journal_entry_id`
 - `posted_by`
 - `posted_at`
 - `created_at`
@@ -215,6 +219,7 @@ Constraints:
 
 - Sum allocations cannot exceed payment amount.
 - Payment direction must match target type.
+- Posted expenses and payments cannot mutate accounting-impacting fields. Corrections use void/reversal/new document workflows.
 
 ### `document_delivery`
 
@@ -311,7 +316,7 @@ type ApiError = {
 - [ ] Implement Zod schemas with owner-friendly field names.
 - [ ] Implement services scoped by `organization_id`.
 - [ ] Write audit events for create/update/archive.
-- [ ] Emit `party.created`, `party.updated`, `item.created`, `item.updated`.
+- [ ] Do not emit outbox events until a durable consumer exists.
 - [ ] Run `rtk vp run --filter @tsu-stack/api test:unit`.
 - [ ] Commit: `feat: add party and item services`.
 
@@ -327,12 +332,14 @@ type ApiError = {
 
 - [ ] Test draft invoice does not create journal.
 - [ ] Test posted invoice debits accounts receivable and credits sales.
-- [ ] Test posted invoice stores `journal_batch_id`.
-- [ ] Test posting same idempotency ledger returns same invoice.
+- [ ] Test posted invoice stores `journal_entry_id`.
+- [ ] Test posting same operation key or document natural key returns same invoice.
 - [ ] Test posted invoice cannot be edited.
+- [ ] Test final invoice number is allocated only when posting succeeds.
+- [ ] Test voided invoice keeps its invoice number.
 - [ ] Implement invoice draft create/update.
 - [ ] Implement invoice posting through Phase 1 journal service.
-- [ ] Emit `invoice.created`, `invoice.posted`, `journal.posted`.
+- [ ] Write audit events for invoice posting and voiding.
 - [ ] Run `rtk vp run --filter @tsu-stack/api test:unit`.
 - [ ] Commit: `feat: add invoice posting workflow`.
 
@@ -352,7 +359,7 @@ type ApiError = {
 - [ ] Test void requires reversal journal.
 - [ ] Implement expense draft create/update.
 - [ ] Implement expense posting through journal service.
-- [ ] Emit `expense.created`, `expense.posted`.
+- [ ] Write audit events for expense posting and voiding.
 - [ ] Run `rtk vp run --filter @tsu-stack/api test:unit`.
 - [ ] Commit: `feat: add expense posting workflow`.
 
@@ -372,7 +379,7 @@ type ApiError = {
 - [ ] Test expense status becomes `PAID` when fully allocated.
 - [ ] Test allocation cannot exceed payment amount.
 - [ ] Implement payment posting through journal service.
-- [ ] Emit `payment.posted` and `payment.allocated`.
+- [ ] Write audit events for payment posting and allocation.
 - [ ] Run `rtk vp run --filter @tsu-stack/api test:unit`.
 - [ ] Commit: `feat: add payment allocation workflow`.
 
@@ -390,8 +397,8 @@ type ApiError = {
 - Test: `packages/api/src/routers/invoices.router.test.ts`
 
 - [ ] Add oRPC input/output schemas from domain schemas.
-- [ ] Add role middleware: owner/operator/accountant can manage owner workflow documents.
-- [ ] Add idempotency ledger support on posting procedures.
+- [ ] Add role middleware: owner and accountant can manage owner workflow documents; viewer has no default accounting access.
+- [ ] Add operation-local duplicate protection on posting procedures. Do not add a generic idempotency ledger before Phase 6 public API semantics require it.
 - [ ] Mount internal RPC under `/rpc`.
 - [ ] Generate OpenAPI snapshot for internal review but do not expose public `/api/v1`.
 - [ ] Run `rtk vp run --filter @tsu-stack/api test:unit`.
@@ -411,7 +418,7 @@ type ApiError = {
 - [ ] Implement invoice PDF rendering with business profile, party, lines, totals, and notes.
 - [ ] Store generated PDF in object storage.
 - [ ] Record `document_delivery` for download/email/share link.
-- [ ] Emit `document.pdf_generated` and `document.delivery_created`.
+- [ ] Write delivery/audit records for PDF generation and document delivery.
 - [ ] Run `rtk vp run --filter @tsu-stack/api test:unit`.
 - [ ] Commit: `feat: add invoice pdf and delivery logs`.
 
@@ -446,7 +453,7 @@ type ApiError = {
 
 - Create: `docs/checklists/phase-02-owner-workflow-mvp-verification.md`
 
-- [ ] Add checklist covering customers, vendors, items, invoices, expenses, payments, PDF, delivery logs, dashboard, audit events, outbox events, and journal source links.
+- [ ] Add checklist covering customers, vendors, items, invoices, expenses, payments, PDF, delivery logs, dashboard, audit events, immutable posted documents, invoice numbering, and journal source links.
 - [ ] Run `rtk vp check`.
 - [ ] Run `rtk vp run -r test:unit`.
 - [ ] Run `rtk vp run -r build`.
@@ -464,8 +471,10 @@ type ApiError = {
 - [ ] Payment received updates invoice amount due.
 - [ ] Payment paid updates expense amount due.
 - [ ] Posted documents cannot be edited.
+- [ ] Posted/issued invoices retain numbers even when voided.
 - [ ] Void uses reversal.
 - [ ] PDF invoice generated and stored.
-- [ ] Audit events and outbox events exist for every posting.
+- [ ] Audit events exist for every posting.
+- [ ] Outbox events are added only when a durable consumer exists.
 - [ ] Internal oRPC contracts pass tests.
 - [ ] Public external API remains disabled.

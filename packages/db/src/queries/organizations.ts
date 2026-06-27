@@ -32,6 +32,10 @@ export type MarkOrganizationOnboardingCompletedInput = {
   completedAt: Date;
   organizationId: string;
 };
+export type MarkOrganizationOnboardingCompletedResult = {
+  alreadyCompleted: boolean;
+  completedAt: Date;
+};
 
 export async function listOrganizationsForUser(
   dbOrTx: DatabaseOrTransaction,
@@ -74,7 +78,7 @@ export async function getOrganizationMembershipForAccess(
 export async function markOrganizationOnboardingCompleted(
   dbOrTx: DatabaseOrTransaction,
   input: MarkOrganizationOnboardingCompletedInput
-): Promise<Date> {
+): Promise<MarkOrganizationOnboardingCompletedResult> {
   const [updated] = await dbOrTx
     .update(organization)
     .set({
@@ -88,7 +92,10 @@ export async function markOrganizationOnboardingCompleted(
     });
 
   if (updated?.onboardingCompletedAt) {
-    return updated.onboardingCompletedAt;
+    return {
+      alreadyCompleted: false,
+      completedAt: updated.onboardingCompletedAt
+    };
   }
 
   const [existing] = await dbOrTx
@@ -100,7 +107,10 @@ export async function markOrganizationOnboardingCompleted(
     .limit(1);
 
   if (existing?.onboardingCompletedAt) {
-    return existing.onboardingCompletedAt;
+    return {
+      alreadyCompleted: true,
+      completedAt: existing.onboardingCompletedAt
+    };
   }
 
   throw new Error("Organization not found while completing onboarding.");

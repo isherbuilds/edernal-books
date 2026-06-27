@@ -1,5 +1,6 @@
 import { Outlet, createFileRoute } from "@tanstack/react-router";
 
+import { canAccessAccounting } from "@tsu-stack/auth/permissions";
 import { SidebarInset, SidebarProvider } from "@tsu-stack/ui/components/sidebar";
 
 import { AppSidebar } from "@/components/app-shell/app-sidebar";
@@ -10,9 +11,11 @@ export const Route = createFileRoute("/{-$locale}/_app/$orgSlug/_shell")({
 });
 
 function OrganizationLayout() {
+  const { organization } = Route.useRouteContext();
+
   return (
     <SidebarProvider>
-      <AppSidebar />
+      <AppSidebar showAccounting={canAccessAccounting(organization.role)} />
 
       <SidebarInset>
         <SiteHeader />

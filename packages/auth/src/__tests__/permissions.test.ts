@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vite-plus/test";
 
 import {
+  canAccessAccounting,
   canManageBusinessSettings,
   organizationAccessControl,
   organizationRoles
@@ -16,8 +17,15 @@ describe("organization role permissions", () => {
     expect(canManageBusinessSettings("viewer")).toBe(false);
   });
 
+  it("allows owners and accountants to access accounting", () => {
+    expect(canAccessAccounting("owner")).toBe(true);
+    expect(canAccessAccounting("accountant")).toBe(true);
+    expect(canAccessAccounting("viewer")).toBe(false);
+  });
+
   it("allows owners in Better Auth multi-role strings", () => {
     expect(canManageBusinessSettings("viewer, owner")).toBe(true);
+    expect(canAccessAccounting("viewer, accountant")).toBe(true);
   });
 
   it("wires starter roles to Better Auth organization access control", () => {

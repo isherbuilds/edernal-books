@@ -1,8 +1,16 @@
 import { eq } from "drizzle-orm";
 
+import {
+  type CountryCode,
+  type CurrencyCode,
+  type FiscalYearStartMonth,
+  type Timezone
+} from "@tsu-stack/core/organizations";
+
 import { type DatabaseOrTransaction } from "#@/client";
 import { auditEvent } from "#@/schema/audit";
 import { organizationSetting } from "#@/schema/organization";
+import { fiscalYear } from "#@/schema/periods";
 
 export type OrganizationSettingRow = typeof organizationSetting.$inferSelect;
 type OrganizationSettingInsert = typeof organizationSetting.$inferInsert;
@@ -12,15 +20,15 @@ export type GetOrganizationSettingQueryInput = {
 };
 
 export type OrganizationSettingMutationInput = {
-  baseCurrencyCode: string;
+  baseCurrencyCode: CurrencyCode;
   booksStartDate: string;
-  countryCode: string;
-  fiscalYearStartMonth: number;
+  countryCode: CountryCode;
+  fiscalYearStartMonth: FiscalYearStartMonth;
   legalName: string;
   organizationId: string;
   primaryEmail?: string | null;
   primaryPhone?: string | null;
-  timezone: string;
+  timezone: Timezone;
   tradeName?: string | null;
 };
 
@@ -31,6 +39,15 @@ export type OrganizationSettingAuditInput = OrganizationSettingMutationInput & {
   userId: string;
 };
 export type OrganizationSettingAuditRow = typeof auditEvent.$inferInsert;
+
+export class OrganizationSettingDbError extends Error {
+  code: "ACCOUNTING_FOUNDATION_SETTINGS_LOCKED";
+
+  constructor(code: "ACCOUNTING_FOUNDATION_SETTINGS_LOCKED") {
+    super(code);
+    this.code = code;
+  }
+}
 
 export async function getOrganizationSetting(
   dbOrTx: DatabaseOrTransaction,
@@ -50,6 +67,27 @@ export async function upsertOrganizationSetting(
   input: OrganizationSettingMutationInput
 ): Promise<void> {
   const values = toOrganizationSettingInsert(input);
+  const [existing] = await dbOrTx
+    .select({
+      baseCurrencyCode: organizationSetting.baseCurrencyCode,
+      booksStartDate: organizationSetting.booksStartDate,
+      fiscalYearStartMonth: organizationSetting.fiscalYearStartMonth
+    })
+    .from(organizationSetting)
+    .where(eq(organizationSetting.organizationId, input.organizationId))
+    .limit(1);
+
+  if (existing && hasAccountingFoundationSettingChange(existing, input)) {
+    const [foundation] = await dbOrTx
+      .select({ id: fiscalYear.id })
+      .from(fiscalYear)
+      .where(eq(fiscalYear.organizationId, input.organizationId))
+      .limit(1);
+
+    if (foundation) {
+      throw new OrganizationSettingDbError("ACCOUNTING_FOUNDATION_SETTINGS_LOCKED");
+    }
+  }
 
   await dbOrTx
     .insert(organizationSetting)
@@ -93,6 +131,23 @@ export function toOrganizationSettingInsert(
     timezone: input.timezone,
     tradeName: input.tradeName ?? null
   };
+}
+
+export function hasAccountingFoundationSettingChange(
+  existing: Pick<
+    OrganizationSettingRow,
+    "baseCurrencyCode" | "booksStartDate" | "fiscalYearStartMonth"
+  >,
+  input: Pick<
+    OrganizationSettingMutationInput,
+    "baseCurrencyCode" | "booksStartDate" | "fiscalYearStartMonth"
+  >
+): boolean {
+  return (
+    existing.baseCurrencyCode !== input.baseCurrencyCode ||
+    existing.booksStartDate !== input.booksStartDate ||
+    existing.fiscalYearStartMonth !== input.fiscalYearStartMonth
+  );
 }
 
 export function buildOrganizationSettingAuditRow(

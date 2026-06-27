@@ -29,13 +29,15 @@ Adopt the durable accounting spine:
   foreign keys store `organization_id` as text and do not cast to UUID.
 - Phase 0 owns `organization_setting`, `currency`, `audit_event`, and
   `outbox_event`.
-- Phase 1 owns `fiscal_year`, `accounting_period`, `ledger_account`, `number_sequence`, minimal `source_document`, `journal_batch`, and `journal_line`.
+- Phase 1 owns `fiscal_year`, `accounting_period`, `ledger_account`, `number_sequence`, minimal `source_document`, `journal_entry`, and `journal_line`.
 - `organization_setting` stays narrow. PAN, GSTIN, registered addresses, branch locations, invoice profile details, and tax registration data are added with the later workflows that consume them.
 - `requestId` is tracing only. Duplicate protection for money-moving commands
   uses operation-local command keys, provider ids, natural keys, or
   domain-owned unique constraints.
 - `source_document` is a traceability shell, not a generic idempotency authority.
-- Later phases must use `number_sequence`, `journal_batch`, `audit_event`,
+- Phase 1 journal lines store base debit/credit minor units only. Currency remains an organization accounting setting and is not copied into every line or accepted from manual journal commands.
+- Accounting foundation settings that define currency and fiscal boundaries become locked once fiscal-year setup exists; enforce this in the settings write path during Phase 1.
+- Later phases must use `number_sequence`, `journal_entry`, `audit_event`,
   `outbox_event`, and operation-local idempotency; they must not reintroduce
   `document_sequence`, simple `journal`, `audit_log`, or `internal_event`.
 

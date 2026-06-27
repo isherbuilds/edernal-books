@@ -30,7 +30,12 @@ import { Route as Char123LocaleChar125AppOrganizationsNewRouteImport } from './r
 import { Route as Char123LocaleChar125AppOrgSlugOnboardingRouteImport } from './routes/{-$locale}/_app/$orgSlug/onboarding'
 import { Route as Char123LocaleChar125AppOrgSlugShellRouteRouteImport } from './routes/{-$locale}/_app/$orgSlug/_shell/route'
 import { Route as Char123LocaleChar125AppOrgSlugShellIndexRouteImport } from './routes/{-$locale}/_app/$orgSlug/_shell/index'
+import { Route as Char123LocaleChar125AppOrgSlugShellSettingsChartOfAccountsRouteImport } from './routes/{-$locale}/_app/$orgSlug/_shell/settings/chart-of-accounts'
 import { Route as Char123LocaleChar125AppOrgSlugShellSettingsBusinessRouteImport } from './routes/{-$locale}/_app/$orgSlug/_shell/settings/business'
+import { Route as Char123LocaleChar125AppOrgSlugShellSettingsAccountingPeriodsRouteImport } from './routes/{-$locale}/_app/$orgSlug/_shell/settings/accounting-periods'
+import { Route as Char123LocaleChar125AppOrgSlugShellReportsTrialBalanceRouteImport } from './routes/{-$locale}/_app/$orgSlug/_shell/reports/trial-balance'
+import { Route as Char123LocaleChar125AppOrgSlugShellReportsGeneralLedgerRouteImport } from './routes/{-$locale}/_app/$orgSlug/_shell/reports/general-ledger'
+import { Route as Char123LocaleChar125AppOrgSlugShellAccountingJournalEntriesRouteImport } from './routes/{-$locale}/_app/$orgSlug/_shell/accounting/journal-entries'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
@@ -150,12 +155,46 @@ const Char123LocaleChar125AppOrgSlugShellIndexRoute =
     path: '/',
     getParentRoute: () => Char123LocaleChar125AppOrgSlugShellRouteRoute,
   } as any)
+const Char123LocaleChar125AppOrgSlugShellSettingsChartOfAccountsRoute =
+  Char123LocaleChar125AppOrgSlugShellSettingsChartOfAccountsRouteImport.update({
+    id: '/settings/chart-of-accounts',
+    path: '/settings/chart-of-accounts',
+    getParentRoute: () => Char123LocaleChar125AppOrgSlugShellRouteRoute,
+  } as any)
 const Char123LocaleChar125AppOrgSlugShellSettingsBusinessRoute =
   Char123LocaleChar125AppOrgSlugShellSettingsBusinessRouteImport.update({
     id: '/settings/business',
     path: '/settings/business',
     getParentRoute: () => Char123LocaleChar125AppOrgSlugShellRouteRoute,
   } as any)
+const Char123LocaleChar125AppOrgSlugShellSettingsAccountingPeriodsRoute =
+  Char123LocaleChar125AppOrgSlugShellSettingsAccountingPeriodsRouteImport.update(
+    {
+      id: '/settings/accounting-periods',
+      path: '/settings/accounting-periods',
+      getParentRoute: () => Char123LocaleChar125AppOrgSlugShellRouteRoute,
+    } as any,
+  )
+const Char123LocaleChar125AppOrgSlugShellReportsTrialBalanceRoute =
+  Char123LocaleChar125AppOrgSlugShellReportsTrialBalanceRouteImport.update({
+    id: '/reports/trial-balance',
+    path: '/reports/trial-balance',
+    getParentRoute: () => Char123LocaleChar125AppOrgSlugShellRouteRoute,
+  } as any)
+const Char123LocaleChar125AppOrgSlugShellReportsGeneralLedgerRoute =
+  Char123LocaleChar125AppOrgSlugShellReportsGeneralLedgerRouteImport.update({
+    id: '/reports/general-ledger',
+    path: '/reports/general-ledger',
+    getParentRoute: () => Char123LocaleChar125AppOrgSlugShellRouteRoute,
+  } as any)
+const Char123LocaleChar125AppOrgSlugShellAccountingJournalEntriesRoute =
+  Char123LocaleChar125AppOrgSlugShellAccountingJournalEntriesRouteImport.update(
+    {
+      id: '/accounting/journal-entries',
+      path: '/accounting/journal-entries',
+      getParentRoute: () => Char123LocaleChar125AppOrgSlugShellRouteRoute,
+    } as any,
+  )
 
 export interface FileRoutesByFullPath {
   '/{-$locale}': typeof Char123LocaleChar125RouteRouteWithChildren
@@ -175,7 +214,12 @@ export interface FileRoutesByFullPath {
   '/{-$locale}/$orgSlug/onboarding': typeof Char123LocaleChar125AppOrgSlugOnboardingRoute
   '/{-$locale}/organizations/new': typeof Char123LocaleChar125AppOrganizationsNewRoute
   '/{-$locale}/$orgSlug/': typeof Char123LocaleChar125AppOrgSlugShellIndexRoute
+  '/{-$locale}/$orgSlug/accounting/journal-entries': typeof Char123LocaleChar125AppOrgSlugShellAccountingJournalEntriesRoute
+  '/{-$locale}/$orgSlug/reports/general-ledger': typeof Char123LocaleChar125AppOrgSlugShellReportsGeneralLedgerRoute
+  '/{-$locale}/$orgSlug/reports/trial-balance': typeof Char123LocaleChar125AppOrgSlugShellReportsTrialBalanceRoute
+  '/{-$locale}/$orgSlug/settings/accounting-periods': typeof Char123LocaleChar125AppOrgSlugShellSettingsAccountingPeriodsRoute
   '/{-$locale}/$orgSlug/settings/business': typeof Char123LocaleChar125AppOrgSlugShellSettingsBusinessRoute
+  '/{-$locale}/$orgSlug/settings/chart-of-accounts': typeof Char123LocaleChar125AppOrgSlugShellSettingsChartOfAccountsRoute
 }
 export interface FileRoutesByTo {
   '/{-$locale}': typeof Char123LocaleChar125PublicIndexRoute
@@ -193,7 +237,12 @@ export interface FileRoutesByTo {
   '/{-$locale}/terms-of-service': typeof Char123LocaleChar125PublicTermsOfServiceRoute
   '/{-$locale}/$orgSlug/onboarding': typeof Char123LocaleChar125AppOrgSlugOnboardingRoute
   '/{-$locale}/organizations/new': typeof Char123LocaleChar125AppOrganizationsNewRoute
+  '/{-$locale}/$orgSlug/accounting/journal-entries': typeof Char123LocaleChar125AppOrgSlugShellAccountingJournalEntriesRoute
+  '/{-$locale}/$orgSlug/reports/general-ledger': typeof Char123LocaleChar125AppOrgSlugShellReportsGeneralLedgerRoute
+  '/{-$locale}/$orgSlug/reports/trial-balance': typeof Char123LocaleChar125AppOrgSlugShellReportsTrialBalanceRoute
+  '/{-$locale}/$orgSlug/settings/accounting-periods': typeof Char123LocaleChar125AppOrgSlugShellSettingsAccountingPeriodsRoute
   '/{-$locale}/$orgSlug/settings/business': typeof Char123LocaleChar125AppOrgSlugShellSettingsBusinessRoute
+  '/{-$locale}/$orgSlug/settings/chart-of-accounts': typeof Char123LocaleChar125AppOrgSlugShellSettingsChartOfAccountsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -218,7 +267,12 @@ export interface FileRoutesById {
   '/{-$locale}/_app/$orgSlug/onboarding': typeof Char123LocaleChar125AppOrgSlugOnboardingRoute
   '/{-$locale}/_app/organizations/new': typeof Char123LocaleChar125AppOrganizationsNewRoute
   '/{-$locale}/_app/$orgSlug/_shell/': typeof Char123LocaleChar125AppOrgSlugShellIndexRoute
+  '/{-$locale}/_app/$orgSlug/_shell/accounting/journal-entries': typeof Char123LocaleChar125AppOrgSlugShellAccountingJournalEntriesRoute
+  '/{-$locale}/_app/$orgSlug/_shell/reports/general-ledger': typeof Char123LocaleChar125AppOrgSlugShellReportsGeneralLedgerRoute
+  '/{-$locale}/_app/$orgSlug/_shell/reports/trial-balance': typeof Char123LocaleChar125AppOrgSlugShellReportsTrialBalanceRoute
+  '/{-$locale}/_app/$orgSlug/_shell/settings/accounting-periods': typeof Char123LocaleChar125AppOrgSlugShellSettingsAccountingPeriodsRoute
   '/{-$locale}/_app/$orgSlug/_shell/settings/business': typeof Char123LocaleChar125AppOrgSlugShellSettingsBusinessRoute
+  '/{-$locale}/_app/$orgSlug/_shell/settings/chart-of-accounts': typeof Char123LocaleChar125AppOrgSlugShellSettingsChartOfAccountsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -240,7 +294,12 @@ export interface FileRouteTypes {
     | '/{-$locale}/$orgSlug/onboarding'
     | '/{-$locale}/organizations/new'
     | '/{-$locale}/$orgSlug/'
+    | '/{-$locale}/$orgSlug/accounting/journal-entries'
+    | '/{-$locale}/$orgSlug/reports/general-ledger'
+    | '/{-$locale}/$orgSlug/reports/trial-balance'
+    | '/{-$locale}/$orgSlug/settings/accounting-periods'
     | '/{-$locale}/$orgSlug/settings/business'
+    | '/{-$locale}/$orgSlug/settings/chart-of-accounts'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/{-$locale}'
@@ -258,7 +317,12 @@ export interface FileRouteTypes {
     | '/{-$locale}/terms-of-service'
     | '/{-$locale}/$orgSlug/onboarding'
     | '/{-$locale}/organizations/new'
+    | '/{-$locale}/$orgSlug/accounting/journal-entries'
+    | '/{-$locale}/$orgSlug/reports/general-ledger'
+    | '/{-$locale}/$orgSlug/reports/trial-balance'
+    | '/{-$locale}/$orgSlug/settings/accounting-periods'
     | '/{-$locale}/$orgSlug/settings/business'
+    | '/{-$locale}/$orgSlug/settings/chart-of-accounts'
   id:
     | '__root__'
     | '/{-$locale}'
@@ -282,7 +346,12 @@ export interface FileRouteTypes {
     | '/{-$locale}/_app/$orgSlug/onboarding'
     | '/{-$locale}/_app/organizations/new'
     | '/{-$locale}/_app/$orgSlug/_shell/'
+    | '/{-$locale}/_app/$orgSlug/_shell/accounting/journal-entries'
+    | '/{-$locale}/_app/$orgSlug/_shell/reports/general-ledger'
+    | '/{-$locale}/_app/$orgSlug/_shell/reports/trial-balance'
+    | '/{-$locale}/_app/$orgSlug/_shell/settings/accounting-periods'
     | '/{-$locale}/_app/$orgSlug/_shell/settings/business'
+    | '/{-$locale}/_app/$orgSlug/_shell/settings/chart-of-accounts'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -442,6 +511,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Char123LocaleChar125AppOrgSlugShellIndexRouteImport
       parentRoute: typeof Char123LocaleChar125AppOrgSlugShellRouteRoute
     }
+    '/{-$locale}/_app/$orgSlug/_shell/settings/chart-of-accounts': {
+      id: '/{-$locale}/_app/$orgSlug/_shell/settings/chart-of-accounts'
+      path: '/settings/chart-of-accounts'
+      fullPath: '/{-$locale}/$orgSlug/settings/chart-of-accounts'
+      preLoaderRoute: typeof Char123LocaleChar125AppOrgSlugShellSettingsChartOfAccountsRouteImport
+      parentRoute: typeof Char123LocaleChar125AppOrgSlugShellRouteRoute
+    }
     '/{-$locale}/_app/$orgSlug/_shell/settings/business': {
       id: '/{-$locale}/_app/$orgSlug/_shell/settings/business'
       path: '/settings/business'
@@ -449,20 +525,63 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Char123LocaleChar125AppOrgSlugShellSettingsBusinessRouteImport
       parentRoute: typeof Char123LocaleChar125AppOrgSlugShellRouteRoute
     }
+    '/{-$locale}/_app/$orgSlug/_shell/settings/accounting-periods': {
+      id: '/{-$locale}/_app/$orgSlug/_shell/settings/accounting-periods'
+      path: '/settings/accounting-periods'
+      fullPath: '/{-$locale}/$orgSlug/settings/accounting-periods'
+      preLoaderRoute: typeof Char123LocaleChar125AppOrgSlugShellSettingsAccountingPeriodsRouteImport
+      parentRoute: typeof Char123LocaleChar125AppOrgSlugShellRouteRoute
+    }
+    '/{-$locale}/_app/$orgSlug/_shell/reports/trial-balance': {
+      id: '/{-$locale}/_app/$orgSlug/_shell/reports/trial-balance'
+      path: '/reports/trial-balance'
+      fullPath: '/{-$locale}/$orgSlug/reports/trial-balance'
+      preLoaderRoute: typeof Char123LocaleChar125AppOrgSlugShellReportsTrialBalanceRouteImport
+      parentRoute: typeof Char123LocaleChar125AppOrgSlugShellRouteRoute
+    }
+    '/{-$locale}/_app/$orgSlug/_shell/reports/general-ledger': {
+      id: '/{-$locale}/_app/$orgSlug/_shell/reports/general-ledger'
+      path: '/reports/general-ledger'
+      fullPath: '/{-$locale}/$orgSlug/reports/general-ledger'
+      preLoaderRoute: typeof Char123LocaleChar125AppOrgSlugShellReportsGeneralLedgerRouteImport
+      parentRoute: typeof Char123LocaleChar125AppOrgSlugShellRouteRoute
+    }
+    '/{-$locale}/_app/$orgSlug/_shell/accounting/journal-entries': {
+      id: '/{-$locale}/_app/$orgSlug/_shell/accounting/journal-entries'
+      path: '/accounting/journal-entries'
+      fullPath: '/{-$locale}/$orgSlug/accounting/journal-entries'
+      preLoaderRoute: typeof Char123LocaleChar125AppOrgSlugShellAccountingJournalEntriesRouteImport
+      parentRoute: typeof Char123LocaleChar125AppOrgSlugShellRouteRoute
+    }
   }
 }
 
 interface Char123LocaleChar125AppOrgSlugShellRouteRouteChildren {
   Char123LocaleChar125AppOrgSlugShellIndexRoute: typeof Char123LocaleChar125AppOrgSlugShellIndexRoute
+  Char123LocaleChar125AppOrgSlugShellAccountingJournalEntriesRoute: typeof Char123LocaleChar125AppOrgSlugShellAccountingJournalEntriesRoute
+  Char123LocaleChar125AppOrgSlugShellReportsGeneralLedgerRoute: typeof Char123LocaleChar125AppOrgSlugShellReportsGeneralLedgerRoute
+  Char123LocaleChar125AppOrgSlugShellReportsTrialBalanceRoute: typeof Char123LocaleChar125AppOrgSlugShellReportsTrialBalanceRoute
+  Char123LocaleChar125AppOrgSlugShellSettingsAccountingPeriodsRoute: typeof Char123LocaleChar125AppOrgSlugShellSettingsAccountingPeriodsRoute
   Char123LocaleChar125AppOrgSlugShellSettingsBusinessRoute: typeof Char123LocaleChar125AppOrgSlugShellSettingsBusinessRoute
+  Char123LocaleChar125AppOrgSlugShellSettingsChartOfAccountsRoute: typeof Char123LocaleChar125AppOrgSlugShellSettingsChartOfAccountsRoute
 }
 
 const Char123LocaleChar125AppOrgSlugShellRouteRouteChildren: Char123LocaleChar125AppOrgSlugShellRouteRouteChildren =
   {
     Char123LocaleChar125AppOrgSlugShellIndexRoute:
       Char123LocaleChar125AppOrgSlugShellIndexRoute,
+    Char123LocaleChar125AppOrgSlugShellAccountingJournalEntriesRoute:
+      Char123LocaleChar125AppOrgSlugShellAccountingJournalEntriesRoute,
+    Char123LocaleChar125AppOrgSlugShellReportsGeneralLedgerRoute:
+      Char123LocaleChar125AppOrgSlugShellReportsGeneralLedgerRoute,
+    Char123LocaleChar125AppOrgSlugShellReportsTrialBalanceRoute:
+      Char123LocaleChar125AppOrgSlugShellReportsTrialBalanceRoute,
+    Char123LocaleChar125AppOrgSlugShellSettingsAccountingPeriodsRoute:
+      Char123LocaleChar125AppOrgSlugShellSettingsAccountingPeriodsRoute,
     Char123LocaleChar125AppOrgSlugShellSettingsBusinessRoute:
       Char123LocaleChar125AppOrgSlugShellSettingsBusinessRoute,
+    Char123LocaleChar125AppOrgSlugShellSettingsChartOfAccountsRoute:
+      Char123LocaleChar125AppOrgSlugShellSettingsChartOfAccountsRoute,
   }
 
 const Char123LocaleChar125AppOrgSlugShellRouteRouteWithChildren =

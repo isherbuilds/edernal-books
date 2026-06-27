@@ -29,12 +29,12 @@ Owner-facing workflows should speak in business terms:
 
 The system core must always maintain double-entry accounting:
 
-- Every posted business document creates balanced journal batches and lines.
-- Posted batches are immutable.
+- Every posted business document creates balanced journal entries and lines.
+- Posted entries are immutable.
 - Corrections happen through reversals and new postings.
-- Manual batch posting exists only as an advanced/accountant workflow.
+- Manual journal entry posting exists only as an advanced/accountant workflow.
 
-AI, external APIs, MCP, webhooks, and marketplace integrations are not Phase 0-1 features. The foundation should still be integration-ready through stable service boundaries, audit events, outbox events, idempotency, permissions, and source-document traceability.
+AI, external APIs, MCP, webhooks, and marketplace integrations are not Phase 0-1 features. The foundation should still be integration-ready through stable service boundaries, audit events, operation-local idempotency, permissions, and source-document traceability. Outbox producers start when a durable async consumer exists.
 
 ## Stack Decision
 
@@ -74,11 +74,11 @@ flowchart TD
   API --> Core["@tsu-stack/core<br/>shared contracts"]
   API --> Auth["@tsu-stack/auth<br/>session, organization, role"]
   API --> DB["@tsu-stack/db<br/>Drizzle + Postgres"]
-  API --> AccountingCore["packages/accounting-core<br/>pure posting rules"]
+  API --> AccountingCore["packages/core/src/accounting<br/>pure posting rules"]
   DB --> Audit["audit_event"]
-  DB --> Outbox["outbox_event"]
+  DB --> Outbox["outbox_event<br/>future async consumers"]
   DB --> OperationKey["operation-local idempotency"]
-  DB --> Ledger["ledger_account<br/>journal_batch<br/>journal_line"]
+  DB --> Ledger["ledger_account<br/>journal_entry<br/>journal_line"]
   Ledger --> Reports["trial balance<br/>general ledger"]
 ```
 
@@ -88,18 +88,18 @@ Posting flow:
 sequenceDiagram
   participant UI as Owner workflow
   participant API as API service
-  participant Core as accounting-core
+  participant Core as core accounting
   participant DB as tenant transaction
   participant Ledger as journal tables
-  participant Audit as audit/outbox
+  participant Audit as audit
 
   UI->>API: Post document or journal command
   API->>DB: Start org-scoped transaction
   API->>DB: Check operation key or natural unique key
   API->>Core: Validate money, accounts, balance
-  Core-->>API: Valid posting draft
-  API->>Ledger: Insert journal_batch and journal_line rows
-  API->>Audit: Write audit_event and outbox_event
+  Core-->>API: Valid posting model
+  API->>Ledger: Insert journal_entry and journal_line rows
+  API->>Audit: Write audit_event
   DB-->>API: Commit
   API-->>UI: Posted result
 ```
@@ -143,11 +143,9 @@ Accountants are users who are members of multiple organizations. API keys are ma
 
 Initial organization roles:
 
-- `owner`: full control over business, members, settings, books, and later integrations.
-- `operator`: daily workflow access for owner documents in Phase 2.
-- `accountant`: reporting, batch posting, reversals, review, exports, and adjustments.
-- `developer`: API keys, integrations, and webhook settings in Phase 6.
-- `viewer`: read-only access later.
+- `owner`: full control over business settings, members, books, accounting setup, manual postings, reversals, period locks, reports, and later integrations.
+- `accountant`: accounting-kernel actions and reports, including manual postings, reversals, period locks, review, exports, and adjustments; no member management or business identity settings.
+- `viewer`: no accounting-kernel reports or actions by default. Grant narrow owner-facing views later when a workflow needs them.
 
 Role checks are enforced server-side. API keys must not bypass organization permissions.
 
@@ -164,6 +162,7 @@ Money rules:
 - tax rates use `numeric(9, 4)`;
 - quantities use `numeric(18, 4)`;
 - JavaScript floating-point arithmetic is not used for accounting money.
+- Phase 1 journal lines store base debit/credit minor units only. Base currency is an organization accounting setting, not a per-line command field or per-line stored column.
 
 ## Phase Plan
 
@@ -177,7 +176,7 @@ Acceptance criteria:
 - Member invitation.
 - Server-side role checks.
 - `audit_event` table and writer.
-- `outbox_event` table and transactional writer.
+- `outbox_event` table for future durable async producers.
 - `currency` reference data.
 - Tenant-scoped query helpers or service checks for app-owned tenant tables.
 - Database migrations.
@@ -203,15 +202,17 @@ Acceptance criteria:
 - `ledger_account` chart of accounts.
 - `number_sequence`.
 - minimal `source_document`.
-- `journal_batch`.
+- `journal_entry`.
 - `journal_line`.
 - double-entry validation.
-- immutable posted batches.
-- reversal batches.
+- immutable posted entries.
+- reversal entries.
 - trial balance.
 - general ledger.
-- advanced batch register.
-- `packages/accounting-core` tests for money, posting, reversal, and report invariants.
+- advanced entry register.
+- base-currency-only journal lines without per-line currency code.
+- transactional audit rows for accounting mutations.
+- `packages/core/src/accounting` tests for money, posting, reversal, and report invariants.
 
 Out of scope:
 
@@ -219,11 +220,14 @@ Out of scope:
 - `tax_code`;
 - invoice/bill/payment documents;
 - subledger/settlement;
-- balance cache tables.
+- balance cache tables;
+- persisted journal drafts;
+- FX journal posting;
+- posting outbox producers.
 
 ### Phase 2: Owner Workflow MVP
 
-Add customer/vendor parties, items, invoices, expenses/bills, receipts, payments, allocations, PDFs/share links, and a basic owner dashboard. Users should not need to understand debit and credit in normal workflows.
+Add customer/vendor parties, items, invoices, expenses/bills, receipts, payments, allocations, PDFs/share links, and a basic owner dashboard. Users should not need to understand debit and credit in normal workflows. Posted business documents are immutable for accounting-impacting fields; corrections use credit/debit notes, reversals, voids, or replacement documents. Final invoice numbers are assigned only when issued/posted, and issued invoices are retained even when voided so later invoice numbers do not shift.
 
 ### Phase 3: India GST Core
 
@@ -247,7 +251,7 @@ Add recurring invoices, retainers, projects, lightweight time tracking, quotes/p
 
 ### Phase 8: Accountant Mode
 
-Add multi-business accountant workspace, review queue, locked periods, adjustment batches, working papers, and Tally/Excel exports.
+Add multi-business accountant workspace, review queue, locked periods, adjustment entries, working papers, and Tally/Excel exports.
 
 ### Phase 9: Trade, Inventory, Import, Export
 
@@ -299,7 +303,8 @@ The app may configure plugins, but these tables are not accounting-domain tables
 
 `outbox_event`:
 
-- transactional outbox for internal jobs, reports, AI indexing, and future webhooks;
+- transactional outbox for internal jobs, reports, AI indexing, public API integrations, and future webhooks;
+- not every accounting mutation writes outbox before a durable async consumer exists;
 - webhook delivery tables come in Phase 6.
 
 Idempotency:
@@ -324,26 +329,27 @@ Idempotency:
 - one hierarchical account table;
 - group/posting distinction;
 - system key;
-- control/reconcilable/manual-posting flags.
+- manual-posting flag.
 
 `number_sequence`:
 
-- organization-scoped sequence allocation for batch/document numbers.
+- organization-scoped sequence allocation for entry/document numbers.
 
 `source_document`:
 
 - minimal traceability shell;
-- no party/tax/lifecycle/outstanding fields until owner documents exist.
+- nullable document number;
+- no party/tax/lifecycle/date/amount/currency/outstanding fields until owner documents exist.
 
-`journal_batch`:
+`journal_entry`:
 
-- one posting operation;
+- one posted accounting fact;
 - period/source/idempotency/reversal links;
 - immutable once posted.
 
 `journal_line`:
 
-- batch lines with account and minor-unit debit/credit values;
+- entry lines with account and base-currency minor-unit debit/credit values;
 - no `party_id` or `tax_code_id` in Phase 1.
 
 ## Integration-Ready Foundation
@@ -353,7 +359,7 @@ Build now:
 - stable internal IDs;
 - service layer between UI and database;
 - `audit_event`;
-- `outbox_event`;
+- `outbox_event` table, with producers added only when durable async consumers exist;
 - operation-local idempotency for money-moving commands;
 - permission model;
 - Zod contracts;
@@ -365,6 +371,7 @@ Do not build now:
 
 - public API documentation;
 - webhook delivery;
+- outbox producers without a durable consumer;
 - MCP server;
 - AI chat;
 - OAuth marketplace;
@@ -375,11 +382,11 @@ Do not build now:
 
 Non-negotiable rules:
 
-- Posted batch cannot be edited.
+- Posted entry cannot be edited.
 - Correction requires reversal plus new posting.
 - Batch must balance before posting.
-- Batch lines belong to the same organization as the batch.
-- Accounts belong to the same organization as the batch line.
+- Entry lines belong to the same organization as the entry.
+- Accounts belong to the same organization as the entry line.
 - Accounting period controls posting dates and locks.
 - Every system-generated posting references a source document once source documents exist.
 - Money uses minor units, never JavaScript float.

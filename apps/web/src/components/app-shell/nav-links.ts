@@ -20,3 +20,21 @@ export const navLinks: NavbarLink[] = [
     label: () => m.navbar__api_docs()
   }
 ];
+
+export type OrgAppLinkTo =
+  | "/$orgSlug"
+  | "/$orgSlug/accounting/journal-entries"
+  | "/$orgSlug/reports/general-ledger"
+  | "/$orgSlug/reports/trial-balance"
+  | "/$orgSlug/settings/accounting-periods"
+  | "/$orgSlug/settings/business"
+  | "/$orgSlug/settings/chart-of-accounts";
+
+export function getOrgAppLink(orgSlug: string, to: OrgAppLinkTo): LinkProps {
+  return {
+    params: {
+      orgSlug
+    },
+    to
+  };
+}

@@ -55,10 +55,11 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for current and planned schema shape.
 | `src/queries/organizations.ts`         | organization membership checks                                         |
 | `src/queries/organization-settings.ts` | organization settings read/write helpers                               |
 | `src/schema/auth.schema.ts`            | Better Auth user/session/account/organization/member/invitation tables |
-| `src/schema/organization.ts`           | `currency` and `organization_setting`                                  |
+| `src/schema/organization.ts`           | `currency`, `exchange_rate`, and `organization_setting`                |
+| `src/seed.ts`                          | Supported reference-data seed entrypoint                               |
 | `src/schema/audit.ts`                  | `audit_event`                                                          |
 | `src/schema/outbox.ts`                 | `outbox_event`                                                         |
-| `src/schema/migration.ts`              | Active Phase 0 migration exports                                       |
+| `src/schema/migration.ts`              | Active migration exports                                               |
 | `src/schema/index.ts`                  | Active schema exports                                                  |
 | `src/schema/relations.ts`              | Drizzle relation config                                                |
 | `src/utils/health.ts`                  | readiness/health probes                                                |
@@ -74,11 +75,19 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for current and planned schema shape.
 | `rtk vp run db:dev:stop`                      | Stop local PostgreSQL            |
 | `rtk vp run db:generate`                      | Generate Drizzle migration files |
 | `rtk vp run db:migrate`                       | Apply migrations                 |
+| `rtk vp run db:seed`                          | Seed supported reference data    |
 | `rtk vp run db:studio`                        | Open Drizzle Studio              |
 | `rtk vp run auth:generate`                    | Regenerate Better Auth schema    |
 | `rtk vp run --filter @tsu-stack/db test:unit` | Run DB package unit tests        |
 
 ## Migration Behavior
+
+Phase 1 currently uses a squashed development baseline migration. Local or
+preproduction databases that already applied earlier June 2026 development
+migrations must be dropped/recreated before applying
+`20260627034845_familiar_loki`; do not apply this baseline over an existing
+schema. Production migrations should switch back to additive migrations before
+real customer data exists.
 
 `migrateDatabase()`:
 
@@ -101,8 +110,8 @@ application/query layer:
 - Reusable query functions must accept `db` or `tx` first, then one typed input
   object containing `organizationId`.
 - Every tenant-scoped query must include the `organizationId` predicate.
-- Business writes that also need audit/outbox rows should happen in one
-  transaction.
+- Business writes that need durable audit rows, outbox rows, or command-key
+  guards should write them in the same transaction.
 - Best-effort audit logging may run after the business write and must catch
   its own errors; do not treat it as durable accounting audit.
 - Request ids are log correlation ids, not idempotency keys.

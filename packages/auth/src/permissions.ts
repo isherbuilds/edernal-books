@@ -35,3 +35,10 @@ export const organizationRoles = {
 export function canManageBusinessSettings(role: string): boolean {
   return role.split(",").some((value) => value.trim() === "owner");
 }
+
+export function canAccessAccounting(role: string): boolean {
+  return role.split(",").some((value) => {
+    const roleName = value.trim();
+    return roleName === "owner" || roleName === "accountant";
+  });
+}

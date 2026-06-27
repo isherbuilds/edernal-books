@@ -1,6 +1,6 @@
 import { join } from "node:path/posix";
 
-import { drizzleAdapter } from "@better-auth/drizzle-adapter";
+import { drizzleAdapter } from "@better-auth/drizzle-adapter/relations-v2";
 import "@tanstack/react-start/server-only";
 import { betterAuth } from "better-auth";
 import { openAPI, organization } from "better-auth/plugins";

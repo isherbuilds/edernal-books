@@ -2,7 +2,7 @@
 
 Date: 2026-06-16
 
-Updated: 2026-06-17.
+Updated: 2026-06-26.
 
 Source spec: `docs/superpowers/specs/2026-06-16-ai-native-accounting-foundation-design.md`
 
@@ -18,10 +18,10 @@ All later phases build on:
 - `ledger_account`.
 - `number_sequence`.
 - `source_document`.
-- `journal_batch`.
+- `journal_entry`.
 - `journal_line`.
 - `audit_event`.
-- `outbox_event`.
+- `outbox_event` table, with producers only when durable async consumers exist.
 - operation-local idempotency at posting boundaries.
 
 Do not reintroduce `business_profile`, `account_group`, simple `journal`, `internal_event`, `audit_log`, document-specific sequence tables, or app-owned API-key tables.
@@ -57,7 +57,7 @@ sequenceDiagram
   Service->>Core: Validate deterministic rules
   Service->>Ledger: Post or link journals when needed
   Service->>DB: Write phase tables
-  Service->>Events: Audit and outbox
+  Service->>Events: Audit, plus outbox when durable async consumers exist
   Service-->>UI: Result
 ```
 
@@ -69,7 +69,7 @@ sequenceDiagram
 
 - Phase 0 complete.
 - Phase 1 complete.
-- `journal_batch` posting service stable.
+- `journal_entry` posting service stable.
 - `ledger_account` default chart seeded.
 - `number_sequence` available.
 
@@ -94,19 +94,19 @@ sequenceDiagram
 - `party`: customers/vendors using owner-facing labels in UI.
 - `item`: goods/services catalog.
 - document subtype tables link to `source_document`.
-- posted documents link to the created `journal_batch`.
+- posted documents link to the created `journal_entry`.
 - payments allocate against invoices/bills through settlement/allocation tables.
 
 **UX rule:** UI says customer, vendor, invoice, expense, money received, money paid. It does not require debit/credit knowledge.
 
-**Accounting rule:** Every posted invoice, expense, receipt, and payment creates a balanced `journal_batch` through the existing posting service.
+**Accounting rule:** Every posted invoice, expense, receipt, and payment creates a balanced `journal_entry` through the existing posting service.
 
 **Exit criteria:**
 
 - Owner can create customer/vendor.
 - Owner can create item/service.
 - Draft document does not affect books.
-- Posted document creates balanced batch.
+- Posted document creates balanced journal entry.
 - Owner can download/share invoice PDF.
 - Owner can record money received/paid.
 - Dashboard shows receivables, payables, cash/bank, sales, and expenses.
@@ -119,7 +119,7 @@ sequenceDiagram
 
 - Phase 2 document posting stable.
 - Parties and items exist.
-- Source documents and posted batches are reliable.
+- Source documents and posted entries are reliable.
 
 **Core modules:**
 
@@ -149,7 +149,7 @@ sequenceDiagram
 - Unregistered business can create bill of supply or non-GST invoice.
 - Intra-state invoice calculates CGST/SGST.
 - Inter-state invoice calculates IGST.
-- GST reports reconcile with posted batches.
+- GST reports reconcile with posted entries.
 - Credit/debit notes post reversals or adjustments correctly.
 
 ## Phase 04: Bank and Reconciliation
@@ -184,7 +184,7 @@ sequenceDiagram
 - Duplicate import rows are detected.
 - System suggests invoice/expense/payment matches.
 - Owner approves suggested matches.
-- Approved match links or posts through existing batch services.
+- Approved match links or posts through existing journal/document services.
 - Reconciliation report shows unmatched rows.
 
 ## Phase 05: AI Assistant
@@ -224,7 +224,7 @@ sequenceDiagram
 - Owner can ask simple report questions.
 - AI answer links source documents.
 - Rejected suggestions are stored for learning signals.
-- No AI path writes posted batches directly.
+- No AI path writes posted entries directly.
 
 ## Phase 06: Platform API and Integrations
 
@@ -234,7 +234,7 @@ sequenceDiagram
 
 - Phase 5 service layer stable.
 - API key decision finalized and dependency versions aligned.
-- `outbox_event` covers core domain actions.
+- `outbox_event` producers cover core domain actions that need durable integration delivery.
 
 **Core modules:**
 

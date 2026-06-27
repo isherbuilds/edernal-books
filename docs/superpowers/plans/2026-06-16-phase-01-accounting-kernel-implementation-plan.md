@@ -4,11 +4,47 @@
 
 > **Schema source of truth:** Follow `docs/superpowers/plans/2026-06-17-accounting-foundation-schema-revision-plan.md`.
 
-**Goal:** Build the smallest durable double-entry kernel: fiscal years, accounting periods, hierarchical ledger accounts, number sequences, source-document shell, immutable journal batches/lines, reversals, trial balance, and general ledger.
+**Goal:** Build the smallest durable double-entry kernel before owner workflow UI: fiscal years, accounting periods, hierarchical ledger accounts, journal entry numbers, source-document anchors, immutable posted journal entries/lines, reversals, trial balance, and general ledger.
 
-**Architecture:** Pure accounting rules live in `packages/accounting-core`. Shared API contracts live in `packages/core`. Database tables live in `packages/db` and are tenant-scoped through explicit `organizationId` predicates. API services post through `journal_batch` and `journal_line`; owner document workflows arrive in Phase 2.
+**Architecture:** Pure accounting rules and shared API contracts live in `packages/core/src/accounting`. Database tables live in `packages/db` and are tenant-scoped through explicit `organizationId` predicates and composite foreign keys. API services post through `journal_entry` and `journal_line`; owner document workflows arrive in Phase 2.
 
 **Tech Stack:** TypeScript, Vitest, Drizzle, PostgreSQL, Zod, TanStack Start, Hono, oRPC, Vite Plus.
+
+**Foundation invariants to design in now:**
+
+- Use composite tenant foreign keys for accounting references, for example `journal_line(organization_id, account_id)` to `ledger_account(organization_id, id)`. Add parent unique constraints such as `(organization_id, id)` even when `id` is the primary key.
+- Enforce posted-entry immutability through the posting/reversal service boundary and database constraints in Phase 1. Add PostgreSQL triggers only when a second writer path or public/integration API makes service bypass realistic.
+- Store money as `bigint` minor units in PostgreSQL, but expose minor-unit values as decimal strings in oRPC/Zod DTOs. No raw `bigint` crosses JSON.
+- Phase 1 journal posting is base-currency-only. Journal lines store base debit/credit minor units only; do not add per-line currency, transaction-currency, or exchange-rate fields until a real FX workflow exists.
+- Do not persist journal drafts in Phase 1. Form state is a draft; `journal_entry` rows are posted accounting facts.
+- Lock `organization_setting.base_currency_code`, `books_start_date`, and `fiscal_year_start_month` in the settings write path after fiscal years exist. Do not fetch base currency during every journal post.
+- Allocate `number_sequence` values atomically inside the posting transaction with `UPDATE ... RETURNING` or an explicit row lock. Do not read then write.
+- Treat Phase 1 posting as one transaction: lock the operation key, allocate the number, insert journal entry/lines, write awaited `audit_event`, and enforce unique `(organization_id, operation_key)`.
+- Do not write `outbox_event` from Phase 1 posting. Start outbox writes when public API, integrations, webhooks, AI indexing, or another durable async consumer exists.
+- Use operation-local duplicate protection in Phase 1: unique `(organization_id, operation_key)`, a narrow transaction lock on that operation key before number allocation, and a request hash on `journal_entry` to reject same-key payload mismatches. Do not add central replay stores yet.
+
+## Current Implementation Status
+
+Updated: 2026-06-26 after Phase 1 scope review.
+
+The existing worktree should be simplified to this target before UI work:
+
+- `packages/core/src/accounting` with default ledger account definitions, journal validation, report arithmetic, contracts for internal fiscal-year setup, default chart seed, posting, reversal, and minor-unit string transport.
+- `packages/db` accounting schema for periods, accounts, source documents, journal entries, journal lines, and atomic number sequences.
+- Drizzle migrations for `exchange_rate` and the Phase 1 accounting kernel.
+- Service rules plus PostgreSQL constraints for posted-entry immutability, posted-line immutability, posting balance/date validation, and accounting settings lock.
+- `packages/db/src/queries/accounting.ts` transactional services for onboarding accounting defaults, internal fiscal-year setup, chart seed, post, and reverse.
+- `packages/db/src/queries/accounting-reports.ts` SQL-backed posted-line readers for as-of trial balance and account-scoped general ledger.
+- `packages/api/src/routers/accounting` oRPC procedures for chart/period reads, journal posting/reversal, and reports. Fiscal-year/chart initialization happens through organization onboarding.
+- `packages/core/src/accounting/reports` pure report arithmetic helpers.
+- Focused unit tests for money/journal rules, DTO minor-unit strings, schema invariants, migration SQL, period building, sequence formatting, and report arithmetic.
+- DB integration tests for duplicate operation keys, concurrent duplicate replay, concurrent sequence allocation, fiscal-year sequence reset, sequence rollback after failed posting, posting date rejection, reversal behavior, and accounting-settings locks.
+
+Still left in Phase 1:
+
+- UI routes for chart view, accounting periods, journal entry register, trial balance, and general ledger.
+- Phase 1 UI permission copy and affordances for owner/accountant accounting access and no viewer report access by default.
+- Source-document writer consumers in Phase 2 owner workflows.
 
 ---
 
@@ -18,13 +54,13 @@
 flowchart TD
   Web["apps/web<br/>advanced ledger UI"] --> API["packages/api<br/>accounting routers"]
   API --> Contracts["packages/core/accounting<br/>Zod contracts"]
-  API --> Rules["packages/accounting-core<br/>pure money/posting/report rules"]
+  API --> Rules["packages/core/src/accounting<br/>pure money/posting/report rules"]
   API --> TX["packages/db<br/>db.transaction"]
   TX --> Periods["fiscal_year<br/>accounting_period"]
   TX --> Accounts["ledger_account<br/>number_sequence"]
   TX --> Source["source_document"]
-  TX --> Journal["journal_batch<br/>journal_line"]
-  TX --> Events["audit_event<br/>outbox_event"]
+  TX --> Journal["journal_entry<br/>journal_line"]
+  TX --> Events["audit_event"]
   TX --> OperationKey["operation_key unique guard"]
   Journal --> Reports["trial balance<br/>general ledger"]
 ```
@@ -34,162 +70,56 @@ Posting flow:
 ```mermaid
 sequenceDiagram
   participant UI as Advanced posting UI
-  participant API as journalBatches.post
-  participant Core as accounting-core
+  participant API as journalEntries.post
+  participant Core as core accounting rules
   participant TX as db.transaction
   participant DB as accounting tables
 
-  UI->>API: Draft batch command
+  UI->>API: Draft entry command
   API->>TX: Check operation key and load period/accounts
-  API->>Core: validateBatchDraft
+  API->>Core: validateJournalEntryDraft
   Core-->>API: ok or stable error code
   API->>DB: Allocate number_sequence
-  API->>DB: Insert posted journal_batch
+  API->>DB: Insert posted journal_entry
   API->>DB: Insert journal_line rows
-  API->>DB: Write audit_event and outbox_event
-  API-->>UI: Posted batch
+  API->>DB: Write audit_event
+  API-->>UI: Posted entry
 ```
 
 ## File Structure
 
-- `packages/accounting-core/package.json`: new pure accounting package.
-- `packages/accounting-core/src/money.ts`: minor-unit money helpers. "Minor unit" means storing INR 123.45 as `12345`, not as a JavaScript float.
-- `packages/accounting-core/src/accounts.ts`: account categories, normal balances, posting account checks. "Normal balance" means whether the account normally increases by debit or credit.
-- `packages/accounting-core/src/journal.ts`: batch validation and reversal helpers.
-- `packages/accounting-core/src/reports/trial-balance.ts`: pure trial balance grouping.
-- `packages/accounting-core/src/reports/general-ledger.ts`: pure general ledger line ordering/running balance helpers.
+- `packages/core/src/accounting/accounts.ts`: account categories, normal balances, and default chart definitions. "Normal balance" means whether the account normally increases by debit or credit.
+- `packages/core/src/accounting/journal.ts`: entry validation helpers.
+- `packages/core/src/accounting/reports/trial-balance.ts`: pure trial-balance arithmetic.
+- `packages/core/src/accounting/reports/general-ledger.ts`: pure general-ledger running-balance arithmetic.
 - `packages/db/src/schema/periods.ts`: `fiscal_year`, `accounting_period`.
 - `packages/db/src/schema/accounts.ts`: `ledger_account`, `number_sequence`.
 - `packages/db/src/schema/source-documents.ts`: minimal `source_document`.
-- `packages/db/src/schema/journal.ts`: `journal_batch`, `journal_line`.
-- `packages/core/src/accounting/*.ts`: Zod contracts and shared accounting types.
-- `packages/api/src/routers/accounting.ts`: internal oRPC procedures for setup, posting, reversal, reports.
-- `apps/web/src/routes/{-$locale}/_app/$orgSlug/_shell/settings/chart-of-accounts.tsx`: chart setup.
-- `apps/web/src/routes/{-$locale}/_app/$orgSlug/_shell/settings/accounting-periods.tsx`: period lock view.
-- `apps/web/src/routes/{-$locale}/_app/$orgSlug/_shell/accounting/journal-batches.tsx`: advanced batch register.
+- `packages/db/src/schema/journal.ts`: `journal_entry`, `journal_line`.
+- `packages/core/src/accounting/index.ts`: Zod contracts and shared accounting types.
+- `packages/api/src/routers/accounting/index.ts`: oRPC procedures for chart/period reads, posting, reversal, and reports.
+- `apps/web/src/routes/{-$locale}/_app/$orgSlug/_shell/settings/chart-of-accounts.tsx`: chart view.
+- `apps/web/src/routes/{-$locale}/_app/$orgSlug/_shell/settings/accounting-periods.tsx`: period list view.
+- `apps/web/src/routes/{-$locale}/_app/$orgSlug/_shell/accounting/journal-entries.tsx`: advanced entry register, manual posting form, and reversal action.
 - `apps/web/src/routes/{-$locale}/_app/$orgSlug/_shell/reports/trial-balance.tsx`: trial balance view.
 - `apps/web/src/routes/{-$locale}/_app/$orgSlug/_shell/reports/general-ledger.tsx`: general ledger view.
 
 Do not create `party`, `tax_code`, `tax_code_component`, invoice, expense, payment, subledger, settlement, or balance-cache tables in Phase 1.
+Do not create Phase 1 FX posting fields, persisted journal drafts, public API replay tables, or outbox producers.
 
-## Task 1: Accounting-Core Package and Money Helpers
+## Task 1: Core Accounting Transport Contracts
+
+Pure accounting helpers live under the existing `packages/core` package. Do not create a separate accounting package for Phase 1.
 
 **Files:**
 
-- Create: `packages/accounting-core/package.json`
-- Create: `packages/accounting-core/src/money.ts`
-- Create: `packages/accounting-core/src/index.ts`
-- Test: `packages/accounting-core/src/money.test.ts`
+- Modify: `packages/core/src/accounting/types.ts`
+- Test: `packages/core/src/accounting/__tests__/contracts.test.ts`
 
-- [ ] **Step 1: Add package manifest**
-
-```json
-{
-  "name": "@tsu-stack/accounting-core",
-  "private": true,
-  "type": "module",
-  "exports": {
-    ".": "./src/index.ts",
-    "./*": "./src/*.ts"
-  },
-  "scripts": {
-    "test:unit": "vp test"
-  },
-  "dependencies": {},
-  "devDependencies": {
-    "@tsu-stack/tsconfig": "workspace:*",
-    "typescript": "catalog:",
-    "vite-plus": "catalog:"
-  }
-}
-```
-
-- [ ] **Step 2: Write money tests**
-
-```ts
-import { describe, expect, it } from "vite-plus/test";
-import { addMinor, toDecimalString, toMinor } from "./money";
-
-describe("money", () => {
-  it("parses decimal strings to minor units", () => {
-    expect(toMinor("1234.56", 2)).toBe(123456n);
-  });
-
-  it("rejects too many decimal places", () => {
-    expect(() => toMinor("1.234", 2)).toThrow("INVALID_MONEY");
-  });
-
-  it("adds minor units without floating point arithmetic", () => {
-    expect(addMinor(10n, 20n)).toBe(30n);
-  });
-
-  it("formats minor units for display", () => {
-    expect(toDecimalString(123456n, 2)).toBe("1234.56");
-  });
-});
-```
-
-- [ ] **Step 3: Implement money helpers**
-
-```ts
-export type Minor = bigint;
-
-/**
- * Converts a user/API money string into integer minor units.
- *
- * Why this exists: accounting amounts must not use JavaScript floating-point
- * math because values like 0.1 + 0.2 can round incorrectly.
- */
-export function toMinor(value: string, decimals: number): Minor {
-  const pattern = new RegExp(`^-?\\d+(\\.\\d{1,${decimals}})?$`);
-  if (!pattern.test(value)) {
-    throw new Error("INVALID_MONEY");
-  }
-
-  const negative = value.startsWith("-");
-  const unsigned = negative ? value.slice(1) : value;
-  const [whole = "0", fraction = ""] = unsigned.split(".");
-  const scaled = BigInt(`${whole}${fraction.padEnd(decimals, "0")}`);
-  return negative ? -scaled : scaled;
-}
-
-export function addMinor(left: Minor, right: Minor) {
-  return left + right;
-}
-
-export function subtractMinor(left: Minor, right: Minor) {
-  return left - right;
-}
-
-export function toDecimalString(value: Minor, decimals: number) {
-  const negative = value < 0n;
-  const absolute = negative ? -value : value;
-  const raw = absolute.toString().padStart(decimals + 1, "0");
-  const whole = raw.slice(0, -decimals);
-  const fraction = raw.slice(-decimals);
-  return `${negative ? "-" : ""}${whole}.${fraction}`;
-}
-```
-
-- [ ] **Step 4: Export package API**
-
-```ts
-export * from "./money";
-```
-
-- [ ] **Step 5: Run tests**
+Verification:
 
 ```bash
-rtk vp run --filter @tsu-stack/accounting-core test:unit
-```
-
-Expected: money tests pass.
-
-- [ ] **Step 6: Commit**
-
-```bash
-rtk git add packages/accounting-core
-rtk git commit -m "feat: add accounting core money helpers"
+rtk vp run --filter @tsu-stack/core test:unit
 ```
 
 ## Task 2: Phase 1 Database Schema
@@ -211,7 +141,7 @@ import { describe, expect, it } from "vite-plus/test";
 import {
   accountingPeriod,
   fiscalYear,
-  journalBatch,
+  journalEntry,
   journalLine,
   ledgerAccount,
   sourceDocument
@@ -223,13 +153,18 @@ describe("accounting kernel schema", () => {
     expect(accountingPeriod.organizationId).toBeDefined();
     expect(ledgerAccount.organizationId).toBeDefined();
     expect(sourceDocument.organizationId).toBeDefined();
-    expect(journalBatch.organizationId).toBeDefined();
+    expect(journalEntry.organizationId).toBeDefined();
     expect(journalLine.organizationId).toBeDefined();
   });
 
   it("stores journal money in minor units", () => {
-    expect(journalLine.baseDebitMinor).toBeDefined();
-    expect(journalLine.baseCreditMinor).toBeDefined();
+    expect(journalLine.debitMinor).toBeDefined();
+    expect(journalLine.creditMinor).toBeDefined();
+  });
+
+  it("uses composite tenant references for accounting joins", () => {
+    expect(journalEntry.organizationId).toBeDefined();
+    expect(journalLine.organizationId).toBeDefined();
   });
 });
 ```
@@ -256,7 +191,7 @@ describe("accounting kernel schema", () => {
 - `name`.
 - `start_date`.
 - `end_date`.
-- `status`: `open`, `soft_locked`, `hard_locked`, `closed`.
+- `status`: `open`, `locked`, `closed`.
 - `locked_at`.
 - `locked_by`.
 - `created_at`.
@@ -265,7 +200,7 @@ Rules:
 
 - No overlapping fiscal years per organization.
 - Period rows are generated by service code when a fiscal year is created.
-- Normal posting rejects hard-locked periods.
+- Normal posting rejects locked and closed periods.
 
 - [ ] **Step 3: Add `ledger_account`**
 
@@ -283,10 +218,7 @@ Fields:
 - `sort_order`.
 - `system_key`.
 - `is_group`.
-- `is_control_account`.
-- `is_reconcilable`.
 - `allow_manual_posting`.
-- `currency_code`.
 - `active`.
 - `created_at`.
 - `updated_at`.
@@ -295,8 +227,12 @@ Constraints:
 
 - Unique `(organization_id, code)`.
 - Unique `(organization_id, system_key)` where `system_key` is not null.
-- Parent account references are organization-scoped.
+- Unique `(organization_id, id)` for composite tenant references.
+- Parent account references are organization-scoped through `(organization_id, parent_account_id)`.
+- Parent and child accounts must share the same `account_category`.
 - Posting cannot target `is_group = true`.
+- Normal balance is report metadata. It must not reject valid opposite-side corrections or reversals.
+- Accounts Receivable and Accounts Payable are seeded with `allow_manual_posting = false` until party/subledger workflows exist.
 
 - [ ] **Step 4: Add `number_sequence`**
 
@@ -318,7 +254,8 @@ Fields:
 Rules:
 
 - Allocate numbers inside the same transaction as posting/finalization.
-- Use this table for journal batch numbers now and document numbers later.
+- Allocation must be concurrency-safe with one atomic `UPDATE number_sequence SET next_number = next_number + 1 ... RETURNING next_number - 1` or an explicit row lock.
+- Use this table for journal entry numbers now. Phase 2 document services own invoice/bill/payment numbering rules.
 
 - [ ] **Step 5: Add minimal `source_document`**
 
@@ -327,37 +264,25 @@ Fields:
 - `id`.
 - `organization_id`.
 - `type`.
-- `document_number`.
-- `status`: `draft`, `posted`, `void`.
-- `date`.
-- `posting_date`.
-- `currency_code`.
-- `exchange_rate`.
-- `grand_total_minor`.
-- `base_grand_total_minor`.
-- `reference`.
-- `notes`.
-- `created_by`.
-- `posted_at`.
+- `document_number` nullable.
 - `created_at`.
-- `updated_at`.
 
-Do not add `party_id`, approval fields, snapshot JSON, render JSON, outstanding amounts, or an idempotency-key column in Phase 1.
+Do not add status, dates, totals, currency, exchange rate, `party_id`, approval fields, snapshot JSON, render JSON, outstanding amounts, or an idempotency-key column in Phase 1. Source-document lifecycle and numbering belong to Phase 2 document services.
 
-- [ ] **Step 6: Add `journal_batch` and `journal_line`**
+- [ ] **Step 6: Add `journal_entry` and `journal_line`**
 
-`journal_batch` fields:
+`journal_entry` fields:
 
 - `id`.
 - `organization_id`.
 - `accounting_period_id`.
 - `source_document_id`.
-- `batch_number`.
-- `status`: `draft`, `posted`, `reversed`.
+- `entry_number`.
 - `posting_date`.
 - `description`.
 - `operation_key`.
-- `reversal_of_batch_id`.
+- `request_hash`.
+- `reversal_of_entry_id`.
 - `posted_at`.
 - `posted_by`.
 - `created_at`.
@@ -366,27 +291,26 @@ Do not add `party_id`, approval fields, snapshot JSON, render JSON, outstanding 
 
 - `id`.
 - `organization_id`.
-- `batch_id`.
+- `journal_entry_id`.
 - `line_number`.
 - `account_id`.
 - `source_document_id`.
 - `description`.
-- `transaction_currency_code`.
-- `transaction_debit_minor`.
-- `transaction_credit_minor`.
-- `base_currency_code`.
-- `base_debit_minor`.
-- `base_credit_minor`.
-- `exchange_rate`.
+- `debit_minor`.
+- `credit_minor`.
 - `created_at`.
 
 Rules:
 
 - A line has debit or credit, not both.
-- Batch has at least two lines.
+- Entry has at least two lines.
 - Base debits equal base credits before posting.
-- Posted batch is immutable.
-- Reversal creates a new posted batch linked by `reversal_of_batch_id`.
+- Journal rows are posted facts immediately. There is no persisted draft status.
+- Posted entry changes go through reversal/new posting only. Phase 1 relies on the service boundary plus DB constraints; add triggers when another write path exists.
+- Lines under a posted entry cannot be inserted, updated, or deleted.
+- `journal_entry` has unique `(organization_id, operation_key)`.
+- `journal_line` references entry and account through composite tenant foreign keys.
+- Reversal creates a new posted entry linked by `reversal_of_entry_id`.
 
 - [ ] **Step 7: Generate migration and run tests**
 
@@ -409,37 +333,37 @@ rtk git commit -m "feat: add accounting kernel schema"
 
 **Files:**
 
-- Create: `packages/accounting-core/src/journal.ts`
-- Modify: `packages/accounting-core/src/index.ts`
-- Test: `packages/accounting-core/src/journal.test.ts`
+- Create: `packages/core/src/accounting/journal.ts`
+- Modify: `packages/core/src/accounting/index.ts`
+- Test: `packages/core/src/accounting/journal.test.ts`
 
 - [ ] **Step 1: Add validation tests**
 
 ```ts
 import { describe, expect, it } from "vite-plus/test";
-import { validateBatchDraft } from "./journal";
+import { validateJournalEntryDraft } from "./journal";
 
-describe("journal batch validation", () => {
-  it("accepts balanced batch", () => {
-    const result = validateBatchDraft({
+describe("journal entry validation", () => {
+  it("accepts balanced entry", () => {
+    const result = validateJournalEntryDraft({
       lines: [
-        { accountId: "cash", baseDebitMinor: 10000n, baseCreditMinor: 0n },
-        { accountId: "capital", baseDebitMinor: 0n, baseCreditMinor: 10000n }
+        { accountId: "cash", debitMinor: 10000n, creditMinor: 0n },
+        { accountId: "capital", debitMinor: 0n, creditMinor: 10000n }
       ]
     });
 
     expect(result).toEqual({ ok: true });
   });
 
-  it("rejects unbalanced batch", () => {
-    const result = validateBatchDraft({
+  it("rejects unbalanced entry", () => {
+    const result = validateJournalEntryDraft({
       lines: [
-        { accountId: "cash", baseDebitMinor: 9000n, baseCreditMinor: 0n },
-        { accountId: "capital", baseDebitMinor: 0n, baseCreditMinor: 10000n }
+        { accountId: "cash", debitMinor: 9000n, creditMinor: 0n },
+        { accountId: "capital", debitMinor: 0n, creditMinor: 10000n }
       ]
     });
 
-    expect(result).toEqual({ ok: false, errorCode: "JOURNAL_BATCH_NOT_BALANCED" });
+    expect(result).toEqual({ ok: false, errorCode: "JOURNAL_ENTRY_NOT_BALANCED" });
   });
 });
 ```
@@ -449,39 +373,39 @@ describe("journal batch validation", () => {
 ```ts
 export type JournalDraftLine = {
   accountId: string;
-  baseDebitMinor: bigint;
-  baseCreditMinor: bigint;
+  debitMinor: bigint;
+  creditMinor: bigint;
 };
 
-export type JournalBatchDraft = {
+export type JournalEntryDraft = {
   lines: JournalDraftLine[];
 };
 
-export function validateBatchDraft(draft: JournalBatchDraft) {
+export function validateJournalEntryDraft(draft: JournalEntryDraft) {
   // Enforces core double-entry rules before any row is posted to the ledger.
   if (draft.lines.length < 2) {
-    return { ok: false as const, errorCode: "JOURNAL_BATCH_NEEDS_TWO_LINES" };
+    return { ok: false as const, errorCode: "JOURNAL_ENTRY_NEEDS_TWO_LINES" };
   }
 
   for (const line of draft.lines) {
-    if (line.baseDebitMinor < 0n || line.baseCreditMinor < 0n) {
+    if (line.debitMinor < 0n || line.creditMinor < 0n) {
       return { ok: false as const, errorCode: "JOURNAL_LINE_NEGATIVE_AMOUNT" };
     }
 
-    if (line.baseDebitMinor > 0n && line.baseCreditMinor > 0n) {
+    if (line.debitMinor > 0n && line.creditMinor > 0n) {
       return { ok: false as const, errorCode: "JOURNAL_LINE_HAS_DEBIT_AND_CREDIT" };
     }
 
-    if (line.baseDebitMinor === 0n && line.baseCreditMinor === 0n) {
+    if (line.debitMinor === 0n && line.creditMinor === 0n) {
       return { ok: false as const, errorCode: "JOURNAL_LINE_HAS_NO_AMOUNT" };
     }
   }
 
-  const totalDebit = draft.lines.reduce((sum, line) => sum + line.baseDebitMinor, 0n);
-  const totalCredit = draft.lines.reduce((sum, line) => sum + line.baseCreditMinor, 0n);
+  const totalDebit = draft.lines.reduce((sum, line) => sum + line.debitMinor, 0n);
+  const totalCredit = draft.lines.reduce((sum, line) => sum + line.creditMinor, 0n);
 
   if (totalDebit !== totalCredit) {
-    return { ok: false as const, errorCode: "JOURNAL_BATCH_NOT_BALANCED" };
+    return { ok: false as const, errorCode: "JOURNAL_ENTRY_NOT_BALANCED" };
   }
 
   return { ok: true as const };
@@ -491,7 +415,7 @@ export function validateBatchDraft(draft: JournalBatchDraft) {
 - [ ] **Step 3: Run tests**
 
 ```bash
-rtk vp run --filter @tsu-stack/accounting-core test:unit
+rtk vp run --filter @tsu-stack/core test:unit
 ```
 
 Expected: journal validation tests pass.
@@ -499,20 +423,19 @@ Expected: journal validation tests pass.
 - [ ] **Step 4: Commit**
 
 ```bash
-rtk git add packages/accounting-core
-rtk git commit -m "feat: validate journal batches"
+rtk git add packages/core/src/accounting
+rtk git commit -m "feat: validate journal entries"
 ```
 
 ## Task 4: Default Chart and Fiscal Year Services
 
 **Files:**
 
-- Create: `packages/accounting-core/src/accounts.ts`
-- Create: `packages/accounting-core/src/default-chart.ts`
+- Create: `packages/core/src/accounting/accounts.ts`
 - Create: `packages/core/src/accounting/fiscal-year.ts`
-- Create: `packages/api/src/routers/accounting-setup.ts`
-- Test: `packages/accounting-core/src/default-chart.test.ts`
-- Test: `packages/core/src/accounting/fiscal-year.test.ts`
+- Modify: `packages/db/src/queries/accounting.ts`
+- Modify: `packages/api/src/routers/organizations/index.ts`
+- Test: `packages/db/src/queries/__tests__/accounting.test.ts`
 
 - [ ] **Step 1: Test default chart**
 
@@ -537,16 +460,22 @@ describe("default India owner chart", () => {
 
 Use a small India-friendly chart:
 
-- Cash.
-- Bank.
-- Accounts Receivable.
-- Accounts Payable.
-- Owner Capital.
-- Retained Earnings.
-- Sales.
-- Purchases.
-- General Expenses.
-- Bank Charges.
+- Asset group.
+  - Cash.
+  - Bank.
+  - Accounts Receivable (`allow_manual_posting = false`).
+- Liability group.
+  - Accounts Payable (`allow_manual_posting = false`).
+- Equity group.
+  - Owner Capital.
+  - Retained Earnings.
+  - Opening Balance Difference.
+- Income group.
+  - Sales.
+- Expense group.
+  - Purchases.
+  - General Expenses.
+  - Bank Charges.
 
 GST input/output accounts are seeded in Phase 3 when tax codes exist.
 
@@ -554,40 +483,36 @@ GST input/output accounts are seeded in Phase 3 when tax codes exist.
 
 ```ts
 import { describe, expect, it } from "vite-plus/test";
-import { makeIndiaFiscalYear } from "./fiscal-year";
+import { formatFiscalYearLabel } from "./fiscal-year";
 
 describe("fiscal year", () => {
-  it("uses April to March", () => {
-    expect(makeIndiaFiscalYear(2026)).toEqual({
-      name: "FY 2026-27",
-      startDate: "2026-04-01",
-      endDate: "2027-03-31"
-    });
+  it("formats labels from dates instead of accepting user-entered names", () => {
+    expect(formatFiscalYearLabel("2026-06-26", "2027-03-31")).toBe("26-27");
   });
 });
 ```
 
 - [ ] **Step 4: Implement setup procedures**
 
-`accountingSetup.createFiscalYear`:
+Organization onboarding:
 
-- validates no overlap for same organization;
-- creates one fiscal year;
-- creates 12 monthly `accounting_period` rows;
-- writes `audit_event`;
-- writes `outbox_event` with `fiscal_year.created`.
+- accepts `books_start_date` and `initial_fiscal_year_end_date`;
+- creates the initial fiscal year from `books_start_date` to `initial_fiscal_year_end_date`;
+- formats `fiscal_year.name` with `formatFiscalYearLabel(startDate, endDate)`;
+- creates monthly `accounting_period` rows, including partial first/last months when needed;
+- seeds the default chart once;
+- writes awaited transactional `audit_event`.
 
-`accountingSetup.ensureDefaultChart`:
+Internal setup helpers:
 
-- inserts missing `ledger_account` rows by `system_key`;
+- validate no fiscal-year overlap for the same organization;
+- insert missing `ledger_account` rows by `system_key`;
 - leaves existing customized account names alone;
-- writes `audit_event`;
-- writes `outbox_event` with `ledger_account.default_chart_seeded`.
+- writes awaited transactional `audit_event`.
 
 - [ ] **Step 5: Run tests**
 
 ```bash
-rtk vp run --filter @tsu-stack/accounting-core test:unit
 rtk vp run --filter @tsu-stack/core test:unit
 rtk vp run --filter @tsu-stack/api test:unit
 ```
@@ -597,7 +522,7 @@ Expected: default chart, fiscal year, and setup router tests pass.
 - [ ] **Step 6: Commit**
 
 ```bash
-rtk git add packages/accounting-core packages/core packages/api
+rtk git add packages/core/src/accounting packages/core packages/api
 rtk git commit -m "feat: add accounting setup services"
 ```
 
@@ -605,81 +530,53 @@ rtk git commit -m "feat: add accounting setup services"
 
 **Files:**
 
-- Create: `packages/core/src/accounting/journal-batch.ts`
-- Create: `packages/api/src/routers/journal-batches.ts`
-- Modify: `packages/accounting-core/src/journal.ts`
-- Test: `packages/api/src/routers/journal-batches.test.ts`
-- Test: `packages/accounting-core/src/reversal.test.ts`
+- Create: `packages/core/src/accounting/journal-entry.ts`
+- Create: `packages/api/src/routers/journal-entries.ts`
+- Modify: `packages/core/src/accounting/journal.ts`
+- Test: `packages/api/src/routers/journal-entries.test.ts`
+- Test: `packages/db/src/queries/accounting.integration.test.ts`
 
-- [ ] **Step 1: Test reversal helper**
-
-```ts
-import { describe, expect, it } from "vite-plus/test";
-import { reverseBatchLines } from "./journal";
-
-describe("journal batch reversal", () => {
-  it("swaps debit and credit", () => {
-    expect(
-      reverseBatchLines([
-        { accountId: "cash", baseDebitMinor: 10000n, baseCreditMinor: 0n },
-        { accountId: "capital", baseDebitMinor: 0n, baseCreditMinor: 10000n }
-      ])
-    ).toEqual([
-      { accountId: "cash", baseDebitMinor: 0n, baseCreditMinor: 10000n },
-      { accountId: "capital", baseDebitMinor: 10000n, baseCreditMinor: 0n }
-    ]);
-  });
-});
-```
-
-- [ ] **Step 2: Implement reversal helper**
-
-```ts
-export function reverseBatchLines(lines: JournalDraftLine[]): JournalDraftLine[] {
-  // Corrections are recorded by a new opposite batch so posted history stays immutable.
-  return lines.map((line) => ({
-    ...line,
-    baseDebitMinor: line.baseCreditMinor,
-    baseCreditMinor: line.baseDebitMinor
-  }));
-}
-```
+- Reversal is implemented in the posting service from persisted line rows. It reverses base-currency amounts, keeps the original immutable, and requires a short reason/description.
 
 - [ ] **Step 3: Test posting service behavior**
 
 Router/service tests should cover:
 
-- posting rejects hard-locked period;
+- posting rejects locked or closed period;
 - posting rejects group account;
+- posting rejects manual posting to accounts with `allow_manual_posting = false`;
 - posting rejects unbalanced draft;
-- posting creates `journal_batch` and `journal_line` rows;
-- posting writes `audit_event` and `outbox_event`;
-- duplicate operation key returns the existing batch;
-- posted batch cannot be edited;
-- reversal creates a separate posted batch.
+- posting rejects cross-tenant entry/account/period references at the database layer;
+- posting creates `journal_entry` and `journal_line` rows;
+- posting writes awaited transactional `audit_event`;
+- posting does not write `outbox_event`;
+- duplicate operation key returns the existing entry;
+- posted entry cannot be edited through service code or direct database writes;
+- reversal creates a separate posted entry.
 
 - [ ] **Step 4: Implement posting procedure**
 
-`journalBatches.post` runs inside one `db.transaction` after membership has been verified:
+`journalEntries.post` runs inside one `db.transaction` after membership has been verified:
 
-1. Check `operation_key`; return the existing posted batch when the same key already succeeded.
-2. Load accounting period and reject hard lock.
+1. Check `operation_key`; return the existing posted entry when the same key already succeeded.
+2. Load accounting period and reject locked or closed periods. Do not lock the period row for normal posting.
 3. Load accounts and reject inactive/group/manual-blocked accounts.
-4. Validate lines with `validateBatchDraft`.
-5. Allocate `batch_number` through `number_sequence`.
-6. Insert `journal_batch`.
+4. Validate lines with `validateJournalEntryDraft`.
+5. Allocate `entry_number` through atomic `number_sequence` update.
+6. Insert posted `journal_entry`.
 7. Insert `journal_line` rows.
 8. Write `audit_event`.
-9. Write `outbox_event` with `journal_batch.posted`.
+
+All response DTOs serialize minor-unit totals as strings before returning through oRPC.
 
 - [ ] **Step 5: Implement reversal procedure**
 
-`journalBatches.reverse` loads the original posted batch, generates reversed lines, posts a new batch with `reversal_of_batch_id`, writes audit/outbox rows, and leaves the original batch immutable.
+`journalEntries.reverse` loads the original posted entry, requires a reason, generates reversed lines, posts a new entry with `reversal_of_entry_id`, writes an audit row, and leaves the original entry immutable. Original entries do not get a `reversed` status; reports include both original and reversal.
 
 - [ ] **Step 6: Run tests**
 
 ```bash
-rtk vp run --filter @tsu-stack/accounting-core test:unit
+rtk vp run --filter @tsu-stack/core test:unit
 rtk vp run --filter @tsu-stack/api test:unit
 ```
 
@@ -688,23 +585,23 @@ Expected: posting and reversal tests pass.
 - [ ] **Step 7: Commit**
 
 ```bash
-rtk git add packages/accounting-core packages/core packages/api
-rtk git commit -m "feat: add journal batch posting"
+rtk git add packages/core/src/accounting packages/core packages/api
+rtk git commit -m "feat: add journal entry posting"
 ```
 
 ## Task 6: Reports and Minimal UI
 
 **Files:**
 
-- Create: `packages/accounting-core/src/reports/trial-balance.ts`
-- Create: `packages/accounting-core/src/reports/general-ledger.ts`
+- Create: `packages/core/src/accounting/reports/trial-balance.ts`
+- Create: `packages/core/src/accounting/reports/general-ledger.ts`
 - Create: `packages/api/src/routers/accounting-reports.ts`
 - Create: `apps/web/src/routes/{-$locale}/_app/$orgSlug/_shell/settings/chart-of-accounts.tsx`
 - Create: `apps/web/src/routes/{-$locale}/_app/$orgSlug/_shell/settings/accounting-periods.tsx`
-- Create: `apps/web/src/routes/{-$locale}/_app/$orgSlug/_shell/accounting/journal-batches.tsx`
+- Create: `apps/web/src/routes/{-$locale}/_app/$orgSlug/_shell/accounting/journal-entries.tsx`
 - Create: `apps/web/src/routes/{-$locale}/_app/$orgSlug/_shell/reports/trial-balance.tsx`
 - Create: `apps/web/src/routes/{-$locale}/_app/$orgSlug/_shell/reports/general-ledger.tsx`
-- Test: `packages/accounting-core/src/reports/trial-balance.test.ts`
+- Test: `packages/core/src/accounting/reports/trial-balance.test.ts`
 
 - [ ] **Step 1: Test trial balance**
 
@@ -715,8 +612,8 @@ import { buildTrialBalance } from "./trial-balance";
 describe("trial balance", () => {
   it("keeps debits and credits balanced", () => {
     const result = buildTrialBalance([
-      { accountId: "cash", baseDebitMinor: 10000n, baseCreditMinor: 0n },
-      { accountId: "capital", baseDebitMinor: 0n, baseCreditMinor: 10000n }
+      { accountId: "cash", debitMinor: 10000n, creditMinor: 0n },
+      { accountId: "capital", debitMinor: 0n, creditMinor: 10000n }
     ]);
 
     expect(result.totalDebitMinor).toBe(10000n);
@@ -728,33 +625,41 @@ describe("trial balance", () => {
 
 - [ ] **Step 2: Implement report builders**
 
-Trial balance groups posted lines by account and sums base debit/credit minor units. General ledger orders posted lines by posting date, batch number, and line number, then computes running balance using account normal balance.
+Trial balance groups posted lines by account and sums base debit/credit minor units. General ledger orders posted lines by posting date, entry number, and line number, then computes running balance using account normal balance.
 
 - [ ] **Step 3: Implement report procedures**
 
 Report procedures:
 
 - require organization context;
-- read posted batches only;
+- read posted entries only;
 - filter by date range;
 - return minor-unit totals plus formatted display strings at the boundary.
 
-- [ ] **Step 4: Build minimal UI**
+- [ ] **Step 4: Build minimal UI after backend core is solid**
 
 Build:
 
-- chart table with account code, name, category, type, active/system flags;
-- accounting-period list with open/soft-lock/hard-lock actions;
-- journal-batch register with posting date, batch number, source document, description, total debit/credit, status;
+- chart table with account code, name, category, type, parent, group/posting, active/system flags;
+- accounting-period list with open/locked/closed states;
+- advanced manual journal form with posting date, description, optional reference, and debit/credit lines;
+- opening-balance helper that posts a normal journal entry and uses Opening Balance Difference only after explicit confirmation;
+- journal-entry register with posting date, entry number, optional source document, description, total debit/credit, and reversal action;
 - trial balance report;
 - general ledger report.
 
-Keep manual journal posting in advanced/accountant-facing UI only.
+Keep manual journal posting in advanced/accountant-facing UI only. Owner and accountant can access Phase 1 accounting kernel screens; viewer cannot access journal register, trial balance, general ledger, setup, posting, reversal, or period locks by default.
+
+Frontend implementation rules:
+
+- Use existing `@tsu-stack/ui/components` shadcn components first: `Table`, `Card`, `Button`, `Field`, `Input`, `Select`, `Tabs`, `Badge`, `Alert`, `Empty`, `Skeleton`, `Spinner`, and `Tooltip`.
+- Keep one-off screens as direct route JSX with local state. Do not create compound components, providers, stores, or wrapper components until there are at least two real call sites or real shared policy.
+- Forms use `FieldGroup` and `Field`; option sets use `ToggleGroup`; icon buttons use lucide icons with `data-icon`.
 
 - [ ] **Step 5: Run checks**
 
 ```bash
-rtk vp run --filter @tsu-stack/accounting-core test:unit
+rtk vp run --filter @tsu-stack/core test:unit
 rtk vp run --filter @tsu-stack/api test:unit
 rtk vp run --filter @tsu-stack/web check
 ```
@@ -764,7 +669,7 @@ Expected: report tests pass and web app builds.
 - [ ] **Step 6: Commit**
 
 ```bash
-rtk git add packages/accounting-core packages/api apps/web
+rtk git add packages/core/src/accounting packages/api apps/web
 rtk git commit -m "feat: add accounting reports and kernel ui"
 ```
 
@@ -772,16 +677,20 @@ rtk git commit -m "feat: add accounting reports and kernel ui"
 
 Do not start owner documents until:
 
-- `ledger_account`, `number_sequence`, `source_document`, `journal_batch`, and `journal_line` tables exist.
+- `ledger_account`, `number_sequence`, `source_document`, `journal_entry`, and `journal_line` tables exist.
 - `party` and `tax_code` tables do not exist yet.
 - Fiscal year creation generates accounting periods.
 - Default chart can be seeded idempotently.
-- Balanced batch posts successfully.
-- Unbalanced batch is rejected.
-- Posted batch is immutable.
-- Reversal creates a separate posted batch.
-- Posting writes `audit_event` and `outbox_event`.
-- Posting uses operation-local idempotency through `journal_batch.operation_key`.
+- Default chart includes group accounts and posting accounts, and blocks normal manual posting to AR/AP.
+- Balanced entry posts successfully.
+- Unbalanced entry is rejected.
+- Posted entry is immutable.
+- Reversal creates a separate posted entry.
+- Posting writes awaited transactional `audit_event`.
+- Posting does not write `outbox_event`.
+- Posting uses operation-local idempotency through `journal_entry.operation_key`.
 - Trial balance balances from posted lines.
 - General ledger reads only organization-scoped posted lines.
+- Phase 1 journal lines are base-currency-only.
+- Viewer cannot access accounting-kernel reports or actions by default.
 - Accounting-core has no React, Hono, oRPC, Drizzle, or Better Auth dependency.

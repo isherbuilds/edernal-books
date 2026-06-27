@@ -1,11 +1,11 @@
 import { z } from "zod";
 
 import { canManageBusinessSettings } from "@tsu-stack/auth/permissions";
+import { getFiscalYearStartMonthFromEndDate } from "@tsu-stack/core/accounting";
 import {
+  CompleteOrganizationOnboardingInputSchema,
   GetOrganizationSettingInputSchema,
   OrganizationSettingSchema,
-  type OrganizationSetting,
-  type UpsertOrganizationSettingInput,
   UpsertOrganizationSettingOutputSchema,
   UpsertOrganizationSettingInputSchema
 } from "@tsu-stack/core/organizations";
@@ -14,8 +14,8 @@ import {
   listOrganizationsForUser,
   logOrganizationSettingAudit,
   markOrganizationOnboardingCompleted,
-  type OrganizationListItem,
-  type OrganizationSettingRow,
+  OrganizationSettingDbError,
+  setupOrganizationAccountingDefaults,
   upsertOrganizationSetting
 } from "@tsu-stack/db/queries";
 
@@ -43,37 +43,76 @@ const CompleteOrganizationOnboardingOutputSchema = z
     organizationId: z.string().min(1)
   })
   .strict();
+const organizationSettingErrorDataSchema = z.object({
+  code: z.literal("ACCOUNTING_FOUNDATION_SETTINGS_LOCKED")
+});
+const organizationSettingErrors = {
+  ACCOUNTING_FOUNDATION_SETTINGS_LOCKED: {
+    data: organizationSettingErrorDataSchema,
+    status: 409
+  }
+};
+
+type OrganizationSettingErrorFactories = {
+  ACCOUNTING_FOUNDATION_SETTINGS_LOCKED: (input: {
+    data: { code: "ACCOUNTING_FOUNDATION_SETTINGS_LOCKED" };
+  }) => unknown;
+};
 
 export const organizationsRouter = {
   completeOnboarding: organizationPermissionProcedure(
-    UpsertOrganizationSettingInputSchema,
+    CompleteOrganizationOnboardingInputSchema,
     canManageBusinessSettings
   )
     .route({
       description: "Complete onboarding for the request organization",
       method: "POST"
     })
+    .errors(organizationSettingErrors)
     .output(CompleteOrganizationOnboardingOutputSchema)
-    .handler(async ({ context, input }) => {
+    .handler(async ({ context, errors, input }) => {
       const requestedCompletedAt = new Date();
-      const settingInput = toOrganizationSettingMutationInput(input, context.organizationId);
+      const settingInput = {
+        baseCurrencyCode: input.baseCurrencyCode,
+        booksStartDate: input.booksStartDate,
+        countryCode: input.countryCode,
+        fiscalYearStartMonth: getFiscalYearStartMonthFromEndDate(input.initialFiscalYearEndDate),
+        legalName: input.legalName,
+        organizationId: context.organizationId,
+        primaryEmail: input.primaryEmail,
+        primaryPhone: input.primaryPhone,
+        timezone: input.timezone,
+        tradeName: input.tradeName
+      };
 
-      const completedAt = await context.db.transaction(async (tx) => {
-        await upsertOrganizationSetting(tx, settingInput);
+      const completedAt = await catchOrganizationSettingDbError(errors, () =>
+        context.db.transaction(async (tx) => {
+          const completion = await markOrganizationOnboardingCompleted(tx, {
+            completedAt: requestedCompletedAt,
+            organizationId: context.organizationId
+          });
 
-        const completedAt = await markOrganizationOnboardingCompleted(tx, {
-          completedAt: requestedCompletedAt,
-          organizationId: context.organizationId
-        });
+          if (completion.alreadyCompleted) {
+            return completion.completedAt;
+          }
 
-        await logOrganizationSettingAudit(tx, {
-          ...settingInput,
-          source: "user",
-          userId: context.authSession.user.id
-        });
+          await upsertOrganizationSetting(tx, settingInput);
+          await setupOrganizationAccountingDefaults(tx, {
+            booksStartDate: settingInput.booksStartDate,
+            initialFiscalYearEndDate: input.initialFiscalYearEndDate,
+            organizationId: context.organizationId,
+            userId: context.authSession.user.id
+          });
 
-        return completedAt;
-      });
+          await logOrganizationSettingAudit(tx, {
+            ...settingInput,
+            source: "user",
+            userId: context.authSession.user.id
+          });
+
+          return completion.completedAt;
+        })
+      );
 
       return {
         ok: true,
@@ -92,7 +131,12 @@ export const organizationsRouter = {
         userId: context.authSession.user.id
       });
 
-      return organizations.map(toOrganizationListItemOutput);
+      return organizations.map((organization) => {
+        return {
+          ...organization,
+          onboardingCompletedAt: organization.onboardingCompletedAt?.toISOString() ?? null
+        };
+      });
     }),
   settings: {
     get: organizationProcedure(GetOrganizationSettingInputSchema)
@@ -106,7 +150,15 @@ export const organizationsRouter = {
           organizationId: context.organizationId
         });
 
-        return setting ? toOrganizationSettingOutput(setting) : null;
+        if (!setting) {
+          return null;
+        }
+
+        return {
+          ...setting,
+          createdAt: setting.createdAt.toISOString(),
+          updatedAt: setting.updatedAt.toISOString()
+        };
       }),
     upsert: organizationPermissionProcedure(
       UpsertOrganizationSettingInputSchema,
@@ -116,18 +168,32 @@ export const organizationsRouter = {
         description: "Create or update settings for the request organization",
         method: "PUT"
       })
+      .errors(organizationSettingErrors)
       .output(UpsertOrganizationSettingOutputSchema)
-      .handler(async ({ context, input }) => {
-        const settingInput = toOrganizationSettingMutationInput(input, context.organizationId);
+      .handler(async ({ context, errors, input }) => {
+        const settingInput = {
+          baseCurrencyCode: input.baseCurrencyCode,
+          booksStartDate: input.booksStartDate,
+          countryCode: input.countryCode,
+          fiscalYearStartMonth: input.fiscalYearStartMonth,
+          legalName: input.legalName,
+          organizationId: context.organizationId,
+          primaryEmail: input.primaryEmail,
+          primaryPhone: input.primaryPhone,
+          timezone: input.timezone,
+          tradeName: input.tradeName
+        };
 
-        await context.db.transaction(async (tx) => {
-          await upsertOrganizationSetting(tx, settingInput);
-          await logOrganizationSettingAudit(tx, {
-            ...settingInput,
-            source: "user",
-            userId: context.authSession.user.id
-          });
-        });
+        await catchOrganizationSettingDbError(errors, () =>
+          context.db.transaction(async (tx) => {
+            await upsertOrganizationSetting(tx, settingInput);
+            await logOrganizationSettingAudit(tx, {
+              ...settingInput,
+              source: "user",
+              userId: context.authSession.user.id
+            });
+          })
+        );
 
         return {
           ok: true,
@@ -137,35 +203,19 @@ export const organizationsRouter = {
   }
 };
 
-function toOrganizationListItemOutput(row: OrganizationListItem) {
-  return {
-    ...row,
-    onboardingCompletedAt: row.onboardingCompletedAt?.toISOString() ?? null
-  };
-}
+async function catchOrganizationSettingDbError<T>(
+  errors: OrganizationSettingErrorFactories,
+  action: () => Promise<T>
+): Promise<T> {
+  try {
+    return await action();
+  } catch (error) {
+    if (error instanceof OrganizationSettingDbError) {
+      throw errors.ACCOUNTING_FOUNDATION_SETTINGS_LOCKED({
+        data: { code: "ACCOUNTING_FOUNDATION_SETTINGS_LOCKED" }
+      });
+    }
 
-function toOrganizationSettingMutationInput(
-  input: UpsertOrganizationSettingInput,
-  organizationId: string
-) {
-  return {
-    baseCurrencyCode: input.baseCurrencyCode,
-    booksStartDate: input.booksStartDate,
-    countryCode: input.countryCode,
-    fiscalYearStartMonth: input.fiscalYearStartMonth,
-    legalName: input.legalName,
-    organizationId,
-    primaryEmail: input.primaryEmail,
-    primaryPhone: input.primaryPhone,
-    timezone: input.timezone,
-    tradeName: input.tradeName
-  };
-}
-
-function toOrganizationSettingOutput(row: OrganizationSettingRow): OrganizationSetting {
-  return OrganizationSettingSchema.parse({
-    ...row,
-    createdAt: row.createdAt.toISOString(),
-    updatedAt: row.updatedAt.toISOString()
-  });
+    throw error;
+  }
 }

@@ -4,6 +4,7 @@ import {
   LandmarkIcon,
   LayoutDashboardIcon,
   MailIcon,
+  NotebookTabsIcon,
   ReceiptTextIcon,
   Settings2Icon,
   UsersIcon,
@@ -22,7 +23,13 @@ import {
   SidebarMenuItem
 } from "@tsu-stack/ui/components/sidebar";
 
-export function NavMain() {
+import { getOrgAppLink } from "@/components/app-shell/nav-links";
+
+type NavMainProps = {
+  showAccounting: boolean;
+};
+
+export function NavMain({ showAccounting }: NavMainProps) {
   const orgSlug = useParams({
     select: (params) => params.orgSlug,
     strict: false
@@ -32,7 +39,7 @@ export function NavMain() {
     return null;
   }
 
-  const items = getMainNavigation(orgSlug);
+  const items = getMainNavigation(orgSlug, showAccounting);
 
   return (
     <SidebarGroup>
@@ -62,7 +69,7 @@ export function NavMain() {
         </SidebarMenu>
         <SidebarMenu>
           {items.map((item) => (
-            <SidebarMenuItem key={item.title}>
+            <SidebarMenuItem key={item.key}>
               <SidebarMenuButton render={<Link {...item.link} />} tooltip={item.title}>
                 {item.icon}
                 <span>{item.title}</span>
@@ -75,55 +82,65 @@ export function NavMain() {
   );
 }
 
-function getMainNavigation(orgSlug: string): {
+type MainNavigationItem = {
   icon?: ReactNode;
+  key: string;
   link: LinkProps;
-  title: string;
-}[] {
-  const dashboardLink = getOrgAppLink(orgSlug, "/$orgSlug");
+  title: ReturnType<typeof m.navbar__dashboard>;
+};
 
-  return [
+function getMainNavigation(orgSlug: string, showAccounting: boolean): MainNavigationItem[] {
+  const dashboardLink = getOrgAppLink(orgSlug, "/$orgSlug");
+  const items: MainNavigationItem[] = [
     {
+      key: "dashboard",
       title: m.navbar__dashboard(),
       link: dashboardLink,
       icon: <LayoutDashboardIcon />
     },
     {
+      key: "business-settings",
       title: m.app_shell__business_settings(),
       link: getOrgAppLink(orgSlug, "/$orgSlug/settings/business"),
       icon: <Settings2Icon />
-    },
+    }
+  ];
+
+  if (showAccounting) {
+    items.push({
+      key: "journal-entries",
+      title: m.app_shell__ledger(),
+      link: getOrgAppLink(orgSlug, "/$orgSlug/accounting/journal-entries"),
+      icon: <NotebookTabsIcon />
+    });
+  }
+
+  items.push(
     {
+      key: "invoices",
       title: m.app_shell__invoices(),
       link: dashboardLink,
       icon: <ReceiptTextIcon />
     },
     {
+      key: "banking",
       title: m.app_shell__banking(),
       link: dashboardLink,
       icon: <LandmarkIcon />
     },
     {
+      key: "expenses",
       title: m.app_shell__expenses(),
       link: dashboardLink,
       icon: <WalletCardsIcon />
     },
     {
+      key: "customers",
       title: m.app_shell__customers(),
       link: dashboardLink,
       icon: <UsersIcon />
     }
-  ];
-}
+  );
 
-function getOrgAppLink(
-  orgSlug: string,
-  to: "/$orgSlug" | "/$orgSlug/settings/business"
-): LinkProps {
-  return {
-    params: {
-      orgSlug
-    },
-    to
-  };
+  return items;
 }

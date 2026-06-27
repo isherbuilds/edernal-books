@@ -1,8 +1,8 @@
 import { type z } from "zod";
 
 import {
-  type UpsertOrganizationSettingInputSchema,
-  type UpsertOrganizationSettingInput
+  type CompleteOrganizationOnboardingInput,
+  type CompleteOrganizationOnboardingInputSchema
 } from "@tsu-stack/core/organizations";
 
 export const ONBOARDING_STEP_KEYS = [
@@ -13,5 +13,5 @@ export const ONBOARDING_STEP_KEYS = [
 ] as const;
 export type OnboardingStepKey = (typeof ONBOARDING_STEP_KEYS)[number];
 
-export type OnboardingFormInput = z.input<typeof UpsertOrganizationSettingInputSchema>;
-export type OnboardingFormValues = UpsertOrganizationSettingInput;
+export type OnboardingFormInput = z.input<typeof CompleteOrganizationOnboardingInputSchema>;
+export type OnboardingFormValues = CompleteOrganizationOnboardingInput;

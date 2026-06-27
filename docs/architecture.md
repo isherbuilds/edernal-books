@@ -14,6 +14,8 @@ delivery.
 - Keep owner-facing UI in `apps/web`, with shared primitives in `packages/ui`.
 - Keep accounting correctness in pure packages before wiring it into API/UI.
 - Prefer simple, measurable performance wins over speculative infrastructure.
+- Make every abstraction earn its cost through real reuse, shared policy,
+  independent testing, or a clear runtime/package boundary.
 
 ## Current Package Graph
 
@@ -132,9 +134,12 @@ sequenceDiagram
     API->>DB: Use operation-local command key or natural unique key
   end
   alt audited settings/accounting command
-    API->>DB: Await audit/outbox in same transaction
-  else unaudited read-only command
-    API-->>Client: DTO without durable side effect
+    API->>DB: Await audit in same transaction
+  end
+  alt command has durable async consumer
+    API->>DB: Write outbox event in same transaction
+  else no durable async consumer
+    API->>DB: Skip outbox write
   end
   API-->>Client: Small success envelope or DTO
 ```
@@ -142,7 +147,7 @@ sequenceDiagram
 `requestId` is observability only. It identifies one HTTP attempt in logs and
 audit metadata; it is not a duplicate-prevention key. Accounting commands that
 can create money-moving records must use operation-local idempotency, such as a
-posted batch command key, source document natural key, provider request id, or a
+posted entry command key, source document natural key, provider request id, or a
 domain-owned unique constraint.
 
 ## Web Rendering Flow
@@ -221,19 +226,19 @@ flowchart TD
   API --> Auth["Better Auth session/org/member"]
   API --> OrgGuard["requireOrganization<br/>org ref + membership"]
   OrgGuard --> DBTX["packages/db<br/>organization-scoped queries"]
-  API --> AccountingCore["future packages/accounting-core<br/>pure invariants"]
+  API --> AccountingRules["packages/core/src/accounting<br/>pure accounting rules"]
   DBTX --> Audit["audit_event"]
   DBTX --> Outbox["outbox_event"]
   DBTX --> OperationKey["operation-local idempotency key"]
-  DBTX --> Ledger["ledger_account<br/>journal_batch<br/>journal_line"]
+  DBTX --> Ledger["ledger_account<br/>journal_entry<br/>journal_line"]
   Ledger --> Reports["trial balance<br/>general ledger"]
 ```
 
 Accounting invariants:
 
-- Posted batches are immutable.
+- Posted journal entries are immutable.
 - Corrections use reversal plus new posting.
-- Every batch balances before posting.
+- Every journal entry balances before posting.
 - Money uses integer minor units.
 - Tenant-owned rows carry `organization_id`.
 - App routes accept client-provided `orgSlug`, verify membership, then use the
@@ -263,6 +268,8 @@ erDiagram
   organization ||--o{ audit_event : records
   organization ||--o{ outbox_event : emits
   currency ||--o{ organization_setting : base_currency
+  currency ||--o{ exchange_rate : base
+  currency ||--o{ exchange_rate : quote
 
   user {
     text id PK
@@ -315,6 +322,14 @@ erDiagram
     text symbol
     int decimal_places
   }
+  exchange_rate {
+    text base_currency_code FK
+    text quote_currency_code FK
+    numeric rate
+    date rate_date
+    text source
+    timestamp created_at
+  }
   organization_setting {
     text organization_id PK
     text legal_name
@@ -354,9 +369,10 @@ completion from settings rows. The onboarding completion command writes the
 business settings and completion timestamp in one transaction, preserving the
 first completion timestamp on retry.
 Onboarding step progression is UI state carried in the route search param as a
-numeric `?step=1..N` value, so direct links and refreshes can resume the same
-visible step without making route guards depend on incomplete form state. Do not
-persist step progress without also persisting draft values.
+named step key, such as `?step=business-contact`, so direct links and refreshes
+can resume the same visible step without making route guards depend on
+incomplete form state. Do not persist step progress without also persisting
+draft values.
 Do not add top-level compatibility redirects such as `/dashboard` or
 `/settings/business`; the canonical app entry is `/$orgSlug`.
 

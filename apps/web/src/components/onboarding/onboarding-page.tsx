@@ -2,9 +2,10 @@ import { ArrowLeftIcon, ArrowRightIcon, SparklesIcon } from "lucide-react";
 import { FormProvider } from "react-hook-form";
 import { toast } from "sonner";
 
+import { getFiscalYearEndDate } from "@tsu-stack/core/accounting";
 import {
-  DEFAULT_ORGANIZATION_SETTINGS,
-  UpsertOrganizationSettingInputSchema
+  CompleteOrganizationOnboardingInputSchema,
+  DEFAULT_ORGANIZATION_SETTINGS
 } from "@tsu-stack/core/organizations";
 import { m } from "@tsu-stack/i18n/messages";
 import { useNavigate } from "@tsu-stack/i18n/tanstack-start/hooks/use-navigate";
@@ -64,7 +65,7 @@ export function OnboardingPage({ organizationName, orgSlug, stepKey, user }: Onb
       );
     }
   });
-  const form = useZodForm(UpsertOrganizationSettingInputSchema, {
+  const form = useZodForm(CompleteOrganizationOnboardingInputSchema, {
     defaultValues: getOnboardingDefaultValues(organizationName, orgSlug, user?.email ?? null)
   });
   const isSaving = completeOnboardingMutation.isPending || form.formState.isSubmitting;
@@ -230,16 +231,22 @@ function getOnboardingDefaultValues(
   orgSlug: string,
   email: string | null
 ): OnboardingFormInput {
+  const booksStartDate = getDateInputValue();
+
   return {
     baseCurrencyCode: DEFAULT_ORGANIZATION_SETTINGS.baseCurrencyCode,
-    booksStartDate: getDateInputValue(),
+    booksStartDate,
     countryCode: DEFAULT_ORGANIZATION_SETTINGS.countryCode,
-    fiscalYearStartMonth: DEFAULT_ORGANIZATION_SETTINGS.fiscalYearStartMonth,
+    initialFiscalYearEndDate: getFiscalYearEndDate({
+      booksStartDate,
+      fiscalYearStartMonth: DEFAULT_ORGANIZATION_SETTINGS.fiscalYearStartMonth
+    }),
     legalName: organizationName,
     orgSlug,
     primaryEmail: email ?? "",
+    primaryPhone: "",
     timezone: DEFAULT_ORGANIZATION_SETTINGS.timezone,
-    tradeName: null
+    tradeName: ""
   };
 }
 

@@ -6,7 +6,7 @@
 
 **Architecture:** Bank imports create normalized transactions without immediately changing books. Matching services propose links to existing documents or draft payments. Owner approval posts or links journal impact through existing services. External bank feeds are deferred; CSV/XLSX import is the reliable first path.
 
-**Tech Stack:** TanStack Start, React Hook Form, PostgreSQL, Drizzle, Hono, oRPC, Zod, accounting-core, CSV parser, spreadsheet parser.
+**Tech Stack:** TanStack Start, React Hook Form, PostgreSQL, Drizzle, Hono, oRPC, Zod, core accounting, CSV parser, spreadsheet parser.
 
 ---
 
@@ -21,7 +21,7 @@ flowchart TD
   Suggestions --> Approval["Owner approval queue"]
   Approval --> Payment["Payment/document services"]
   Payment --> Ledger["journal posting service"]
-  Approval --> Events["audit_event + outbox_event"]
+Approval --> Events["audit_event<br/>optional outbox_event"]
 ```
 
 Reconciliation approval:
@@ -45,9 +45,9 @@ sequenceDiagram
 
 Before executing this plan, reconcile it with `docs/superpowers/plans/2026-06-17-accounting-foundation-schema-revision-plan.md`.
 
-- Bank imports and matches link to existing `source_document`, `journal_batch`, payments, and allocations.
+- Bank imports and matches link to existing `source_document`, `journal_entry`, payments, and allocations.
 - Approved matches post or link through existing posting services.
-- Write `audit_event` and `outbox_event`.
+- Write `audit_event`. Add `outbox_event` only when imports, integrations, or async matching jobs require durable delivery.
 - Store money as `*_minor bigint`.
 - Shared import/matching contracts belong in `packages/core`; parsing and reconciliation services belong in `packages/api`.
 
@@ -271,7 +271,7 @@ Public mounting waits until Phase 6.
 - [ ] Test approving new expense payment creates payment through Phase 2 service.
 - [ ] Test rejection keeps bank transaction unmatched.
 - [ ] Implement approval transaction with audit/event/idempotency.
-- [ ] Emit `reconciliation.match_approved`.
+- [ ] Write audit record for approved match; queue outbox only if a bank/integration consumer exists.
 - [ ] Run `rtk vp run --filter @tsu-stack/api test:unit`.
 - [ ] Commit: `feat: approve reconciliation matches`.
 
@@ -284,7 +284,7 @@ Public mounting waits until Phase 6.
 - Modify: `packages/api/src/router.ts`
 
 - [ ] Add bank and reconciliation oRPC procedures.
-- [ ] Enforce owner/operator/accountant permissions.
+- [ ] Enforce owner/accountant permissions; viewer has no accounting-kernel access by default.
 - [ ] Validate uploads and match approvals.
 - [ ] Generate internal OpenAPI snapshot.
 - [ ] Keep public routes unmounted.

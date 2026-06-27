@@ -6,7 +6,7 @@
 
 **Architecture:** Service features extend Phase 2 documents rather than introducing a separate project-management system. Quotes and recurring rules create draft invoices. Retainers post liability entries and later apply against invoices. Projects and timesheets provide invoice context but do not become full task management.
 
-**Tech Stack:** TanStack Start, React Hook Form, Hono, oRPC, OpenAPI contracts, PostgreSQL, Drizzle, background jobs, accounting-core.
+**Tech Stack:** TanStack Start, React Hook Form, Hono, oRPC, OpenAPI contracts, PostgreSQL, Drizzle, background jobs, core accounting.
 
 ---
 
@@ -44,9 +44,9 @@ sequenceDiagram
 
 Before executing this plan, reconcile it with `docs/superpowers/plans/2026-06-17-accounting-foundation-schema-revision-plan.md`.
 
-- Quotes and recurring rules create drafts; posting still goes through Phase 2 document services and Phase 1 `journal_batch`.
+- Quotes and recurring rules create drafts; posting still goes through Phase 2 document services and Phase 1 `journal_entry`.
 - Retainers post through existing liability accounts and settlement/allocation services.
-- Write `audit_event` and `outbox_event`.
+- Write `audit_event`. Add `outbox_event` only when recurring jobs, notifications, or integrations require durable delivery.
 - Store money as `*_minor bigint`.
 
 ## Schema Additions
@@ -118,7 +118,7 @@ Before executing this plan, reconcile it with `docs/superpowers/plans/2026-06-17
 - `amount`
 - `balance_amount`
 - `status`: `OPEN`, `APPLIED`, `REFUNDED`, `VOID`
-- `journal_batch_id`
+- `journal_entry_id`
 - `created_at`
 - `updated_at`
 
@@ -129,7 +129,7 @@ Before executing this plan, reconcile it with `docs/superpowers/plans/2026-06-17
 - `retainer_id`
 - `invoice_id`
 - `amount`
-- `journal_batch_id`
+- `journal_entry_id`
 - `created_at`
 
 ### `project`
@@ -227,7 +227,7 @@ Public exposure should be enabled only for resources explicitly added to Phase 6
 - [ ] Test converted quote cannot convert twice.
 - [ ] Test expired quote cannot convert.
 - [ ] Implement quote draft/send/accept/decline/convert.
-- [ ] Emit quote events.
+- [ ] Write quote audit records; queue outbox only if notifications/integrations consume them.
 - [ ] Commit: `feat: add quote workflow`.
 
 ### Task 3: Recurring Invoices
@@ -242,7 +242,7 @@ Public exposure should be enabled only for resources explicitly added to Phase 6
 - [ ] Test rerun is idempotent.
 - [ ] Test paused rule creates no invoice.
 - [ ] Implement scheduler job.
-- [ ] Emit recurring invoice run events.
+- [ ] Write recurring run audit records; queue outbox only if notifications/integrations consume them.
 - [ ] Commit: `feat: add recurring invoice runs`.
 
 ### Task 4: Retainers

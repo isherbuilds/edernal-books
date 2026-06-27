@@ -12,7 +12,7 @@ export default {
   },
   dialect: "postgresql",
   out: "./migrations",
-  schema: "./src/schema/index.ts",
+  schema: "./src/schema/migration.ts",
 
   strict: true,
   verbose: true

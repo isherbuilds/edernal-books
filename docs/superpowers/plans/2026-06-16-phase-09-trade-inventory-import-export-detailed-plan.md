@@ -6,7 +6,7 @@
 
 **Architecture:** Inventory has its own stock ledger that reconciles to accounting journals. Goods movement and accounting movement are separate but linked. Foreign currency introduces exchange rates, realized gains/losses, and revaluation journals.
 
-**Tech Stack:** PostgreSQL, Drizzle, accounting-core, inventory-core package, Hono, oRPC, OpenAPI snapshots, TanStack Start.
+**Tech Stack:** PostgreSQL, Drizzle, core accounting, inventory-core package, Hono, oRPC, OpenAPI snapshots, TanStack Start.
 
 ---
 
@@ -37,17 +37,17 @@ sequenceDiagram
   Ops->>Stock: Write stock movement
   Ops->>Doc: Link business document
   Ops->>Ledger: Post accounting impact when required
-  Ops->>DB: Audit/outbox
+  Ops->>DB: Audit, optional outbox with durable consumer
 ```
 
 ## Foundation Alignment
 
 Before executing this plan, reconcile it with `docs/superpowers/plans/2026-06-17-accounting-foundation-schema-revision-plan.md`.
 
-- Stock ledger is separate from the accounting ledger but reconciles to `journal_batch`.
+- Stock ledger is separate from the accounting ledger but reconciles to `journal_entry`.
 - Foreign-currency documents still store money in minor units and use explicit exchange-rate numeric fields.
 - Trade documents attach to `source_document` where they create accounting impact.
-- Write `audit_event` and `outbox_event`.
+- Write `audit_event`. Add `outbox_event` only when import/export jobs, integrations, or async inventory/accounting consumers require durable delivery.
 
 ## Schema Additions
 
@@ -156,7 +156,7 @@ Before executing this plan, reconcile it with `docs/superpowers/plans/2026-06-17
 - `receipt_number`
 - `receipt_date`
 - `status`: `DRAFT`, `POSTED`, `VOID`
-- `journal_batch_id`
+- `journal_entry_id`
 - `created_at`
 - `posted_at`
 
@@ -169,7 +169,7 @@ Before executing this plan, reconcile it with `docs/superpowers/plans/2026-06-17
 - `delivery_number`
 - `delivery_date`
 - `status`: `DRAFT`, `POSTED`, `VOID`
-- `journal_batch_id`
+- `journal_entry_id`
 - `created_at`
 - `posted_at`
 
@@ -181,7 +181,7 @@ Before executing this plan, reconcile it with `docs/superpowers/plans/2026-06-17
 - `allocation_method`: `BY_VALUE`, `BY_QUANTITY`, `BY_WEIGHT`
 - `amount`
 - `status`: `DRAFT`, `POSTED`, `VOID`
-- `journal_batch_id`
+- `journal_entry_id`
 - `created_at`
 - `posted_at`
 
@@ -317,9 +317,9 @@ Public API must expose inventory and orders only after stock/accounting reconcil
 
 **Files:**
 
-- Create: `packages/accounting-core/src/fx.ts`
+- Create: `packages/core/src/accounting/fx.ts`
 - Create: `packages/api/src/services/fx/exchange-rate.service.ts`
-- Test: `packages/accounting-core/src/fx.test.ts`
+- Test: `packages/core/src/accounting/fx.test.ts`
 
 - [ ] Test exchange conversion uses decimal-safe math.
 - [ ] Test realized gain/loss on payment at different rate.

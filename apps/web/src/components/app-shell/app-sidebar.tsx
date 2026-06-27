@@ -17,7 +17,11 @@ import { NavMain } from "@/components/app-shell/nav-main";
 import { NavSecondary } from "@/components/app-shell/nav-secondary";
 import { NavUser } from "@/components/app-shell/nav-user";
 
-export function AppSidebar(props: ComponentProps<typeof Sidebar>) {
+type AppSidebarProps = ComponentProps<typeof Sidebar> & {
+  showAccounting: boolean;
+};
+
+export function AppSidebar({ showAccounting, ...props }: AppSidebarProps) {
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
@@ -34,8 +38,8 @@ export function AppSidebar(props: ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain />
-        <NavDocuments />
+        <NavMain showAccounting={showAccounting} />
+        <NavDocuments showAccounting={showAccounting} />
         <NavSecondary className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>

@@ -2,7 +2,7 @@
 
 Date: 2026-06-16
 
-Updated: 2026-06-19.
+Updated: 2026-06-26.
 
 Source spec: `docs/superpowers/specs/2026-06-16-ai-native-accounting-foundation-design.md`
 
@@ -42,8 +42,8 @@ Decision record: `docs/decisions/0001-accounting-foundation-spine.md`
 
 ## Current Progress
 
-Phase 0 code is complete. Phase 1 remains paused until the local database
-migration is applied and the completion gate is verified.
+Phase 0 code is complete. Phase 1 backend worktree must be simplified to the
+reviewed accounting-kernel scope before UI work and completion-gate verification.
 
 Done:
 
@@ -56,7 +56,7 @@ Done:
 - `organizationProcedure` verifies membership from client-provided `orgSlug` and exposes canonical `organizationId`.
 - Organization settings get/upsert procedures are wired.
 - Organization settings upsert writes settings and audit in one transaction, then returns `{ ok: true, organizationId }`.
-- Fresh baseline migration creates current schema and seeds `INR`, `USD`, `EUR`, and `GBP`.
+- Fresh baseline migration creates current schema only; supported currency rows use a separate seed/admin path.
 - Role permission helpers/tests exist in `packages/auth`.
 - Organization membership, settings audit, and schema invariant tests exist.
 - Business onboarding UI creates/selects a Better Auth business by slug.
@@ -65,10 +65,10 @@ Done:
 Not done:
 
 - Local migration apply is blocked until local Postgres/Docker is running.
-- Transactional outbox writes for commands that have real async consumers.
-- Phase 1 accounting kernel schema and posting services.
+- Transactional outbox writes only for commands that have real async consumers.
+- Simplified Phase 1 accounting kernel schema and posting services.
 
-Important current decision: `outbox_event` is foundation infrastructure, not a blanket side effect for every mutation. For settings upsert, audit is fire-and-forget because no caller depends on it. Phase 1 posting and future integration commands should use awaited transactional audit/outbox when correctness, retries, or downstream delivery depend on those rows.
+Important current decision: `outbox_event` is foundation infrastructure, not a blanket side effect for every mutation. Phase 1 posting writes awaited transactional audit rows, but no outbox rows until a durable async/public/integration consumer exists.
 
 Idempotency decision: `requestId` is tracing only. Phase 0 does not include a
 generic `idempotency_ledger`; Phase 1 posting should use operation-local
@@ -106,7 +106,7 @@ Use these names across all plans:
 
 - `organization_setting`, not `business_profile`.
 - `ledger_account`, not `account_group` plus `account`.
-- `journal_batch` and `journal_line`, not a simple `journal` table.
+- `journal_entry` and `journal_line`, not a simple `journal` table.
 - `audit_event`, not `audit_log`.
 - `outbox_event`, not `internal_event`.
 - operation-local idempotency keys, not a generic Phase 0 ledger.
@@ -126,15 +126,15 @@ Use these meanings when reading or implementing the plans:
 - `organization-scoped transaction`: a normal database transaction where every tenant query includes `organizationId`.
 - `report snapshot`: a stable read view for reports/exports. It does not mean an organization data snapshot table or stock inventory.
 - `Better Auth-owned table`: a table generated and managed by Better Auth, such as `user`, `session`, `organization`, `member`, or `invitation`.
-- `app-owned table`: a table owned by this accounting app, such as `organization_setting`, `journal_batch`, or `invoice`.
+- `app-owned table`: a table owned by this accounting app, such as `organization_setting`, `journal_entry`, or `invoice`.
 - `global reference table`: shared lookup data that is not owned by one business, such as `currency`.
 - `audit_event`: durable record that a sensitive action happened, who did it, and what changed.
-- `outbox_event`: a queued domain event written in the same database transaction as the business change, then processed later by jobs, webhooks, AI indexing, or integrations.
+- `outbox_event`: a queued domain event written in the same database transaction as the business change when jobs, webhooks, AI indexing, or integrations need durable delivery.
 - `requestId`: per-attempt log correlation id. It is not replay protection.
 - `operation key`: domain command key used to prevent duplicate accounting commands, usually enforced with a per-organization unique constraint.
 - `source_document`: shared document header used to connect invoices, expenses, payments, and other business documents to accounting postings.
-- `journal_batch`: one accounting posting operation.
-- `journal_line`: one debit or credit line inside a `journal_batch`.
+- `journal_entry`: one accounting posting operation.
+- `journal_line`: one debit or credit line inside a `journal_entry`.
 - `number_sequence`: the per-business counter that allocates journal, invoice, receipt, and other document numbers.
 - `minor units`: integer money storage, such as paise/cents. INR 123.45 is stored as `12345`, avoiding floating-point rounding bugs.
 - `normal balance`: whether an account normally increases by debit or credit.
@@ -181,9 +181,9 @@ Before moving beyond Phase 1:
 - `ledger_account` chart exists.
 - `number_sequence` exists.
 - `source_document` minimal shell exists.
-- `journal_batch` and `journal_line` exist.
-- Posted batches are immutable.
-- Reversals create separate batches.
+- `journal_entry` and `journal_line` exist.
+- Posted journal entries are immutable.
+- Reversals create separate journal entries.
 - Trial balance balances.
 - Accounting-core tests pass.
 - Phase 1 does not include `party`, `tax_code`, owner documents, subledger, or balance-cache tables.

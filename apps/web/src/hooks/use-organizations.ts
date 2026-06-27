@@ -33,7 +33,7 @@ export function useCompleteOnboardingMutation(
   const queryClient = useQueryClient();
 
   return useMutation(
-    orpc.organizations.settings.upsert.mutationOptions({
+    orpc.organizations.completeOnboarding.mutationOptions({
       onError: options.onError,
       onSuccess: async () => {
         await Promise.all([

@@ -11,6 +11,8 @@ This file is the source of truth for app UI composition, extraction decisions, a
 - Keep app UI in `apps/web/src/components`, with route files composing imported
   components directly when the route stays readable.
 - Extract shared UI only when reuse and app-agnostic boundaries are real.
+- Keep one-screen UI direct. Do not introduce providers, compound components,
+  render props, context, stores, or wrapper components for a single call site.
 
 ## Default Sources
 
@@ -33,12 +35,16 @@ This file is the source of truth for app UI composition, extraction decisions, a
   but table state, form state, modal state, and repeated UI move into
   `components/<area>/...`.
 - The app uses React Compiler. For new UI code, prefer plain local functions and derived values; add `useMemo`, `useCallback`, or `memo` only when a dependency boundary, third-party API, or measured hotspot requires manual control.
+- Prefer direct JSX and local handlers for one-off UI. Extract subcomponents only
+  when repeated, independently meaningful, or needed to keep the route/component
+  readable.
 
 ## Extraction Rule
 
 - Extract a component to `packages/ui` when it is reusable, app-agnostic, and the shared package can own its styling and accessibility.
 - Keep a component app-local when it depends on route params, current locale, auth state, app SEO, app config, or other app-owned integrations.
 - If reuse is still speculative, keep the component app-local first and extract after a second real use case.
+- If abstraction exists only to rename props or hide a single primitive, inline it.
 
 ## Shared Package Boundaries
 
