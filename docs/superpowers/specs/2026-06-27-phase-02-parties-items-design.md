@@ -18,6 +18,8 @@ Start Phase 2 with parties and item/service catalog foundation.
 
 Do not build stock inventory in this phase. Phase 2 may classify catalog entries as `goods` or `service`, but it must not track quantity on hand, warehouses, stock movements, cost layers, purchase orders, sales orders, or COGS automation. Full inventory remains Phase 9 scope.
 
+Reference review supports one extra modeling split: item `kind` and item `usage` should be separate. `kind` captures whether the catalog entry is a good or service. `usage` captures whether it can be used for sales, purchases, or both. This mirrors Frappe Books and ERPNext without bringing their inventory modules into Phase 2.
+
 ## Goals
 
 - Let owners create, edit, list, and deactivate customers and vendors.
@@ -78,10 +80,13 @@ Suggested fields:
 - `id`
 - `organization_id`
 - `kind`: `goods` or `service`
+- `usage`: `sales`, `purchases`, or `both`
 - `name`
 - `normalized_name`
 - `description`
 - `unit`
+- `sales_rate_minor`
+- `purchase_rate_minor`
 - `sales_account_id`
 - `expense_account_id`
 - `is_active`
@@ -93,15 +98,18 @@ Constraints:
 - `organization_id` is required.
 - `name` is required.
 - `(organization_id, normalized_name)` should be unique.
+- `sales_rate_minor` and `purchase_rate_minor` are optional non-negative minor-unit amounts in the organization base currency.
 - `sales_account_id` and `expense_account_id` are optional Phase 2 foundations for later document posting.
 - Account references, when present, must point to accounts in the same organization.
 - No item field should imply stock tracking in Phase 2.
+
+Do not add `track_inventory`, `maintain_stock`, `warehouse_id`, `quantity_on_hand`, batch, serial number, valuation, reorder, or manufacturing fields in Phase 2.
 
 ## Core Contracts
 
 Add shared Zod contracts under `packages/core` for:
 
-- Party kind and item kind enums.
+- Party kind, item kind, and item usage enums.
 - Party create, update, list query, and DTO schemas.
 - Item create, update, list query, and DTO schemas.
 - Shared normalization policy for duplicate-name checks if the existing core patterns support it.
@@ -114,7 +122,7 @@ Add Drizzle tables for parties and items in the DB package.
 
 Expected database work:
 
-- Add enum or text constraints for party and item kinds.
+- Add enum or text constraints for party kinds, item kinds, and item usage values.
 - Add organization foreign keys.
 - Add optional same-organization account references for item account defaults.
 - Add indexes for organization-scoped list queries.
@@ -144,6 +152,7 @@ Add owner workflow screens after API and data access are in place:
 
 - Customers/vendors management screen.
 - Goods/services catalog screen.
+- Sales/purchase usage control on item forms.
 - Create/edit form for each record type.
 - Active/inactive list filtering.
 
@@ -176,5 +185,5 @@ After this foundation lands:
 
 ## Open Review Points
 
-- Confirm `both` is acceptable for parties that act as customer and vendor.
 - Confirm Phase 2 item account defaults should be added now as optional fields, instead of delaying all account mapping until invoice posting.
+- Confirm optional item sales/purchase default rates should be included in this foundation slice.
