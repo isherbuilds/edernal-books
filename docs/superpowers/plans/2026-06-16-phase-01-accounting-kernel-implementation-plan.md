@@ -281,6 +281,7 @@ Do not add status, dates, totals, currency, exchange rate, `party_id`, approval 
 - `posting_date`.
 - `description`.
 - `operation_key`.
+- `request_hash`.
 - `reversal_of_entry_id`.
 - `posted_at`.
 - `posted_by`.

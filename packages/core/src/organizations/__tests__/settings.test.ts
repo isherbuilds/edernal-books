@@ -84,4 +84,24 @@ describe("organization settings schemas", () => {
       }).success
     ).toBe(false);
   });
+
+  it("handles month-end validation for years before 100", () => {
+    expect(
+      CompleteOrganizationOnboardingInputSchema.safeParse({
+        booksStartDate: "0099-01-01",
+        initialFiscalYearEndDate: "0099-02-28",
+        legalName: "Edernal Books",
+        orgSlug: "edernal-books"
+      }).success
+    ).toBe(true);
+
+    expect(
+      CompleteOrganizationOnboardingInputSchema.safeParse({
+        booksStartDate: "0099-01-01",
+        initialFiscalYearEndDate: "0099-02-27",
+        legalName: "Edernal Books",
+        orgSlug: "edernal-books"
+      }).success
+    ).toBe(false);
+  });
 });

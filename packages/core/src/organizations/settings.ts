@@ -172,7 +172,24 @@ export type CompleteOrganizationOnboardingInput = z.infer<
 
 function isLastDayOfMonth(value: string): boolean {
   const [year, month, day] = value.split("-").map(Number);
-  const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
 
-  return day === lastDay;
+  return day === getLastDayOfMonth(year, month);
+}
+
+function getLastDayOfMonth(year: number, month: number): number {
+  switch (month) {
+    case 2:
+      return isLeapYear(year) ? 29 : 28;
+    case 4:
+    case 6:
+    case 9:
+    case 11:
+      return 30;
+    default:
+      return 31;
+  }
+}
+
+function isLeapYear(year: number): boolean {
+  return year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
 }

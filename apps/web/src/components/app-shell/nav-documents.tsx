@@ -35,7 +35,7 @@ export function NavDocuments({ showAccounting }: NavDocumentsProps) {
       <SidebarGroupLabel>{m.app_shell__records()}</SidebarGroupLabel>
       <SidebarMenu>
         {items.map((item) => (
-          <SidebarMenuItem key={item.name}>
+          <SidebarMenuItem key={item.id}>
             <SidebarMenuButton render={<Link {...item.link} aria-label={item.name} />}>
               {item.icon}
               <span>{item.name}</span>
@@ -49,33 +49,39 @@ export function NavDocuments({ showAccounting }: NavDocumentsProps) {
 
 function getDocuments(orgSlug: string): {
   icon: ReactNode;
+  id: string;
   link: LinkProps;
   name: string;
 }[] {
   return [
     {
-      name: m.app_shell__journal_register(),
+      id: "journal-register",
       link: getOrgAppLink(orgSlug, "/$orgSlug/accounting/journal-entries"),
+      name: m.app_shell__journal_register(),
       icon: <DatabaseIcon />
     },
     {
-      name: m.app_shell__trial_balance(),
+      id: "trial-balance",
       link: getOrgAppLink(orgSlug, "/$orgSlug/reports/trial-balance"),
+      name: m.app_shell__trial_balance(),
       icon: <FileChartColumnIcon />
     },
     {
-      name: m.app_shell__general_ledger(),
+      id: "general-ledger",
       link: getOrgAppLink(orgSlug, "/$orgSlug/reports/general-ledger"),
+      name: m.app_shell__general_ledger(),
       icon: <FileTextIcon />
     },
     {
-      name: m.app_shell__chart_of_accounts(),
+      id: "chart-of-accounts",
       link: getOrgAppLink(orgSlug, "/$orgSlug/settings/chart-of-accounts"),
+      name: m.app_shell__chart_of_accounts(),
       icon: <FolderIcon />
     },
     {
-      name: m.app_shell__accounting_periods(),
+      id: "accounting-periods",
       link: getOrgAppLink(orgSlug, "/$orgSlug/settings/accounting-periods"),
+      name: m.app_shell__accounting_periods(),
       icon: <FolderIcon />
     }
   ];
