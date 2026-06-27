@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vite-plus/test";
 
-import { UpsertOrganizationSettingInputSchema } from "#@/organizations/settings";
+import {
+  CompleteOrganizationOnboardingInputSchema,
+  CurrencyMetadataSchema,
+  SUPPORTED_CURRENCIES,
+  UpsertOrganizationSettingInputSchema
+} from "#@/organizations/settings";
 
 describe("organization settings schemas", () => {
   it("normalizes blank optional text inputs to null", () => {
@@ -41,5 +46,31 @@ describe("organization settings schemas", () => {
         timezone: "Asia/Dubai"
       })
     ).toThrow(/Invalid/);
+  });
+
+  it("keeps supported currency metadata transport-safe", () => {
+    expect(
+      SUPPORTED_CURRENCIES.map((currency) => CurrencyMetadataSchema.parse(currency))
+    ).toHaveLength(4);
+  });
+
+  it("requires onboarding fiscal year end on or after books start", () => {
+    expect(
+      CompleteOrganizationOnboardingInputSchema.safeParse({
+        booksStartDate: "2026-06-26",
+        initialFiscalYearEndDate: "2027-03-31",
+        legalName: "Edernal Books",
+        orgSlug: "edernal-books"
+      }).success
+    ).toBe(true);
+
+    expect(
+      CompleteOrganizationOnboardingInputSchema.safeParse({
+        booksStartDate: "2026-06-26",
+        initialFiscalYearEndDate: "2026-03-31",
+        legalName: "Edernal Books",
+        orgSlug: "edernal-books"
+      }).success
+    ).toBe(false);
   });
 });

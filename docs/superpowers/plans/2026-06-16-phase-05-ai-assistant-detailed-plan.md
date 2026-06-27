@@ -46,8 +46,8 @@ sequenceDiagram
 
 Before executing this plan, reconcile it with `docs/superpowers/plans/2026-06-17-accounting-foundation-schema-revision-plan.md`.
 
-- AI reads from deterministic services, `source_document`, `journal_batch`, reports, attachments, `audit_event`, and `outbox_event`.
-- AI may create drafts or suggestions only; it must not write posted batches directly.
+- AI reads from deterministic services, `source_document`, `journal_entry`, reports, attachments, `audit_event`, and `outbox_event`.
+- AI may create drafts or suggestions only; it must not write posted entries directly.
 - AI-generated suggestions require human approval before posting.
 - Shared AI-safe contracts belong in `packages/core`; provider adapters and suggestion services belong in `packages/api`.
 
@@ -178,8 +178,8 @@ Public exposure waits until Phase 6 or later and should be disabled by default.
 
 Tool permission classes:
 
-- Read tools: allowed for owner, operator, accountant.
-- Draft tools: allowed for owner, operator, accountant.
+- Read tools: allowed for owner and accountant. Viewer access must be explicitly granted per owner-facing workflow.
+- Draft tools: allowed for owner and accountant. Viewer access must be explicitly granted per owner-facing workflow.
 - Posting tools: not available to AI.
 
 ## Task Checklist
@@ -225,7 +225,7 @@ Tool permission classes:
 - [ ] Test successful extraction creates draft expense suggestion, not posted expense.
 - [ ] Test extraction stores evidence and confidence.
 - [ ] Implement receipt-to-draft-expense suggestion mapping.
-- [ ] Emit `ai.extraction_completed` and `ai.suggestion_created`.
+- [ ] Store AI extraction/suggestion records; queue outbox only if a downstream consumer exists.
 - [ ] Run `rtk vp run --filter @tsu-stack/api test:unit`.
 - [ ] Commit: `feat: add receipt extraction suggestions`.
 
@@ -259,7 +259,7 @@ Tool permission classes:
 - [ ] Test assistant answer stores source references.
 - [ ] Test assistant cannot call posting service.
 - [ ] Implement allowlisted tool registry.
-- [ ] Emit `ai.tool_called`.
+- [ ] Store AI tool-call audit/trace record.
 - [ ] Run `rtk vp run --filter @tsu-stack/api test:unit`.
 - [ ] Commit: `feat: add report question assistant`.
 

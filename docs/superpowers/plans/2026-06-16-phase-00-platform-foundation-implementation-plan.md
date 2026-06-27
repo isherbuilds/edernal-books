@@ -26,7 +26,7 @@ Implemented in the current Phase 0 slice:
 - API `organizationProcedure` using `orgSlug` input and canonical `organizationId` context.
 - Organization settings `get` and `upsert` oRPC procedures.
 - Transactional organization settings audit rows in `audit_event`.
-- Fresh baseline migration for current schema plus seed currencies `INR`, `USD`, `EUR`, and `GBP`.
+- Fresh baseline migration for current schema. Supported currency reference rows use a separate seed/admin path.
 - Role permission helpers and tests in `packages/auth`.
 - Unit tests for schema tenant-scope invariants, organization membership resolution, and settings audit rows.
 - Better Auth organization client plugin is enabled in the browser auth client.
@@ -38,7 +38,7 @@ Remaining environment gate before Phase 1:
 
 - Apply the generated migration in local development after Docker/Postgres is running. On 2026-06-19, local migration failed with `ECONNREFUSED` because no Postgres process was listening on localhost port 5432 and Docker was not running.
 
-Current deviation from the original task text: settings upsert does not emit `outbox_event`. The table exists for future durable async intent, but settings currently has no async consumer. Use transactional outbox for Phase 1 posting and future integrations where retry/delivery matters.
+Current deviation from the original task text: settings upsert does not emit `outbox_event`. The table exists for future durable async intent, but settings and Phase 1 accounting posting currently have no async consumer. Use transactional outbox later where retry/delivery matters.
 
 Current idempotency decision: Phase 0 does not add a generic `idempotency_ledger`
 or helper. `requestId` is only for tracing. Future accounting commands use
@@ -174,8 +174,9 @@ export async function getOrganizationSetting(
 
 Use `db.transaction` when a command writes multiple rows that must commit or
 rollback together. Settings writes `organization_setting` and awaited
-`audit_event` in one transaction; future posting commands must use awaited
-transactional audit/outbox when correctness depends on it.
+`audit_event` in one transaction; future posting commands use awaited
+transactional audit. Add outbox writes only when a durable async consumer
+exists and correctness depends on delivery.
 
 - [x] **Step 4: Run tests**
 
@@ -347,8 +348,8 @@ describe("role permissions", () => {
     expect(canPostJournals("accountant")).toBe(true);
   });
 
-  it("blocks operator from posting manual journals", () => {
-    expect(canPostJournals("operator" satisfies AppRole)).toBe(false);
+  it("blocks viewer from posting manual journals", () => {
+    expect(canPostJournals("viewer" satisfies AppRole)).toBe(false);
   });
 });
 ```
@@ -356,7 +357,7 @@ describe("role permissions", () => {
 - [x] **Step 2: Implement permissions**
 
 ```ts
-export type AppRole = "owner" | "operator" | "accountant" | "developer" | "viewer";
+export type AppRole = "owner" | "accountant" | "viewer";
 
 export function canManageMembers(role: AppRole) {
   return role === "owner";
@@ -567,7 +568,7 @@ Do not start Phase 1 until:
 - One business has one `organization_setting` row.
 - Role checks are server-side.
 - `audit_event` and `outbox_event` exist.
-- Sensitive settings mutation writes `organization_setting` and awaited `audit_event` in the same transaction; future accounting-critical commands use the same awaited audit/outbox rule.
+- Sensitive settings mutation writes `organization_setting` and awaited `audit_event` in the same transaction; future accounting-critical commands use awaited audit, with outbox only for real async consumers.
 - App-owned tenant tables have `organization_id`.
 - Better Auth membership checks guard every tenant-scoped API mutation/read.
 - Tenant-scoped DB queries include explicit `organizationId` predicates.

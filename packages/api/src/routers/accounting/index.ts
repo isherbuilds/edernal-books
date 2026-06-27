@@ -1,0 +1,320 @@
+import { z } from "zod";
+
+import { canAccessAccounting } from "@tsu-stack/auth/permissions";
+import {
+  type AccountingErrorCode,
+  AccountingErrorCodeSchema,
+  GeneralLedgerInputSchema,
+  GeneralLedgerOutputSchema,
+  ListAccountingPeriodsInputSchema,
+  ListAccountingPeriodsOutputSchema,
+  ListJournalEntriesInputSchema,
+  ListJournalEntriesOutputSchema,
+  ListLedgerAccountsInputSchema,
+  ListLedgerAccountsOutputSchema,
+  PostedJournalEntrySchema,
+  PostJournalEntryInputSchema,
+  ReverseJournalEntryInputSchema,
+  TrialBalanceInputSchema,
+  TrialBalanceOutputSchema
+} from "@tsu-stack/core/accounting";
+import {
+  AccountingDbError,
+  getGeneralLedger,
+  getTrialBalance,
+  listAccountingPeriods,
+  listLedgerAccounts,
+  listRecentJournalEntries,
+  postJournalEntry,
+  reverseJournalEntry
+} from "@tsu-stack/db/queries";
+
+import { organizationPermissionProcedure } from "#@/lib/procedures/factory";
+
+const accountingErrorDataSchema = z.object({
+  code: AccountingErrorCodeSchema
+});
+
+type AccountingErrorDefinition = {
+  data: typeof accountingErrorDataSchema;
+  status: 404 | 409 | 422;
+};
+
+const accountingErrors: Record<AccountingErrorCode, AccountingErrorDefinition> = {
+  ACCOUNTING_PERIOD_CLOSED: {
+    data: accountingErrorDataSchema,
+    status: statusForAccountingError("ACCOUNTING_PERIOD_CLOSED")
+  },
+  ACCOUNTING_PERIOD_NOT_FOUND: {
+    data: accountingErrorDataSchema,
+    status: statusForAccountingError("ACCOUNTING_PERIOD_NOT_FOUND")
+  },
+  FISCAL_YEAR_DATE_RANGE_INVALID: {
+    data: accountingErrorDataSchema,
+    status: statusForAccountingError("FISCAL_YEAR_DATE_RANGE_INVALID")
+  },
+  FISCAL_YEAR_OVERLAPS: {
+    data: accountingErrorDataSchema,
+    status: statusForAccountingError("FISCAL_YEAR_OVERLAPS")
+  },
+  GENERAL_LEDGER_CURSOR_INVALID: {
+    data: accountingErrorDataSchema,
+    status: statusForAccountingError("GENERAL_LEDGER_CURSOR_INVALID")
+  },
+  JOURNAL_ENTRY_ALREADY_REVERSED: {
+    data: accountingErrorDataSchema,
+    status: statusForAccountingError("JOURNAL_ENTRY_ALREADY_REVERSED")
+  },
+  JOURNAL_ENTRY_LINE_ACCOUNT_NOT_POSTABLE: {
+    data: accountingErrorDataSchema,
+    status: statusForAccountingError("JOURNAL_ENTRY_LINE_ACCOUNT_NOT_POSTABLE")
+  },
+  JOURNAL_ENTRY_LINE_HAS_DEBIT_AND_CREDIT: {
+    data: accountingErrorDataSchema,
+    status: statusForAccountingError("JOURNAL_ENTRY_LINE_HAS_DEBIT_AND_CREDIT")
+  },
+  JOURNAL_ENTRY_LINE_HAS_NO_AMOUNT: {
+    data: accountingErrorDataSchema,
+    status: statusForAccountingError("JOURNAL_ENTRY_LINE_HAS_NO_AMOUNT")
+  },
+  JOURNAL_ENTRY_LINE_NEGATIVE_AMOUNT: {
+    data: accountingErrorDataSchema,
+    status: statusForAccountingError("JOURNAL_ENTRY_LINE_NEGATIVE_AMOUNT")
+  },
+  JOURNAL_ENTRY_NEEDS_TWO_LINES: {
+    data: accountingErrorDataSchema,
+    status: statusForAccountingError("JOURNAL_ENTRY_NEEDS_TWO_LINES")
+  },
+  JOURNAL_ENTRY_NOT_BALANCED: {
+    data: accountingErrorDataSchema,
+    status: statusForAccountingError("JOURNAL_ENTRY_NOT_BALANCED")
+  },
+  JOURNAL_ENTRY_NOT_FOUND: {
+    data: accountingErrorDataSchema,
+    status: statusForAccountingError("JOURNAL_ENTRY_NOT_FOUND")
+  },
+  JOURNAL_OPERATION_KEY_ALREADY_USED: {
+    data: accountingErrorDataSchema,
+    status: statusForAccountingError("JOURNAL_OPERATION_KEY_ALREADY_USED")
+  },
+  JOURNAL_OPERATION_KEY_PAYLOAD_MISMATCH: {
+    data: accountingErrorDataSchema,
+    status: statusForAccountingError("JOURNAL_OPERATION_KEY_PAYLOAD_MISMATCH")
+  },
+  NUMBER_SEQUENCE_NOT_FOUND: {
+    data: accountingErrorDataSchema,
+    status: statusForAccountingError("NUMBER_SEQUENCE_NOT_FOUND")
+  }
+};
+
+type AccountingErrorFactories = Record<
+  AccountingErrorCode,
+  (input: { data: { code: AccountingErrorCode } }) => unknown
+>;
+
+export const accountingRouter = {
+  chart: {
+    list: organizationPermissionProcedure(ListLedgerAccountsInputSchema, canAccessAccounting)
+      .route({
+        description: "List organization ledger accounts",
+        method: "GET"
+      })
+      .output(ListLedgerAccountsOutputSchema)
+      .handler(async ({ context, input }) => {
+        const accounts = await listLedgerAccounts(context.db, {
+          organizationId: context.organizationId,
+          q: input.q
+        });
+
+        return { accounts };
+      })
+  },
+  periods: {
+    list: organizationPermissionProcedure(ListAccountingPeriodsInputSchema, canAccessAccounting)
+      .route({
+        description: "List organization accounting periods",
+        method: "GET"
+      })
+      .output(ListAccountingPeriodsOutputSchema)
+      .handler(async ({ context }) => {
+        const periods = await listAccountingPeriods(context.db, {
+          organizationId: context.organizationId
+        });
+
+        return { periods };
+      })
+  },
+  journalEntries: {
+    list: organizationPermissionProcedure(ListJournalEntriesInputSchema, canAccessAccounting)
+      .route({
+        description: "List recent organization journal entries",
+        method: "GET"
+      })
+      .output(ListJournalEntriesOutputSchema)
+      .handler(async ({ context, input }) => {
+        const entries = await listRecentJournalEntries(context.db, {
+          limit: input.limit,
+          organizationId: context.organizationId
+        });
+
+        return { entries };
+      }),
+    post: organizationPermissionProcedure(PostJournalEntryInputSchema, canAccessAccounting)
+      .route({
+        description: "Post a balanced journal entry transactionally",
+        method: "POST"
+      })
+      .errors(accountingErrors)
+      .output(PostedJournalEntrySchema)
+      .handler(async ({ context, errors, input }) =>
+        catchAccountingDbError(errors, () =>
+          postJournalEntry(context.db, {
+            description: input.description,
+            lines: input.lines.map((line) => {
+              return {
+                accountId: line.accountId,
+                amountMinor: BigInt(line.amountMinor),
+                description: line.description,
+                side: line.side
+              };
+            }),
+            operationKey: input.operationKey,
+            organizationId: context.organizationId,
+            postingDate: input.postingDate,
+            userId: context.authSession.user.id
+          })
+        )
+      ),
+    reverse: organizationPermissionProcedure(ReverseJournalEntryInputSchema, canAccessAccounting)
+      .route({
+        description: "Post a reversing journal entry transactionally",
+        method: "POST"
+      })
+      .errors(accountingErrors)
+      .output(PostedJournalEntrySchema)
+      .handler(async ({ context, errors, input }) =>
+        catchAccountingDbError(errors, () =>
+          reverseJournalEntry(context.db, {
+            description: input.description,
+            journalEntryId: input.journalEntryId,
+            operationKey: input.operationKey,
+            organizationId: context.organizationId,
+            postingDate: input.postingDate,
+            userId: context.authSession.user.id
+          })
+        )
+      )
+  },
+  reports: {
+    generalLedger: organizationPermissionProcedure(GeneralLedgerInputSchema, canAccessAccounting)
+      .route({
+        description: "Read organization-scoped posted general ledger lines",
+        method: "GET"
+      })
+      .errors(accountingErrors)
+      .output(GeneralLedgerOutputSchema)
+      .handler(async ({ context, errors, input }) =>
+        catchAccountingDbError(errors, async () => {
+          const report = await getGeneralLedger(context.db, {
+            accountId: input.accountId,
+            cursor: input.cursor,
+            fromDate: input.fromDate,
+            limit: input.limit,
+            organizationId: context.organizationId,
+            toDate: input.toDate
+          });
+
+          return {
+            closingBalanceMinor: report.closingBalanceMinor.toString(),
+            lines: report.lines.map((line) => {
+              return {
+                accountCode: line.accountCode,
+                accountId: line.accountId,
+                accountName: line.accountName,
+                creditMinor: line.creditMinor.toString(),
+                debitMinor: line.debitMinor.toString(),
+                description: line.description,
+                entryNumber: line.entryNumber,
+                journalEntryId: line.journalEntryId,
+                lineNumber: line.lineNumber,
+                normalBalance: line.normalBalance,
+                postingDate: line.postingDate,
+                runningBalanceMinor: line.runningBalanceMinor.toString()
+              };
+            }),
+            nextCursor: report.nextCursor,
+            openingBalanceMinor: report.openingBalanceMinor.toString()
+          };
+        })
+      ),
+    trialBalance: organizationPermissionProcedure(TrialBalanceInputSchema, canAccessAccounting)
+      .route({
+        description: "Read an organization-scoped trial balance from posted lines",
+        method: "GET"
+      })
+      .output(TrialBalanceOutputSchema)
+      .handler(async ({ context, input }) => {
+        const report = await getTrialBalance(context.db, {
+          asOfDate: input.asOfDate,
+          organizationId: context.organizationId
+        });
+
+        return {
+          accounts: report.accounts.map((account) => {
+            return {
+              accountCategory: account.accountCategory,
+              accountCode: account.accountCode,
+              accountId: account.accountId,
+              accountName: account.accountName,
+              balanceMinor: account.balanceMinor.toString(),
+              creditMinor: account.creditMinor.toString(),
+              debitMinor: account.debitMinor.toString(),
+              normalBalance: account.normalBalance
+            };
+          }),
+          isBalanced: report.isBalanced,
+          totalCreditMinor: report.totalCreditMinor.toString(),
+          totalDebitMinor: report.totalDebitMinor.toString()
+        };
+      })
+  }
+};
+
+async function catchAccountingDbError<T>(
+  errors: AccountingErrorFactories,
+  action: () => Promise<T>
+): Promise<T> {
+  try {
+    return await action();
+  } catch (error) {
+    if (error instanceof AccountingDbError) {
+      throw errors[error.code]({ data: { code: error.code } });
+    }
+
+    throw error;
+  }
+}
+
+function statusForAccountingError(code: AccountingErrorCode): 404 | 409 | 422 {
+  switch (code) {
+    case "ACCOUNTING_PERIOD_NOT_FOUND":
+    case "JOURNAL_ENTRY_NOT_FOUND":
+      return 404;
+    case "ACCOUNTING_PERIOD_CLOSED":
+    case "FISCAL_YEAR_OVERLAPS":
+    case "JOURNAL_ENTRY_ALREADY_REVERSED":
+    case "JOURNAL_OPERATION_KEY_ALREADY_USED":
+    case "JOURNAL_OPERATION_KEY_PAYLOAD_MISMATCH":
+    case "NUMBER_SEQUENCE_NOT_FOUND":
+      return 409;
+    case "FISCAL_YEAR_DATE_RANGE_INVALID":
+    case "GENERAL_LEDGER_CURSOR_INVALID":
+    case "JOURNAL_ENTRY_NEEDS_TWO_LINES":
+    case "JOURNAL_ENTRY_NOT_BALANCED":
+    case "JOURNAL_ENTRY_LINE_ACCOUNT_NOT_POSTABLE":
+    case "JOURNAL_ENTRY_LINE_HAS_DEBIT_AND_CREDIT":
+    case "JOURNAL_ENTRY_LINE_HAS_NO_AMOUNT":
+    case "JOURNAL_ENTRY_LINE_NEGATIVE_AMOUNT":
+      return 422;
+  }
+}

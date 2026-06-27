@@ -2,6 +2,7 @@ import { describe, expect, it } from "vite-plus/test";
 
 import {
   buildOrganizationSettingAuditRow,
+  hasAccountingFoundationSettingChange,
   toOrganizationSettingInsert
 } from "#@/queries/organization-settings";
 
@@ -77,5 +78,42 @@ describe("organization settings query helpers", () => {
         source: "user"
       }
     });
+  });
+
+  it("detects changes to locked accounting foundation settings", () => {
+    const existing = {
+      baseCurrencyCode: "INR",
+      booksStartDate: "2026-04-01",
+      fiscalYearStartMonth: 4
+    } as const;
+
+    expect(
+      hasAccountingFoundationSettingChange(existing, {
+        baseCurrencyCode: "INR",
+        booksStartDate: "2026-04-01",
+        fiscalYearStartMonth: 4
+      })
+    ).toBe(false);
+    expect(
+      hasAccountingFoundationSettingChange(existing, {
+        baseCurrencyCode: "USD",
+        booksStartDate: "2026-04-01",
+        fiscalYearStartMonth: 4
+      })
+    ).toBe(true);
+    expect(
+      hasAccountingFoundationSettingChange(existing, {
+        baseCurrencyCode: "INR",
+        booksStartDate: "2026-06-26",
+        fiscalYearStartMonth: 4
+      })
+    ).toBe(true);
+    expect(
+      hasAccountingFoundationSettingChange(existing, {
+        baseCurrencyCode: "INR",
+        booksStartDate: "2026-04-01",
+        fiscalYearStartMonth: 1
+      })
+    ).toBe(true);
   });
 });

@@ -80,6 +80,14 @@ erDiagram
     text symbol
     int decimal_places
   }
+  exchange_rate {
+    text base_currency_code FK
+    text quote_currency_code FK
+    numeric rate
+    date rate_date
+    text source
+    timestamp created_at
+  }
   organization_setting {
     text organization_id PK
     text legal_name
@@ -103,14 +111,19 @@ erDiagram
 ```
 
 Better Auth owns `user`, `session`, `account`, `verification`, `organization`,
-`member`, and `invitation`. The app owns `currency`, `organization_setting`,
-`audit_event`, and `outbox_event`.
+`member`, and `invitation`. The app owns `currency`, `exchange_rate`,
+`organization_setting`, `audit_event`, and `outbox_event`.
+
+`currency` rows are supported reference metadata seeded outside schema
+migrations. `exchange_rate` stores dated FX snapshots; posted documents and
+payments copy their rate snapshot so historical views never depend on the
+latest rate row.
 
 App-owned UUID primary keys use application-side UUIDv7 runtime defaults.
 Better Auth-owned text ids stay under Better Auth's generator and schema
 contract.
 
-## Planned Phase 1 Ledger Kernel
+## Phase 1 Ledger Kernel
 
 ```mermaid
 erDiagram
@@ -145,32 +158,35 @@ erDiagram
     text type
     text document_number
   }
-  journal_batch {
+  journal_entry {
     uuid id PK
     text organization_id
     uuid accounting_period_id FK
     uuid source_document_id FK
     text operation_key
-    text status
+    text entry_number
   }
   journal_line {
     uuid id PK
     text organization_id
-    uuid batch_id FK
+    uuid journal_entry_id FK
     uuid account_id FK
-    bigint base_debit_minor
-    bigint base_credit_minor
+    bigint debit_minor
+    bigint credit_minor
   }
   fiscal_year ||--o{ accounting_period : contains
-  accounting_period ||--o{ journal_batch : accepts
-  source_document ||--o{ journal_batch : posts
-  journal_batch ||--o{ journal_line : contains
+  accounting_period ||--o{ journal_entry : accepts
+  source_document ||--o{ journal_entry : posts
+  journal_entry ||--o{ journal_line : contains
   ledger_account ||--o{ journal_line : classifies
 ```
 
-Phase 1 posting should enforce duplicate protection with a domain-owned
-operation key or natural unique constraint, such as
-`(organization_id, operation_key)` on `journal_batch`. Do not add a central
+Phase 1 posting enforces duplicate protection with
+`(organization_id, operation_key)` on `journal_entry`. Posting allocates
+`number_sequence` values with atomic `UPDATE ... RETURNING`, writes awaited
+audit rows transactionally, and relies on PostgreSQL triggers for posted journal
+immutability. Phase 1 accounting posting does not write outbox rows; add outbox
+producers only when a durable async consumer exists. Do not add a central
 idempotency table unless a later public API needs generic response replay.
 
 The source of truth for foundation and ledger tables is
@@ -268,8 +284,8 @@ Rules:
 - one typed input object second.
 - organization scope explicit.
 - transport mapping outside DB package unless projection is shared.
-- audit/outbox/idempotency in the same transaction as business writes when the
-  side effect is part of the durable contract.
+- audit rows, outbox rows, or command-key guards stay in the same transaction
+  as business writes only when that side effect is part of the durable contract.
 - avoid fire-and-forget persistence helpers; callers should decide whether a
   write is durable, transactional, or intentionally omitted.
 - request ids are for tracing only; operation-local idempotency belongs in the

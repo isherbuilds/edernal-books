@@ -6,7 +6,7 @@
 
 **Architecture:** GST rules live in `packages/india-tax` as deterministic functions. Document services call tax calculation before posting journals. GST reports are built from posted documents and journal lines, not from drafts. External government/GSP APIs are isolated behind adapters and disabled by default.
 
-**Tech Stack:** TypeScript, Zod, Drizzle, PostgreSQL, TanStack Start, Hono, oRPC, OpenAPI snapshots, accounting-core, india-tax.
+**Tech Stack:** TypeScript, Zod, Drizzle, PostgreSQL, TanStack Start, Hono, oRPC, OpenAPI snapshots, core accounting, india-tax.
 
 ---
 
@@ -36,8 +36,8 @@ sequenceDiagram
   Doc->>Tax: Calculate place-of-supply and CGST/SGST/IGST
   Tax-->>Doc: Tax lines + validation result
   Doc->>Ledger: Post document with tax accounts
-  Ledger->>DB: Journal batch and lines
-  Doc->>DB: GST detail, line tax, audit/outbox
+  Ledger->>DB: Journal entry and lines
+  Doc->>DB: GST detail, line tax, audit
 ```
 
 ## Foundation Alignment
@@ -46,8 +46,8 @@ Before executing this plan, reconcile it with `docs/superpowers/plans/2026-06-17
 
 - This phase creates `tax_code` and `tax_code_component`.
 - GST document details attach to Phase 2 document subtype rows and `source_document`.
-- GST posting creates or adjusts `journal_batch` rows through the Phase 1 posting service.
-- Write `audit_event` and `outbox_event`.
+- GST posting creates or adjusts `journal_entry` rows through the Phase 1 posting service.
+- Write `audit_event`. Add `outbox_event` only when GST exports, integrations, or async jobs require durable delivery.
 - Store ordinary money as `*_minor bigint`; rates and quantities remain numeric.
 - Shared tax contracts belong in `packages/core`; GST services and oRPC procedures belong in `packages/api`.
 
@@ -150,7 +150,7 @@ Do not build automated GST filing, production IRP credentials, automatic e-way b
 - `subtotal_amount`
 - `tax_amount`
 - `total_amount`
-- `journal_batch_id`
+- `journal_entry_id`
 - `posted_by`
 - `posted_at`
 - `created_at`
@@ -294,7 +294,7 @@ Do not expose these as public endpoints until Phase 6.
 - [ ] Test tax lines sum to document tax amount.
 - [ ] Implement GST line generation before journal posting.
 - [ ] Implement journal mapping for input/output tax components.
-- [ ] Emit `gst.tax_applied`.
+- [ ] Write audit record for applied tax; queue outbox only if a GST export/integration consumer exists.
 - [ ] Run `rtk vp run --filter @tsu-stack/api test:unit`.
 - [ ] Commit: `feat: apply gst to posted documents`.
 
@@ -311,7 +311,7 @@ Do not expose these as public endpoints until Phase 6.
 - [ ] Test note references original invoice or expense.
 - [ ] Test posted note cannot be edited.
 - [ ] Implement draft, post, and void flows through journal service.
-- [ ] Emit `credit_note.posted` and `debit_note.posted`.
+- [ ] Write audit records for posted credit/debit notes; queue outbox only if a delivery/integration consumer exists.
 - [ ] Run `rtk vp run --filter @tsu-stack/api test:unit`.
 - [ ] Commit: `feat: add gst credit debit notes`.
 

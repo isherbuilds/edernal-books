@@ -18,6 +18,9 @@ Related docs:
 - Keep request identity, auth, org scope, logging, and errors consistent across server entry points.
 - Extract only when reuse, external integration complexity, or independent testability makes a boundary real.
 - Prefer named domain modules over broad `utils`, `common`, or `shared` folders.
+- Inline first for obvious one-consumer logic. Do not create generic helpers,
+  packages, services, repositories, caches, retries, or fallbacks before the
+  boundary has real reuse, correctness risk, or measured cost.
 
 ## Package Roles
 
@@ -89,6 +92,8 @@ Small infrastructure routes such as `/health`, `/auth/*`, `/_logs/ingest`, `/doc
 - `routers/index.ts` only composes routers and exports router types.
 - Use simple procedure names: `list`, `byId`, `create`, `update`, `remove`, `search`.
 - Keep handler flow linear: validate input, read context, call query/service, map output, return.
+- Do not wrap handlers in broad `try/catch` or log-and-rethrow blocks. Use typed
+  errors for expected failures and shared error handling for unexpected ones.
 - Auth belongs in procedure middleware, not repeated in handlers.
 - Org/member/role checks become named middleware once reused.
 - Request-scoped logging comes from `context.logger`; handlers should not create standalone request loggers.

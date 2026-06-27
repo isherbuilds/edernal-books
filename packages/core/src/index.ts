@@ -1,6 +1,5 @@
-// TODO: Re-export additional shared domains from packages/core as the repo extracts more contracts.
-
 export * from "#@/assets/index";
+export * from "#@/accounting/index";
 export * from "#@/health/index";
 export * from "#@/organizations/index";
 export * from "#@/pagination";

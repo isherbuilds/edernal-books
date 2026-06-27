@@ -7,17 +7,17 @@ decisions exist.
 
 ## Start Here
 
-| Need                          | Read                                                                                                                                                     |
-| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Run the repo                  | [../README.md](../README.md)                                                                                                                             |
-| Deploy the repo               | [deployment.md](deployment.md)                                                                                                                           |
-| Understand architecture       | [architecture.md](architecture.md)                                                                                                                       |
-| Understand accounting app performance architecture | [accounting-application-architecture-playbook.md](accounting-application-architecture-playbook.md)                                      |
-| Understand accounting roadmap | [superpowers/specs/2026-06-16-ai-native-accounting-foundation-design.md](superpowers/specs/2026-06-16-ai-native-accounting-foundation-design.md)         |
-| Execute accounting work       | [superpowers/plans/2026-06-16-plan-set-index.md](superpowers/plans/2026-06-16-plan-set-index.md)                                                         |
-| Understand schema vocabulary  | [superpowers/plans/2026-06-17-accounting-foundation-schema-revision-plan.md](superpowers/plans/2026-06-17-accounting-foundation-schema-revision-plan.md) |
-| Understand agent routing      | [../AGENTS.md](../AGENTS.md)                                                                                                                             |
-| Keep docs consistent          | [documentation-style-guide.md](documentation-style-guide.md)                                                                                             |
+| Need                                               | Read                                                                                                                                                     |
+| -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Run the repo                                       | [../README.md](../README.md)                                                                                                                             |
+| Deploy the repo                                    | [deployment.md](deployment.md)                                                                                                                           |
+| Understand architecture                            | [architecture.md](architecture.md)                                                                                                                       |
+| Understand accounting app performance architecture | [accounting-application-architecture-playbook.md](accounting-application-architecture-playbook.md)                                                       |
+| Understand accounting roadmap                      | [superpowers/specs/2026-06-16-ai-native-accounting-foundation-design.md](superpowers/specs/2026-06-16-ai-native-accounting-foundation-design.md)         |
+| Execute accounting work                            | [superpowers/plans/2026-06-16-plan-set-index.md](superpowers/plans/2026-06-16-plan-set-index.md)                                                         |
+| Understand schema vocabulary                       | [superpowers/plans/2026-06-17-accounting-foundation-schema-revision-plan.md](superpowers/plans/2026-06-17-accounting-foundation-schema-revision-plan.md) |
+| Understand agent routing                           | [../AGENTS.md](../AGENTS.md)                                                                                                                             |
+| Keep docs consistent                               | [documentation-style-guide.md](documentation-style-guide.md)                                                                                             |
 
 ## Architecture Docs
 

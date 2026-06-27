@@ -56,7 +56,7 @@ Before executing this plan, reconcile it with `docs/superpowers/plans/2026-06-17
   still use their operation-local keys.
 - Webhook delivery is fed from `outbox_event`.
 - API keys are Better Auth-owned machine credentials unless a separate decision creates an app-owned credential model.
-- External references map external IDs to existing domain rows; they do not replace source documents or journal batches.
+- External references map external IDs to existing domain rows; they do not replace source documents or journal entries.
 - Shared public API contracts belong in `packages/core`; route handlers and integration services belong in `packages/api`.
 
 ## API Design Rules
@@ -322,14 +322,14 @@ type WebhookEvent = {
 - [ ] Test all tools require organization context.
 - [ ] Commit: `feat: add mcp tool server`.
 
-### Task 7: Developer Settings UI
+### Task 7: Integration Settings UI
 
 **Files:**
 
-- Create: `apps/web/src/routes/settings/developers/api-keys.tsx`
-- Create: `apps/web/src/routes/settings/developers/webhooks.tsx`
-- Create: `apps/web/src/routes/settings/developers/integrations.tsx`
-- Create: `apps/web/src/routes/settings/developers/openapi.tsx`
+- Create: `apps/web/src/routes/settings/integrations/api-keys.tsx`
+- Create: `apps/web/src/routes/settings/integrations/webhooks.tsx`
+- Create: `apps/web/src/routes/settings/integrations/connected-apps.tsx`
+- Create: `apps/web/src/routes/settings/integrations/openapi.tsx`
 
 - [ ] Build API key list/create/revoke UI.
 - [ ] Build webhook endpoint list/create/test UI.
@@ -338,7 +338,7 @@ type WebhookEvent = {
 - [ ] Show scopes in plain language.
 - [ ] Run `rtk vp run --filter /web check`.
 - [ ] Run `rtk vp run -r build`.
-- [ ] Commit: `feat: add developer settings ui`.
+- [ ] Commit: `feat: add integration settings ui`.
 
 ## Exit Checklist
 

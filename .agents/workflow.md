@@ -28,6 +28,7 @@ For markdown-only edits, small documentation tweaks, or other changes that canno
 
 - Do not report implementation, migration, validation, or cleanup work as complete until the relevant edits or commands have run and you have checked the resulting files or command output.
 - If a workflow depends on generated artifacts or CLI state, verify that state directly instead of inferring completion from intent alone.
+- For code edits, do a final simplicity pass before handoff: remove one-off helpers/wrappers, speculative abstraction, broad `try/catch`, fallback defaults, type bypasses, and unnecessary render/data layers.
 
 ## Auxiliary Static Analysis
 

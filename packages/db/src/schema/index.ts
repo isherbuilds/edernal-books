@@ -1,3 +1,4 @@
+export { ledgerAccount, numberSequence } from "#@/schema/accounts";
 export {
   account,
   invitation,
@@ -8,6 +9,9 @@ export {
   verification
 } from "#@/schema/auth.schema";
 export { auditEvent } from "#@/schema/audit";
-export { currency, organizationSetting } from "#@/schema/organization";
+export { journalEntry, journalLine } from "#@/schema/journal";
+export { currency, exchangeRate, organizationSetting } from "#@/schema/organization";
 export { outboxEvent } from "#@/schema/outbox";
+export { accountingPeriod, fiscalYear } from "#@/schema/periods";
 export { relations } from "#@/schema/relations";
+export { sourceDocument } from "#@/schema/source-documents";

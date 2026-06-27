@@ -4,6 +4,13 @@ Use this for repo-wide TypeScript structure, import boundaries, and schema place
 
 For shared cross-package domain contracts in `packages/core`, follow [Core package patterns](./core.md).
 
+## Type Discipline
+
+- Do not use `any`, broad casts, or non-null assertions to push through type errors. Narrow the value, fix the source type, or derive the type from the owning schema.
+- Do not duplicate local unions, DTOs, or defaults when a shared schema/helper exists. Import the contract or move it into `packages/core`.
+- Keep types close to the owner until a second real consumer needs them. Avoid global type buckets and speculative shared files.
+- Prefer inference for local values. Add explicit annotations only when they improve the public contract or stop confusing inference.
+
 ## Shared Schema Pattern
 
 For shared package domains, prefer a small domain module over ad hoc type dumping grounds.

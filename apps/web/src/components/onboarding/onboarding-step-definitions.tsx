@@ -53,10 +53,11 @@ export const onboardingStepDefinitions = [
     description: m.onboarding_page__business_details_description,
     fields: [
       "legalName",
+      "tradeName",
       "booksStartDate",
+      "initialFiscalYearEndDate",
       "countryCode",
-      "baseCurrencyCode",
-      "fiscalYearStartMonth"
+      "baseCurrencyCode"
     ],
     FormFields: BusinessDetailsFields,
     icon: Building2Icon,
@@ -66,7 +67,7 @@ export const onboardingStepDefinitions = [
   },
   {
     description: m.onboarding_page__business_contact_description,
-    fields: ["primaryEmail"],
+    fields: ["primaryEmail", "primaryPhone"],
     FormFields: BusinessContactFields,
     icon: MailCheckIcon,
     key: "business-contact" satisfies OnboardingStepKey,

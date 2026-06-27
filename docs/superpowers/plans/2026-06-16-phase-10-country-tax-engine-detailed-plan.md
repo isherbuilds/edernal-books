@@ -6,7 +6,7 @@
 
 **Architecture:** `packages/tax-core` defines country-neutral tax interfaces. Country packs implement tax calculation, document fields, report templates, validations, and compliance exports. India GST becomes one pack using the same plugin contract.
 
-**Tech Stack:** TypeScript, Zod, PostgreSQL, Drizzle, Hono, oRPC, OpenAPI snapshots, accounting-core, tax-core, country packs.
+**Tech Stack:** TypeScript, Zod, PostgreSQL, Drizzle, Hono, oRPC, OpenAPI snapshots, core accounting, tax-core, country packs.
 
 ---
 

@@ -184,9 +184,9 @@ complete. Keep `/home` as the explicit public home page route for signed-in
 users. Do not keep a separate `/$orgSlug/dashboard` route when `/$orgSlug` is
 the dashboard.
 
-Onboarding progression uses numeric URL search state, not component-local wizard
-state or server persistence. Validate `?step=1..N` in the route file and keep
-step constants near the onboarding component or in `utils/` when shared.
+Onboarding progression uses named URL search state, not component-local wizard
+state or server persistence. Validate step keys in the route file and keep step
+constants near the onboarding component or in `utils/` when shared.
 
 ## Gotchas
 

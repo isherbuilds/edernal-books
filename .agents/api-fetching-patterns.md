@@ -10,6 +10,9 @@ Use this when adding or refactoring TanStack Query code in `apps/web`.
   pass-through wrappers that only hide the real oRPC procedure.
 - Prefer direct `orpc` query options at the call site until a wrapper carries
   real policy or reuse.
+- Treat one-off query/mutation hooks, query key helpers, and option factories as
+  code smell. Inline them unless they own invalidation, optimistic behavior,
+  enabled/stale policy, input normalization, result mapping, or real reuse.
 
 ## Placement
 

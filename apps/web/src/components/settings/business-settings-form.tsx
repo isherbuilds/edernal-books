@@ -18,7 +18,6 @@ import { getDateInputValue } from "@/utils/form-input";
 import {
   countryCodeOptions,
   currencyCodeOptions,
-  getFiscalYearStartMonthOptions,
   timezoneOptions
 } from "@/utils/organization-settings-options";
 
@@ -48,7 +47,6 @@ export function BusinessSettingsForm({
   const form = useZodForm(UpsertOrganizationSettingInputSchema, {
     defaultValues: getBusinessSettingsDefaultValues(orgSlug, setting)
   });
-  const fiscalYearStartMonthOptions = getFiscalYearStartMonthOptions();
   const {
     control,
     formState: { errors, isSubmitting },
@@ -91,27 +89,6 @@ export function BusinessSettingsForm({
 
         <Controller
           control={control}
-          name="fiscalYearStartMonth"
-          render={({ field, fieldState }) => (
-            <FormSelectField
-              disabled={disabled}
-              error={fieldState.error}
-              label={m.business_settings__fiscal_year_start_month()}
-              name={field.name}
-              onBlur={field.onBlur}
-              onValueChange={(value) => {
-                if (value) {
-                  field.onChange(Number(value));
-                }
-              }}
-              options={fiscalYearStartMonthOptions}
-              value={String(field.value)}
-            />
-          )}
-        />
-
-        <Controller
-          control={control}
           name="baseCurrencyCode"
           render={({ field, fieldState }) => (
             <FormSelectField
@@ -126,7 +103,7 @@ export function BusinessSettingsForm({
                 }
               }}
               options={currencyCodeOptions}
-              value={String(field.value ?? DEFAULT_ORGANIZATION_SETTINGS.baseCurrencyCode)}
+              value={field.value ?? DEFAULT_ORGANIZATION_SETTINGS.baseCurrencyCode}
             />
           )}
         />
@@ -147,7 +124,7 @@ export function BusinessSettingsForm({
                 }
               }}
               options={countryCodeOptions}
-              value={String(field.value ?? DEFAULT_ORGANIZATION_SETTINGS.countryCode)}
+              value={field.value ?? DEFAULT_ORGANIZATION_SETTINGS.countryCode}
             />
           )}
         />
@@ -168,7 +145,7 @@ export function BusinessSettingsForm({
                 }
               }}
               options={timezoneOptions}
-              value={String(field.value ?? DEFAULT_ORGANIZATION_SETTINGS.timezone)}
+              value={field.value ?? DEFAULT_ORGANIZATION_SETTINGS.timezone}
             />
           )}
         />

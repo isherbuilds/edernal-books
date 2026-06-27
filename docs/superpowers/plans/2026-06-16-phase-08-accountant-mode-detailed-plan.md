@@ -6,7 +6,7 @@
 
 **Architecture:** Accountants are users with membership in many organizations. Accountant mode adds review and controls on top of existing books; it must not create separate tenancy or API-key-based human access. Period locks and adjustment journals enforce auditability.
 
-**Tech Stack:** TanStack Start, Hono, oRPC, OpenAPI snapshots, PostgreSQL, Drizzle, accounting-core, object storage, export jobs.
+**Tech Stack:** TanStack Start, Hono, oRPC, OpenAPI snapshots, PostgreSQL, Drizzle, core accounting, object storage, export jobs.
 
 ---
 
@@ -44,9 +44,9 @@ sequenceDiagram
 Before executing this plan, reconcile it with `docs/superpowers/plans/2026-06-17-accounting-foundation-schema-revision-plan.md`.
 
 - Prefer existing `accounting_period` lock fields before adding a separate period-lock table.
-- Adjustment work posts through `journal_batch` with explicit accountant permissions.
+- Adjustment work posts through `journal_entry` with explicit accountant permissions.
 - Accountant access uses Better Auth membership across organizations, not API keys.
-- Write `audit_event` and `outbox_event`.
+- Write `audit_event`. Add `outbox_event` only when exports, notifications, integrations, or another async consumer requires durable delivery.
 
 ## Schema Additions
 
@@ -67,6 +67,8 @@ Before executing this plan, reconcile it with `docs/superpowers/plans/2026-06-17
 - `created_at`
 
 ### `period_lock`
+
+Do not create this table if Phase 1 `accounting_period` lock fields satisfy the workflow. Add `period_lock` only when accountant mode needs a separate unlock history or lock-request lifecycle.
 
 - `id`
 - `organization_id`
@@ -128,7 +130,7 @@ Internal and future public resources:
 - `workingPapers.create`, `workingPapers.list`
 - `exports.create`, `exports.get`
 
-Public API exposure should be read-heavy. Adjustment and lock mutations require accountant or owner permissions and idempotency.
+Public API exposure should be read-heavy. Adjustment and lock mutations require accountant or owner permissions and operation-local duplicate protection.
 
 ## Task Checklist
 
@@ -141,7 +143,7 @@ Public API exposure should be read-heavy. Adjustment and lock mutations require 
 - Test: `packages/db/src/schema/accountant.test.ts`
 
 - [ ] Add tenant scoping schema test.
-- [ ] Add review, period lock, adjustment batch, working paper, export job tables.
+- [ ] Add review, adjustment batch, working paper, export job tables; add period lock table only if existing accounting-period lock fields are insufficient.
 - [ ] Add indexes by status, fiscal year, resource, assignee.
 - [ ] Generate and run migration.
 - [ ] Commit: `feat: add accountant mode schema`.
@@ -182,7 +184,7 @@ Public API exposure should be read-heavy. Adjustment and lock mutations require 
 - [ ] Test locked period blocks normal posting.
 - [ ] Test unlock requires reason and owner/accountant role.
 - [ ] Test adjustment journal can post with explicit adjustment permission.
-- [ ] Implement period lock checks in journal posting service.
+- [ ] Reuse Phase 1 period lock checks in journal posting service.
 - [ ] Commit: `feat: enforce period locks`.
 
 ### Task 5: Adjustment Batches
@@ -193,9 +195,9 @@ Public API exposure should be read-heavy. Adjustment and lock mutations require 
 - Test: `packages/api/src/services/accountant/adjustment-batch.service.test.ts`
 
 - [ ] Test draft batch can contain multiple balanced journals.
-- [ ] Test posting batch posts all journals transactionally.
-- [ ] Test failed batch posts no journals.
-- [ ] Implement batch posting with audit/event records.
+- [ ] Test posting entry posts all journals transactionally.
+- [ ] Test failed entry posts no journals.
+- [ ] Implement batch posting with audit records.
 - [ ] Commit: `feat: add adjustment batches`.
 
 ### Task 6: Working Papers And Exports
@@ -242,7 +244,7 @@ Public API exposure should be read-heavy. Adjustment and lock mutations require 
 - [ ] Review queue works.
 - [ ] Period locks block normal posting.
 - [ ] Unlock requires reason.
-- [ ] Adjustment batch posts transactionally.
+- [ ] Adjustment entry posts transactionally.
 - [ ] Working papers attach to resources.
 - [ ] Export jobs produce files.
 - [ ] All accountant actions audit event.
