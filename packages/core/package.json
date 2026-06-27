@@ -10,7 +10,9 @@
     "./accounting": "./src/accounting/index.ts",
     "./assets": "./src/assets/index.ts",
     "./health": "./src/health/index.ts",
+    "./items": "./src/items/index.ts",
     "./organizations": "./src/organizations/index.ts",
+    "./parties": "./src/parties/index.ts",
     "./*": "./src/*.ts"
   },
   "scripts": {

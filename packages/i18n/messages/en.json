@@ -170,6 +170,8 @@
   "app_shell__inbox_documents": "Inbox documents",
   "app_shell__records": "Records",
   "app_shell__ledger": "Ledger",
+  "app_shell__parties": "Parties",
+  "app_shell__items": "Items",
   "app_shell__journal_register": "Journal register",
   "app_shell__trial_balance": "Trial balance",
   "app_shell__general_ledger": "General ledger",

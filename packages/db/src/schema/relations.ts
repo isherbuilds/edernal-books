@@ -11,9 +11,11 @@ import {
   user,
   verification
 } from "#@/schema/auth.schema";
+import { item } from "#@/schema/items";
 import { journalEntry, journalLine } from "#@/schema/journal";
 import { currency, exchangeRate, organizationSetting } from "#@/schema/organization";
 import { outboxEvent } from "#@/schema/outbox";
+import { party } from "#@/schema/parties";
 import { accountingPeriod, fiscalYear } from "#@/schema/periods";
 import { sourceDocument } from "#@/schema/source-documents";
 
@@ -25,6 +27,7 @@ const schema = {
   exchangeRate,
   fiscalYear,
   invitation,
+  item,
   journalEntry,
   journalLine,
   ledgerAccount,
@@ -33,6 +36,7 @@ const schema = {
   organization,
   organizationSetting,
   outboxEvent,
+  party,
   session,
   sourceDocument,
   user,
@@ -88,6 +92,20 @@ export const relations = defineRelations(schema, (r) => {
       organization: r.one.organization({
         from: r.accountingPeriod.organizationId,
         to: r.organization.id
+      })
+    },
+    item: {
+      expenseAccount: r.one.ledgerAccount({
+        from: r.item.expenseAccountId,
+        to: r.ledgerAccount.id
+      }),
+      organization: r.one.organization({
+        from: r.item.organizationId,
+        to: r.organization.id
+      }),
+      salesAccount: r.one.ledgerAccount({
+        from: r.item.salesAccountId,
+        to: r.ledgerAccount.id
       })
     },
     ledgerAccount: {
@@ -164,6 +182,12 @@ export const relations = defineRelations(schema, (r) => {
     outboxEvent: {
       organization: r.one.organization({
         from: r.outboxEvent.organizationId,
+        to: r.organization.id
+      })
+    },
+    party: {
+      organization: r.one.organization({
+        from: r.party.organizationId,
         to: r.organization.id
       })
     }
