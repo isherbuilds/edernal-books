@@ -11,8 +11,9 @@ Use this when adding or refactoring TanStack Query code in `apps/web`.
 - Prefer direct `orpc` query options at the call site until a wrapper carries
   real policy or reuse.
 - Treat one-off query/mutation hooks, query key helpers, and option factories as
-  code smell. Inline them unless they own invalidation, optimistic behavior,
-  enabled/stale policy, input normalization, result mapping, or real reuse.
+  suspect. Inline them unless they improve the component contract, own
+  invalidation, optimistic behavior, enabled/stale policy, input normalization,
+  result mapping, readable domain naming, or real reuse.
 
 ## Placement
 

@@ -12,6 +12,8 @@ import {
   SidebarMenuItem
 } from "@tsu-stack/ui/components/sidebar";
 
+import { getOrgAppLink } from "@/components/app-shell/nav-links";
+
 type NavDocumentsProps = {
   showAccounting: boolean;
 };
@@ -52,46 +54,29 @@ function getDocuments(orgSlug: string): {
 }[] {
   return [
     {
-      name: "Journal register",
+      name: m.app_shell__journal_register(),
       link: getOrgAppLink(orgSlug, "/$orgSlug/accounting/journal-entries"),
       icon: <DatabaseIcon />
     },
     {
-      name: "Trial balance",
+      name: m.app_shell__trial_balance(),
       link: getOrgAppLink(orgSlug, "/$orgSlug/reports/trial-balance"),
       icon: <FileChartColumnIcon />
     },
     {
-      name: "General ledger",
+      name: m.app_shell__general_ledger(),
       link: getOrgAppLink(orgSlug, "/$orgSlug/reports/general-ledger"),
       icon: <FileTextIcon />
     },
     {
-      name: "Chart of accounts",
+      name: m.app_shell__chart_of_accounts(),
       link: getOrgAppLink(orgSlug, "/$orgSlug/settings/chart-of-accounts"),
       icon: <FolderIcon />
     },
     {
-      name: "Accounting periods",
+      name: m.app_shell__accounting_periods(),
       link: getOrgAppLink(orgSlug, "/$orgSlug/settings/accounting-periods"),
       icon: <FolderIcon />
     }
   ];
-}
-
-function getOrgAppLink(
-  orgSlug: string,
-  to:
-    | "/$orgSlug/accounting/journal-entries"
-    | "/$orgSlug/reports/general-ledger"
-    | "/$orgSlug/reports/trial-balance"
-    | "/$orgSlug/settings/accounting-periods"
-    | "/$orgSlug/settings/chart-of-accounts"
-): LinkProps {
-  return {
-    params: {
-      orgSlug
-    },
-    to
-  };
 }

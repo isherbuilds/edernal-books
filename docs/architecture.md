@@ -138,8 +138,8 @@ sequenceDiagram
   end
   alt command has durable async consumer
     API->>DB: Write outbox event in same transaction
-  else unaudited read-only command
-    API-->>Client: DTO without durable side effect
+  else no durable async consumer
+    API->>DB: Skip outbox write
   end
   API-->>Client: Small success envelope or DTO
 ```

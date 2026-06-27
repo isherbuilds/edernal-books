@@ -206,7 +206,7 @@ Rules:
 - `requestId` is log/audit correlation only. It is never a duplicate-prevention key.
 - Natural upserts, such as `organization_setting`, rely on their natural key.
 - Posting commands carry an operation key and enforce uniqueness in the domain table, for example `(organization_id, operation_key)` on `journal_entry`.
-- Phase 1 posting writes journal rows and an audit row in the same database transaction. It does not store request hashes or write outbox rows. It may take a narrow transaction advisory lock on `(organization_id, operation_key)` before number allocation so concurrent duplicate retries do not consume voucher numbers.
+- Phase 1 posting writes journal rows and an audit row in the same database transaction. It stores a narrow request hash on `journal_entry` to reject same-key payload mismatches, but does not write outbox rows. It may take a narrow transaction advisory lock on `(organization_id, operation_key)` before number allocation so concurrent duplicate retries do not consume voucher numbers.
 - External provider flows may use provider request ids or provider object ids as the operation-local key when those ids represent the same business operation.
 - `source_document` does not get an `idempotency_key` column.
 - A central replay store can be reconsidered in Phase 6 only if public API clients need terminal response replay across unrelated endpoint types.
@@ -214,7 +214,7 @@ Rules:
 Why:
 
 - Accounting needs duplicate protection, but the key should live where the business operation is defined.
-- A generic ledger adds request hashing, lock expiry, replay response storage, and status transitions before any public API needs that machinery.
+- A generic replay ledger adds lock expiry, response storage, and status transitions before any public API needs that machinery.
 - Request ids change per retry, so they cannot protect money-moving writes.
 
 ### D4: Tenant Isolation Boundary
@@ -289,7 +289,7 @@ Do not add:
 - balance cache tables.
 - FX posting fields on journal lines.
 - persisted journal drafts.
-- request hashes, central replay tables, or public API idempotency ledgers.
+- central replay tables or public API idempotency ledgers.
 - Phase 1 outbox producers.
 
 Why:
@@ -524,7 +524,7 @@ Changes needed before using it:
 - slim Phase 1 `source_document`;
 - remove `party_id`, `tax_code_id`, and dimensions from Phase 1 journal lines;
 - keep Phase 1 journal lines base-amount-only with no per-line currency column;
-- remove request hashing and central idempotency ledgers from Phase 1 posting;
+- keep request hashing local to `journal_entry` and remove central idempotency ledgers from Phase 1 posting;
 - defer Phase 1 outbox producers until public/integration/async consumers exist;
 - align package paths and commands to `tsu-stack`.
 
@@ -553,7 +553,7 @@ Changes needed before using it:
 - [x] `outbox_event` replaces `internal_event`.
 - [x] `audit_event` replaces `audit_log`.
 - [x] Operation-local command keys replace simple global idempotency-key tables.
-- [x] Phase 1 operation keys do not need request hashes or a central replay store; journal posting uses a narrow transaction advisory lock before number allocation.
+- [x] Phase 1 operation keys use a narrow `journal_entry.request_hash`, not a central replay store; journal posting uses a narrow transaction advisory lock before number allocation.
 - [x] `number_sequence` replaces document-specific sequence tables.
 - [x] Phase 1 references use composite tenant foreign keys.
 - [x] Posted journal writes go through posting/reversal services with DB constraints; triggers are deferred until another writer path exists.

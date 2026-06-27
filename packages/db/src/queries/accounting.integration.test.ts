@@ -3,12 +3,10 @@ import { randomUUID } from "node:crypto";
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vite-plus/test";
 
-import { SUPPORTED_CURRENCIES } from "@tsu-stack/core/organizations/settings";
-
 import { type Database } from "#@/client";
 import { ledgerAccount, numberSequence } from "#@/schema/accounts";
 import { organization, user } from "#@/schema/auth.schema";
-import { currency, organizationSetting } from "#@/schema/organization";
+import { organizationSetting } from "#@/schema/organization";
 import { accountingPeriod } from "#@/schema/periods";
 
 import {
@@ -20,6 +18,7 @@ import {
   setupOrganizationAccountingDefaults
 } from "./accounting";
 import { getGeneralLedger } from "./accounting-reports";
+import { seedSupportedCurrencies } from "./currency";
 
 const shouldRunIntegration = process.env.DB_INTEGRATION_TESTS === "1";
 const describeIntegration = shouldRunIntegration ? describe : describe.skip;
@@ -692,19 +691,7 @@ async function createAccountingContext(): Promise<AccountingContext> {
 }
 
 async function seedCurrencies(): Promise<void> {
-  await integrationDb
-    .insert(currency)
-    .values(
-      SUPPORTED_CURRENCIES.map((item) => {
-        return {
-          code: item.code,
-          decimalPlaces: item.decimalPlaces,
-          name: item.name,
-          symbol: item.symbol
-        };
-      })
-    )
-    .onConflictDoNothing();
+  await seedSupportedCurrencies(integrationDb);
 }
 
 function makeJournalInput(

@@ -67,6 +67,7 @@ describe("accounting query helpers", () => {
 
   it("derives fiscal year boundaries from canonical date helpers", () => {
     expect(getFiscalYearStartMonthFromEndDate("2027-03-31")).toBe(4);
+    expect(getFiscalYearStartMonthFromEndDate("2026-12-15")).toBe(1);
     expect(
       getFiscalYearEndDate({
         booksStartDate: "2026-06-26",

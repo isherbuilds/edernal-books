@@ -195,8 +195,8 @@ Public API exposure should be read-heavy. Adjustment and lock mutations require 
 - Test: `packages/api/src/services/accountant/adjustment-batch.service.test.ts`
 
 - [ ] Test draft batch can contain multiple balanced journals.
-- [ ] Test posting entry posts all journals transactionally.
-- [ ] Test failed entry posts no journals.
+- [ ] Test posting batch posts all journals transactionally.
+- [ ] Test failed batch posts no journals.
 - [ ] Implement batch posting with audit records.
 - [ ] Commit: `feat: add adjustment batches`.
 

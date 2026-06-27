@@ -18,9 +18,8 @@ Related docs:
 - Keep request identity, auth, org scope, logging, and errors consistent across server entry points.
 - Extract only when reuse, external integration complexity, or independent testability makes a boundary real.
 - Prefer named domain modules over broad `utils`, `common`, or `shared` folders.
-- Inline first for obvious one-consumer logic. Do not create generic helpers,
-  packages, services, repositories, caches, retries, or fallbacks before the
-  boundary has real reuse, correctness risk, or measured cost.
+- Inline first for obvious one-consumer logic; see Extraction Timing for
+  extraction thresholds.
 
 ## Package Roles
 

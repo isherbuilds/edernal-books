@@ -101,7 +101,7 @@ For accounting work read `docs/superpowers/README.md` first. Core rules:
 
 - Better Auth `organization` is the business tenant; **UI says "Business", not "organization"**.
 - **Money uses integer minor units.**
-- **Posted journal batches are immutable** — corrections use reversals + new postings.
+- **Posted journal entries are immutable** — corrections use reversals + new postings.
 - Sensitive mutations write `audit_event` (in the same transaction).
 - Async side effects start from `outbox_event`.
 - Replay protection uses operation-local idempotency (natural keys, domain command keys, provider ids, or domain-owned unique constraints) — `requestId` is observability only, **not** a dedupe key.

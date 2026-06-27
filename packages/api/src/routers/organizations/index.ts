@@ -87,6 +87,15 @@ export const organizationsRouter = {
 
       const completedAt = await catchOrganizationSettingDbError(errors, () =>
         context.db.transaction(async (tx) => {
+          const completion = await markOrganizationOnboardingCompleted(tx, {
+            completedAt: requestedCompletedAt,
+            organizationId: context.organizationId
+          });
+
+          if (completion.alreadyCompleted) {
+            return completion.completedAt;
+          }
+
           await upsertOrganizationSetting(tx, settingInput);
           await setupOrganizationAccountingDefaults(tx, {
             booksStartDate: settingInput.booksStartDate,
@@ -95,18 +104,13 @@ export const organizationsRouter = {
             userId: context.authSession.user.id
           });
 
-          const completedAt = await markOrganizationOnboardingCompleted(tx, {
-            completedAt: requestedCompletedAt,
-            organizationId: context.organizationId
-          });
-
           await logOrganizationSettingAudit(tx, {
             ...settingInput,
             source: "user",
             userId: context.authSession.user.id
           });
 
-          return completedAt;
+          return completion.completedAt;
         })
       );
 

@@ -6,7 +6,7 @@
 
 **Architecture:** oRPC remains the contract source for internal and public APIs. Hono mounts `/rpc` for app clients and `/api/v1` for external clients. Public endpoints use API keys, scoped permissions, pagination, idempotency, structured errors, signed webhooks, and explicit OpenAPI generation.
 
-**Tech Stack:** Hono, oRPC, OpenAPI generator, Zod, Better Auth API keys, PostgreSQL, Drizzle, background jobs, MCP server, TanStack Start developer settings UI.
+**Tech Stack:** Hono, oRPC, OpenAPI generator, Zod, Better Auth API keys, PostgreSQL, Drizzle, background jobs, MCP server, TanStack Start integration settings UI.
 
 ---
 

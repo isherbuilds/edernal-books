@@ -73,4 +73,15 @@ describe("organization settings schemas", () => {
       }).success
     ).toBe(false);
   });
+
+  it("requires onboarding fiscal year end to be month end", () => {
+    expect(
+      CompleteOrganizationOnboardingInputSchema.safeParse({
+        booksStartDate: "2026-06-26",
+        initialFiscalYearEndDate: "2027-03-30",
+        legalName: "Edernal Books",
+        orgSlug: "edernal-books"
+      }).success
+    ).toBe(false);
+  });
 });

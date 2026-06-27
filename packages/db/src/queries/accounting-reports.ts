@@ -123,6 +123,7 @@ export async function getGeneralLedger(
     const cursor = input.cursor ? decodeGeneralLedgerCursor(input.cursor) : undefined;
     if (cursor) {
       assertGeneralLedgerCursorMatchesInput(cursor, input);
+      await assertGeneralLedgerCursorAnchorExists(tx, input, cursor);
     }
     const openingBalanceMinor = cursor
       ? cursor.runningBalanceMinor
@@ -266,6 +267,40 @@ function buildPostedLineConditions(input: AccountingReportDbInput): SQL[] {
 
 function buildAfterCursorCondition(cursor: GeneralLedgerCursor): SQL {
   return sql`(${journalEntry.postingDate}, ${journalEntry.entryNumber}, ${journalEntry.id}, ${journalLine.lineNumber}) > (${cursor.postingDate}, ${cursor.entryNumber}, ${cursor.journalEntryId}, ${cursor.lineNumber})`;
+}
+
+async function assertGeneralLedgerCursorAnchorExists(
+  tx: TransactionClient,
+  input: GeneralLedgerDbInput,
+  cursor: GeneralLedgerCursor
+): Promise<void> {
+  const conditions = buildPostedLineConditions(input);
+
+  const [row] = await tx
+    .select({ id: journalLine.id })
+    .from(journalLine)
+    .innerJoin(
+      journalEntry,
+      and(
+        eq(journalEntry.organizationId, journalLine.organizationId),
+        eq(journalEntry.id, journalLine.journalEntryId)
+      )
+    )
+    .where(
+      and(
+        ...conditions,
+        eq(journalLine.accountId, input.accountId),
+        eq(journalEntry.id, cursor.journalEntryId),
+        eq(journalEntry.entryNumber, cursor.entryNumber),
+        eq(journalEntry.postingDate, cursor.postingDate),
+        eq(journalLine.lineNumber, cursor.lineNumber)
+      )
+    )
+    .limit(1);
+
+  if (!row) {
+    throw invalidCursorError();
+  }
 }
 
 function encodeGeneralLedgerCursor(

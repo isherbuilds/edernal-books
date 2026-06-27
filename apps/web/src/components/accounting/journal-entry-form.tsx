@@ -243,7 +243,18 @@ export function JournalEntryForm({ accounts, mode, onSubmit, pending }: JournalE
         <Field orientation="horizontal">
           <Checkbox
             checked={confirmedDifferenceAccount}
-            onCheckedChange={(checked) => setConfirmedDifferenceAccount(checked === true)}
+            onCheckedChange={(checked) => {
+              const enabled = checked === true;
+              setConfirmedDifferenceAccount(enabled);
+
+              if (!enabled) {
+                setLines((current) =>
+                  current.map((line) =>
+                    line.accountId === differenceAccount.id ? { ...line, accountId: "" } : line
+                  )
+                );
+              }
+            }}
           />
           <FieldContent>
             <FieldLabel>Allow Opening Balance Difference</FieldLabel>

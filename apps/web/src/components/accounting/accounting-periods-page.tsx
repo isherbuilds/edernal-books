@@ -67,11 +67,7 @@ export function AccountingPeriodsPage({ orgSlug }: AccountingPeriodsPageProps) {
           ) : periodsQuery.isError ? (
             <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4">
               <h2 className="text-sm font-medium text-destructive">Could not load periods</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {periodsQuery.error instanceof Error
-                  ? periodsQuery.error.message
-                  : "Accounting period read failed."}
-              </p>
+              <p className="mt-1 text-sm text-muted-foreground">Accounting period read failed.</p>
             </div>
           ) : periods.length === 0 ? (
             <Empty className="min-h-72 border">

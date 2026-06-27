@@ -51,10 +51,10 @@ CREATE TABLE "currency" (
 );
 --> statement-breakpoint
 INSERT INTO "currency" ("active", "code", "decimal_places", "name", "symbol") VALUES
-	(true, 'INR', 2, 'Indian Rupee', 'Rs'),
+	(true, 'INR', 2, 'Indian Rupee', '₹'),
 	(true, 'USD', 2, 'US Dollar', '$'),
-	(true, 'EUR', 2, 'Euro', 'EUR'),
-	(true, 'GBP', 2, 'Pound Sterling', 'GBP')
+	(true, 'EUR', 2, 'Euro', '€'),
+	(true, 'GBP', 2, 'Pound Sterling', '£')
 ON CONFLICT ("code") DO UPDATE SET
 	"active" = excluded."active",
 	"decimal_places" = excluded."decimal_places",

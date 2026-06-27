@@ -16,7 +16,7 @@ const SUPPORTED_CURRENCY_METADATA = {
     active: true,
     decimalPlaces: 2,
     name: "Indian Rupee",
-    symbol: "Rs"
+    symbol: "₹"
   },
   USD: {
     active: true,
@@ -28,13 +28,13 @@ const SUPPORTED_CURRENCY_METADATA = {
     active: true,
     decimalPlaces: 2,
     name: "Euro",
-    symbol: "EUR"
+    symbol: "€"
   },
   GBP: {
     active: true,
     decimalPlaces: 2,
     name: "Pound Sterling",
-    symbol: "GBP"
+    symbol: "£"
   }
 } satisfies Record<
   SupportedOrganizationCurrencyCode,
@@ -160,9 +160,19 @@ export const CompleteOrganizationOnboardingInputSchema = z
     ...orgSlugReferenceShape
   })
   .strict()
+  .refine((input) => isLastDayOfMonth(input.initialFiscalYearEndDate), {
+    path: ["initialFiscalYearEndDate"]
+  })
   .refine((input) => input.booksStartDate <= input.initialFiscalYearEndDate, {
     path: ["initialFiscalYearEndDate"]
   });
 export type CompleteOrganizationOnboardingInput = z.infer<
   typeof CompleteOrganizationOnboardingInputSchema
 >;
+
+function isLastDayOfMonth(value: string): boolean {
+  const [year, month, day] = value.split("-").map(Number);
+  const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+
+  return day === lastDay;
+}

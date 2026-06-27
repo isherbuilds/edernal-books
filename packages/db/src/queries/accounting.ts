@@ -253,6 +253,8 @@ async function seedDefaultChart(
     }
   }
 
+  const seededAccountCodes: string[] = [];
+
   // DEFAULT_LEDGER_ACCOUNTS is ordered parents-before-children, so each parent id resolves first.
   for (const account of DEFAULT_LEDGER_ACCOUNTS) {
     if (accountIdBySystemKey.has(account.systemKey)) {
@@ -279,6 +281,11 @@ async function seedDefaultChart(
       .returning({ id: ledgerAccount.id });
 
     accountIdBySystemKey.set(account.systemKey, row.id);
+    seededAccountCodes.push(account.code);
+  }
+
+  if (seededAccountCodes.length === 0) {
+    return;
   }
 
   await tx.insert(auditEvent).values({
@@ -288,8 +295,8 @@ async function seedDefaultChart(
     organizationId: input.organizationId,
     payloadJson: {
       after: {
-        accountCodes: DEFAULT_LEDGER_ACCOUNTS.map((account) => account.code),
-        accountCount: DEFAULT_LEDGER_ACCOUNTS.length
+        accountCodes: seededAccountCodes,
+        accountCount: seededAccountCodes.length
       },
       metadata: { source: "user" }
     },

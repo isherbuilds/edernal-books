@@ -116,6 +116,7 @@ export function BusinessContactFields() {
         error={errors.primaryPhone}
         label={m.business_settings__primary_phone()}
         placeholder="+91 98765 43210"
+        type="tel"
         {...register("primaryPhone")}
       />
     </FieldGroup>

@@ -85,7 +85,7 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for current and planned schema shape.
 Phase 1 currently uses a squashed development baseline migration. Local or
 preproduction databases that already applied earlier June 2026 development
 migrations must be dropped/recreated before applying
-`20260626030038_chunky_northstar`; do not apply this baseline over an existing
+`20260627034845_familiar_loki`; do not apply this baseline over an existing
 schema. Production migrations should switch back to additive migrations before
 real customer data exists.
 

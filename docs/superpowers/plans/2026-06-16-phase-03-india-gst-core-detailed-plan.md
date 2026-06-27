@@ -46,7 +46,7 @@ Before executing this plan, reconcile it with `docs/superpowers/plans/2026-06-17
 
 - This phase creates `tax_code` and `tax_code_component`.
 - GST document details attach to Phase 2 document subtype rows and `source_document`.
-- GST posting creates or adjusts `journal_entry` rows through the Phase 1 posting service.
+- GST posting creates `journal_entry` rows through the Phase 1 posting service; corrections use reversals and new postings.
 - Write `audit_event`. Add `outbox_event` only when GST exports, integrations, or async jobs require durable delivery.
 - Store ordinary money as `*_minor bigint`; rates and quantities remain numeric.
 - Shared tax contracts belong in `packages/core`; GST services and oRPC procedures belong in `packages/api`.

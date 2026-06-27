@@ -30,7 +30,7 @@ Do not reintroduce `business_profile`, `account_group`, simple `journal`, `inter
 
 ```mermaid
 flowchart TD
-  Foundation["Phase 0-1 foundation<br/>tenant, audit, journal"] --> OwnerDocs["Phase 2 owner documents"]
+  Foundation["Phase 0-1 foundation<br/>tenant, audit, outbox, journal"] --> OwnerDocs["Phase 2 owner documents"]
   OwnerDocs --> GST["Phase 3 GST"]
   OwnerDocs --> Bank["Phase 4 bank"]
   GST --> Bank
@@ -51,13 +51,13 @@ sequenceDiagram
   participant Core as Pure rules/contracts
   participant Ledger as Journal posting service
   participant DB as Tenant transaction
-  participant Audit as Audit
+  participant Events as Audit/outbox
 
   UI->>Service: Command
   Service->>Core: Validate deterministic rules
   Service->>Ledger: Post or link journals when needed
   Service->>DB: Write phase tables
-  Service->>Audit: Audit
+  Service->>Events: Audit, plus outbox when durable async consumers exist
   Service-->>UI: Result
 ```
 

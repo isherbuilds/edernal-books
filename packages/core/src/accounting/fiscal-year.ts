@@ -52,9 +52,8 @@ export function formatSequenceNumber(input: {
 
 export function getFiscalYearStartMonthFromEndDate(endDate: string): number {
   const end = parseIsoDate(endDate);
-  const nextDay = utcDate(end.getUTCFullYear(), end.getUTCMonth(), end.getUTCDate() + 1);
 
-  return nextDay.getUTCMonth() + 1;
+  return ((end.getUTCMonth() + 1) % 12) + 1;
 }
 
 export function getFiscalYearEndDate(input: {

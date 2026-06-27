@@ -40,72 +40,15 @@ type AccountingErrorDefinition = {
   status: 404 | 409 | 422;
 };
 
-const accountingErrors: Record<AccountingErrorCode, AccountingErrorDefinition> = {
-  ACCOUNTING_PERIOD_CLOSED: {
-    data: accountingErrorDataSchema,
-    status: statusForAccountingError("ACCOUNTING_PERIOD_CLOSED")
-  },
-  ACCOUNTING_PERIOD_NOT_FOUND: {
-    data: accountingErrorDataSchema,
-    status: statusForAccountingError("ACCOUNTING_PERIOD_NOT_FOUND")
-  },
-  FISCAL_YEAR_DATE_RANGE_INVALID: {
-    data: accountingErrorDataSchema,
-    status: statusForAccountingError("FISCAL_YEAR_DATE_RANGE_INVALID")
-  },
-  FISCAL_YEAR_OVERLAPS: {
-    data: accountingErrorDataSchema,
-    status: statusForAccountingError("FISCAL_YEAR_OVERLAPS")
-  },
-  GENERAL_LEDGER_CURSOR_INVALID: {
-    data: accountingErrorDataSchema,
-    status: statusForAccountingError("GENERAL_LEDGER_CURSOR_INVALID")
-  },
-  JOURNAL_ENTRY_ALREADY_REVERSED: {
-    data: accountingErrorDataSchema,
-    status: statusForAccountingError("JOURNAL_ENTRY_ALREADY_REVERSED")
-  },
-  JOURNAL_ENTRY_LINE_ACCOUNT_NOT_POSTABLE: {
-    data: accountingErrorDataSchema,
-    status: statusForAccountingError("JOURNAL_ENTRY_LINE_ACCOUNT_NOT_POSTABLE")
-  },
-  JOURNAL_ENTRY_LINE_HAS_DEBIT_AND_CREDIT: {
-    data: accountingErrorDataSchema,
-    status: statusForAccountingError("JOURNAL_ENTRY_LINE_HAS_DEBIT_AND_CREDIT")
-  },
-  JOURNAL_ENTRY_LINE_HAS_NO_AMOUNT: {
-    data: accountingErrorDataSchema,
-    status: statusForAccountingError("JOURNAL_ENTRY_LINE_HAS_NO_AMOUNT")
-  },
-  JOURNAL_ENTRY_LINE_NEGATIVE_AMOUNT: {
-    data: accountingErrorDataSchema,
-    status: statusForAccountingError("JOURNAL_ENTRY_LINE_NEGATIVE_AMOUNT")
-  },
-  JOURNAL_ENTRY_NEEDS_TWO_LINES: {
-    data: accountingErrorDataSchema,
-    status: statusForAccountingError("JOURNAL_ENTRY_NEEDS_TWO_LINES")
-  },
-  JOURNAL_ENTRY_NOT_BALANCED: {
-    data: accountingErrorDataSchema,
-    status: statusForAccountingError("JOURNAL_ENTRY_NOT_BALANCED")
-  },
-  JOURNAL_ENTRY_NOT_FOUND: {
-    data: accountingErrorDataSchema,
-    status: statusForAccountingError("JOURNAL_ENTRY_NOT_FOUND")
-  },
-  JOURNAL_OPERATION_KEY_ALREADY_USED: {
-    data: accountingErrorDataSchema,
-    status: statusForAccountingError("JOURNAL_OPERATION_KEY_ALREADY_USED")
-  },
-  JOURNAL_OPERATION_KEY_PAYLOAD_MISMATCH: {
-    data: accountingErrorDataSchema,
-    status: statusForAccountingError("JOURNAL_OPERATION_KEY_PAYLOAD_MISMATCH")
-  },
-  NUMBER_SEQUENCE_NOT_FOUND: {
-    data: accountingErrorDataSchema,
-    status: statusForAccountingError("NUMBER_SEQUENCE_NOT_FOUND")
-  }
-};
+const accountingErrors = Object.fromEntries(
+  AccountingErrorCodeSchema.options.map((code) => [
+    code,
+    {
+      data: accountingErrorDataSchema,
+      status: statusForAccountingError(code)
+    }
+  ])
+) as Record<AccountingErrorCode, AccountingErrorDefinition>;
 
 type AccountingErrorFactories = Record<
   AccountingErrorCode,

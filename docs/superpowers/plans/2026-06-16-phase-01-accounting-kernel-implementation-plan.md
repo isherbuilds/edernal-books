@@ -21,7 +21,7 @@
 - Allocate `number_sequence` values atomically inside the posting transaction with `UPDATE ... RETURNING` or an explicit row lock. Do not read then write.
 - Treat Phase 1 posting as one transaction: lock the operation key, allocate the number, insert journal entry/lines, write awaited `audit_event`, and enforce unique `(organization_id, operation_key)`.
 - Do not write `outbox_event` from Phase 1 posting. Start outbox writes when public API, integrations, webhooks, AI indexing, or another durable async consumer exists.
-- Use simple operation-local duplicate protection in Phase 1: unique `(organization_id, operation_key)` plus a narrow transaction lock on that operation key before number allocation. Do not add request hashes or central replay stores yet.
+- Use operation-local duplicate protection in Phase 1: unique `(organization_id, operation_key)`, a narrow transaction lock on that operation key before number allocation, and a request hash on `journal_entry` to reject same-key payload mismatches. Do not add central replay stores yet.
 
 ## Current Implementation Status
 
@@ -119,7 +119,7 @@ Pure accounting helpers live under the existing `packages/core` package. Do not 
 Verification:
 
 ```bash
-rtk vp run --filter -stack/core test:unit
+rtk vp run --filter @tsu-stack/core test:unit
 ```
 
 ## Task 2: Phase 1 Database Schema
@@ -302,7 +302,7 @@ Do not add status, dates, totals, currency, exchange rate, `party_id`, approval 
 Rules:
 
 - A line has debit or credit, not both.
-- Batch has at least two lines.
+- Entry has at least two lines.
 - Base debits equal base credits before posting.
 - Journal rows are posted facts immediately. There is no persisted draft status.
 - Posted entry changes go through reversal/new posting only. Phase 1 relies on the service boundary plus DB constraints; add triggers when another write path exists.
@@ -512,7 +512,6 @@ Internal setup helpers:
 - [ ] **Step 5: Run tests**
 
 ```bash
-rtk vp run --filter @tsu-stack/core test:unit
 rtk vp run --filter @tsu-stack/core test:unit
 rtk vp run --filter @tsu-stack/api test:unit
 ```

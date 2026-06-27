@@ -23,6 +23,8 @@ import {
   SidebarMenuItem
 } from "@tsu-stack/ui/components/sidebar";
 
+import { getOrgAppLink } from "@/components/app-shell/nav-links";
+
 type NavMainProps = {
   showAccounting: boolean;
 };
@@ -141,16 +143,4 @@ function getMainNavigation(orgSlug: string, showAccounting: boolean): MainNaviga
   );
 
   return items;
-}
-
-function getOrgAppLink(
-  orgSlug: string,
-  to: "/$orgSlug" | "/$orgSlug/accounting/journal-entries" | "/$orgSlug/settings/business"
-): LinkProps {
-  return {
-    params: {
-      orgSlug
-    },
-    to
-  };
 }
