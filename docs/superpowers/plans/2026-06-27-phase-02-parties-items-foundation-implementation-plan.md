@@ -14,7 +14,7 @@ Implement the Phase 2 foundation slice:
 - API procedures for list/create/update/deactivate.
 - Owner UI screens for customers/vendors and goods/services.
 
-Inventory is explicitly out of scope. No stock ledger, warehouse, quantity-on-hand, batch, serial, reorder, valuation, or COGS automation fields.
+Inventory remains out of scope; see the scope boundary in `docs/superpowers/specs/2026-06-27-phase-02-parties-items-design.md`.
 
 ## Design Decisions
 

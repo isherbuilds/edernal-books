@@ -204,12 +204,12 @@ export function JournalEntryForm({ accounts, mode, onSubmit, pending }: JournalE
               key={line.id}
             >
               <div>
-                <label className="sr-only" htmlFor={`line-${index}-account`}>
+                <label className="sr-only" htmlFor={`${mode}-line-${index}-account`}>
                   {`Line ${index + 1} account`}
                 </label>
                 <Combobox
                   emptyText="No accounts found."
-                  id={`line-${index}-account`}
+                  id={`${mode}-line-${index}-account`}
                   items={postableAccountOptions}
                   onValueChange={(accountId) => updateLine(index, { accountId: accountId ?? "" })}
                   placeholder="Search account"

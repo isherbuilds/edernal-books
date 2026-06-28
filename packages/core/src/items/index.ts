@@ -32,7 +32,7 @@ export const ItemSchema = z
     createdAt: z.iso.datetime(),
     description: z.string().nullable(),
     expenseAccountId: z.uuid().nullable(),
-    hsnCode: z.string().nullable(),
+    hsnCode: HsnCodeSchema.nullable(),
     id: z.uuid(),
     isActive: z.boolean(),
     kind: ItemKindSchema,
@@ -67,9 +67,16 @@ export type CreateItemInput = z.infer<typeof CreateItemInputSchema>;
 
 export const UpdateItemInputSchema = OrgSlugInputSchema.extend({
   id: z.uuid(),
-  ...Object.fromEntries(
-    Object.entries(itemInputShape).map(([key, schema]) => [key, schema.optional()])
-  ),
+  description: itemInputShape.description.optional(),
+  expenseAccountId: itemInputShape.expenseAccountId.optional(),
+  hsnCode: itemInputShape.hsnCode.optional(),
+  kind: itemInputShape.kind.optional(),
+  name: itemInputShape.name.optional(),
+  purchaseRateMinor: itemInputShape.purchaseRateMinor.optional(),
+  salesAccountId: itemInputShape.salesAccountId.optional(),
+  salesRateMinor: itemInputShape.salesRateMinor.optional(),
+  unit: itemInputShape.unit.optional(),
+  usage: itemInputShape.usage.optional(),
   isActive: z.boolean().optional()
 }).strict();
 export type UpdateItemInput = z.infer<typeof UpdateItemInputSchema>;
@@ -79,6 +86,11 @@ export const SetItemActiveInputSchema = OrgSlugInputSchema.extend({
   isActive: z.boolean()
 }).strict();
 export type SetItemActiveInput = z.infer<typeof SetItemActiveInputSchema>;
+
+export const GetItemInputSchema = OrgSlugInputSchema.extend({
+  id: z.uuid()
+}).strict();
+export type GetItemInput = z.infer<typeof GetItemInputSchema>;
 
 export const ListItemsInputSchema = OrgSlugInputSchema.extend({
   ...CursorPaginationInputSchema.shape,

@@ -45,18 +45,19 @@ function itemRateSchema() {
 function hsnCodeSchema() {
   return z
     .string()
-    .refine((value) => value.trim() === "" || HsnCodeSchema.safeParse(value).success, {
+    .trim()
+    .refine((value) => value === "" || HsnCodeSchema.safeParse(value).success, {
       message: m.owner_records__items_hsn_invalid()
     });
 }
 
 function createItemFormSchema() {
   return z.object({
-    description: z.string(),
+    description: z.string().trim().max(1000),
     expenseAccountId: z.string(),
     hsnCode: hsnCodeSchema(),
     kind: ItemKindSchema,
-    name: z.string().trim().min(1, { message: m.owner_records__items_name_required() }),
+    name: z.string().trim().min(1, { message: m.owner_records__items_name_required() }).max(240),
     purchaseRate: itemRateSchema(),
     salesAccountId: z.string(),
     salesRate: itemRateSchema(),

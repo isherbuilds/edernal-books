@@ -13,7 +13,6 @@ import {
 } from "@tsu-stack/ui/components/table";
 import { cn } from "@tsu-stack/ui/lib/utils";
 
-/** Bordered, rounded frame around a table (and any pagination/footer beneath it). */
 export function DataTableContainer({ children }: { children: ReactNode }) {
   return <div className="overflow-hidden rounded-lg border bg-background">{children}</div>;
 }
@@ -25,13 +24,11 @@ export type DataColumn<T> = {
   header: ReactNode;
   headClassName?: string;
   id: string;
-  /** Stops row-click propagation for this cell (e.g. the actions column). */
   stopRowClick?: boolean;
 };
 
 type DataTableProps<T> = {
   columns: ReadonlyArray<DataColumn<T>>;
-  /** Optional totals/summary content rendered inside `<TableFooter>` (e.g. trial-balance totals). */
   footer?: ReactNode;
   getRowId: (row: T) => string;
   minWidthClassName?: string;
@@ -39,11 +36,6 @@ type DataTableProps<T> = {
   rows: ReadonlyArray<T>;
 };
 
-/**
- * Column-driven table — mirrors Midday's `columns` + render approach without the
- * `@tanstack/react-table` dependency. Per-entity differences are just different
- * column defs; the themed `@tsu-stack/ui` `Table` primitive provides the styling.
- */
 export function DataTable<T>({
   columns,
   footer,
@@ -67,23 +59,42 @@ export function DataTable<T>({
         </TableRow>
       </TableHeader>
       <TableBody>
-        {rows.map((row) => (
-          <TableRow
-            className={cn(onRowClick && "cursor-pointer")}
-            key={getRowId(row)}
-            onClick={onRowClick ? () => onRowClick(row) : undefined}
-          >
-            {columns.map((column) => (
-              <TableCell
-                className={cn(column.align === "right" && "text-right", column.cellClassName)}
-                key={column.id}
-                onClick={column.stopRowClick ? (event) => event.stopPropagation() : undefined}
-              >
-                {column.cell(row)}
-              </TableCell>
-            ))}
-          </TableRow>
-        ))}
+        {rows.map((row) => {
+          const activateRow = () => onRowClick?.(row);
+
+          return (
+            <TableRow
+              className={cn(
+                onRowClick &&
+                  "cursor-pointer focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+              )}
+              key={getRowId(row)}
+              onClick={onRowClick ? activateRow : undefined}
+              onKeyDown={
+                onRowClick
+                  ? (event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        activateRow();
+                      }
+                    }
+                  : undefined
+              }
+              role={onRowClick ? "button" : undefined}
+              tabIndex={onRowClick ? 0 : undefined}
+            >
+              {columns.map((column) => (
+                <TableCell
+                  className={cn(column.align === "right" && "text-right", column.cellClassName)}
+                  key={column.id}
+                  onClick={column.stopRowClick ? (event) => event.stopPropagation() : undefined}
+                >
+                  {column.cell(row)}
+                </TableCell>
+              ))}
+            </TableRow>
+          );
+        })}
       </TableBody>
       {footer ? <TableFooter>{footer}</TableFooter> : null}
     </Table>
@@ -97,7 +108,6 @@ type DataTableLoadMoreProps = {
   onLoadMore: () => void;
 };
 
-/** Centered "Load more" button for infinite lists, with an inline pending spinner. */
 export function DataTableLoadMore({
   isFetchingNextPage,
   loadingLabel,

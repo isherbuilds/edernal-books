@@ -3,6 +3,7 @@ import { z } from "zod";
 import { canAccessAccounting } from "@tsu-stack/auth/permissions";
 import {
   CreatePartyInputSchema,
+  GetPartyInputSchema,
   ListPartiesInputSchema,
   ListPartiesOutputSchema,
   type PartyErrorCode,
@@ -13,6 +14,7 @@ import {
 } from "@tsu-stack/core/parties";
 import {
   createParty,
+  getParty,
   listParties,
   PartyDbError,
   setPartyActive,
@@ -57,6 +59,23 @@ export const partiesRouter = {
         throwPartyDbError(errors, error);
       }
     }),
+  get: organizationPermissionProcedure(GetPartyInputSchema, canAccessAccounting)
+    .route({
+      description: "Get an organization customer or vendor",
+      method: "GET"
+    })
+    .errors(partyErrors)
+    .output(PartySchema)
+    .handler(async ({ context, errors, input }) => {
+      try {
+        return await getParty(context.db, {
+          id: input.id,
+          organizationId: context.organizationId
+        });
+      } catch (error) {
+        throwPartyDbError(errors, error);
+      }
+    }),
   create: organizationPermissionProcedure(CreatePartyInputSchema, canAccessAccounting)
     .route({
       description: "Create an organization customer or vendor",
@@ -68,7 +87,8 @@ export const partiesRouter = {
       try {
         return await createParty(context.db, {
           ...input,
-          organizationId: context.organizationId
+          organizationId: context.organizationId,
+          userId: context.authSession.user.id
         });
       } catch (error) {
         throwPartyDbError(errors, error);
@@ -85,7 +105,8 @@ export const partiesRouter = {
       try {
         return await updateParty(context.db, {
           ...input,
-          organizationId: context.organizationId
+          organizationId: context.organizationId,
+          userId: context.authSession.user.id
         });
       } catch (error) {
         throwPartyDbError(errors, error);
@@ -103,7 +124,8 @@ export const partiesRouter = {
         return await setPartyActive(context.db, {
           id: input.id,
           isActive: input.isActive,
-          organizationId: context.organizationId
+          organizationId: context.organizationId,
+          userId: context.authSession.user.id
         });
       } catch (error) {
         throwPartyDbError(errors, error);

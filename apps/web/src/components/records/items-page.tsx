@@ -8,7 +8,7 @@ import { m } from "@tsu-stack/i18n/messages";
 import { formatMinorUnits } from "@/utils/accounting-format";
 
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
-import { useItemsQuery, useSetItemActiveMutation } from "@/hooks/use-records";
+import { useItemQuery, useItemsQuery, useSetItemActiveMutation } from "@/hooks/use-records";
 
 import {
   type DataColumn,
@@ -61,6 +61,7 @@ export function ItemsPage({ orgSlug }: ItemsPageProps) {
   };
 
   const debouncedSearch = useDebouncedValue((search.q ?? "").trim());
+  const isEditing = search.view === "edit" && Boolean(search.id);
 
   const itemsQuery = useItemsQuery({
     includeInactive: true,
@@ -69,10 +70,12 @@ export function ItemsPage({ orgSlug }: ItemsPageProps) {
     q: debouncedSearch.length > 0 ? debouncedSearch : undefined,
     usage: search.usage
   });
+  const itemQuery = useItemQuery({ id: search.id ?? "", orgSlug }, isEditing);
   const setItemActive = useSetItemActiveMutation();
   const items = itemsQuery.data?.pages.flatMap((page) => page.items) ?? [];
 
-  const hasFilters = Boolean(search.q) || Boolean(search.kind) || Boolean(search.usage);
+  const hasFilters =
+    Boolean((search.q ?? "").trim()) || Boolean(search.kind) || Boolean(search.usage);
 
   const filterGroups: RecordFilterGroup[] = [
     {
@@ -108,11 +111,8 @@ export function ItemsPage({ orgSlug }: ItemsPageProps) {
   const openEdit = (item: Item) => setSearch({ id: item.id, view: "edit" });
   const closeSheet = () => setSearch({ id: undefined, view: undefined });
 
-  const editingItem =
-    search.view === "edit" && search.id
-      ? (items.find((item) => item.id === search.id) ?? null)
-      : null;
-  const sheetOpen = search.view === "create" || Boolean(editingItem);
+  const editingItem = isEditing ? (itemQuery.data ?? null) : null;
+  const sheetOpen = search.view === "create" || isEditing;
 
   const toggleItemActive = (item: Item) => {
     setItemActive.mutate(
@@ -219,7 +219,7 @@ export function ItemsPage({ orgSlug }: ItemsPageProps) {
         search={
           <RecordSearchField
             ariaLabel={m.owner_records__items_search_label()}
-            onChange={(value) => setSearch({ q: value || undefined })}
+            onChange={(value) => setSearch({ q: value.trim() || undefined })}
             placeholder={m.owner_records__items_search_placeholder()}
             value={search.q ?? ""}
           />
@@ -255,6 +255,7 @@ export function ItemsPage({ orgSlug }: ItemsPageProps) {
         error={itemsQuery.error}
         errorFallback={m.owner_records__items_error_fallback()}
         errorTitle={m.owner_records__items_error_title()}
+        hasData={Boolean(itemsQuery.data)}
         isEmpty={items.length === 0}
         isError={itemsQuery.isError}
         isLoading={itemsQuery.isLoading}
@@ -284,7 +285,7 @@ export function ItemsPage({ orgSlug }: ItemsPageProps) {
 
       <RecordSheet
         description={
-          editingItem
+          isEditing
             ? m.owner_records__items_edit_description()
             : m.owner_records__items_create_description()
         }
@@ -295,15 +296,31 @@ export function ItemsPage({ orgSlug }: ItemsPageProps) {
         }}
         open={sheetOpen}
         title={
-          editingItem ? m.owner_records__items_edit_title() : m.owner_records__items_create_title()
+          isEditing ? m.owner_records__items_edit_title() : m.owner_records__items_create_title()
         }
       >
-        <ItemForm
-          item={editingItem}
-          key={editingItem?.id ?? "create"}
-          onClose={closeSheet}
-          orgSlug={orgSlug}
-        />
+        {isEditing ? (
+          <QueryState
+            empty={null}
+            error={itemQuery.error}
+            errorFallback={m.owner_records__items_error_fallback()}
+            errorTitle={m.owner_records__items_error_title()}
+            isEmpty={false}
+            isError={itemQuery.isError}
+            isLoading={itemQuery.isLoading}
+          >
+            {editingItem ? (
+              <ItemForm
+                item={editingItem}
+                key={editingItem.id}
+                onClose={closeSheet}
+                orgSlug={orgSlug}
+              />
+            ) : null}
+          </QueryState>
+        ) : (
+          <ItemForm item={null} key="create" onClose={closeSheet} orgSlug={orgSlug} />
+        )}
       </RecordSheet>
     </RecordsPageLayout>
   );

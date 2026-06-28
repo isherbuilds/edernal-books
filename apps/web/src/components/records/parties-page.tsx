@@ -6,7 +6,7 @@ import { type Party, type PartyKind } from "@tsu-stack/core/parties";
 import { m } from "@tsu-stack/i18n/messages";
 
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
-import { usePartiesQuery, useSetPartyActiveMutation } from "@/hooks/use-records";
+import { usePartiesQuery, usePartyQuery, useSetPartyActiveMutation } from "@/hooks/use-records";
 
 import {
   type DataColumn,
@@ -57,6 +57,7 @@ export function PartiesPage({ orgSlug }: PartiesPageProps) {
   };
 
   const debouncedSearch = useDebouncedValue((search.q ?? "").trim());
+  const isEditing = search.view === "edit" && Boolean(search.id);
 
   const partiesQuery = usePartiesQuery({
     includeInactive: true,
@@ -64,10 +65,11 @@ export function PartiesPage({ orgSlug }: PartiesPageProps) {
     orgSlug,
     q: debouncedSearch.length > 0 ? debouncedSearch : undefined
   });
+  const partyQuery = usePartyQuery({ id: search.id ?? "", orgSlug }, isEditing);
   const setPartyActive = useSetPartyActiveMutation();
   const parties = partiesQuery.data?.pages.flatMap((page) => page.parties) ?? [];
 
-  const hasFilters = Boolean(search.q) || Boolean(search.kind);
+  const hasFilters = Boolean((search.q ?? "").trim()) || Boolean(search.kind);
 
   const filterGroups: RecordFilterGroup[] = [
     {
@@ -87,11 +89,8 @@ export function PartiesPage({ orgSlug }: PartiesPageProps) {
   const openEdit = (party: Party) => setSearch({ id: party.id, view: "edit" });
   const closeSheet = () => setSearch({ id: undefined, view: undefined });
 
-  const editingParty =
-    search.view === "edit" && search.id
-      ? (parties.find((party) => party.id === search.id) ?? null)
-      : null;
-  const sheetOpen = search.view === "create" || Boolean(editingParty);
+  const editingParty = isEditing ? (partyQuery.data ?? null) : null;
+  const sheetOpen = search.view === "create" || isEditing;
 
   const togglePartyActive = (party: Party) => {
     setPartyActive.mutate(
@@ -193,7 +192,7 @@ export function PartiesPage({ orgSlug }: PartiesPageProps) {
         search={
           <RecordSearchField
             ariaLabel={m.owner_records__parties_search_label()}
-            onChange={(value) => setSearch({ q: value || undefined })}
+            onChange={(value) => setSearch({ q: value.trim() || undefined })}
             placeholder={m.owner_records__parties_search_placeholder()}
             value={search.q ?? ""}
           />
@@ -229,6 +228,7 @@ export function PartiesPage({ orgSlug }: PartiesPageProps) {
         error={partiesQuery.error}
         errorFallback={m.owner_records__parties_error_fallback()}
         errorTitle={m.owner_records__parties_error_title()}
+        hasData={Boolean(partiesQuery.data)}
         isEmpty={parties.length === 0}
         isError={partiesQuery.isError}
         isLoading={partiesQuery.isLoading}
@@ -258,7 +258,7 @@ export function PartiesPage({ orgSlug }: PartiesPageProps) {
 
       <RecordSheet
         description={
-          editingParty
+          isEditing
             ? m.owner_records__parties_edit_description()
             : m.owner_records__parties_create_description()
         }
@@ -269,17 +269,33 @@ export function PartiesPage({ orgSlug }: PartiesPageProps) {
         }}
         open={sheetOpen}
         title={
-          editingParty
+          isEditing
             ? m.owner_records__parties_edit_title()
             : m.owner_records__parties_create_title()
         }
       >
-        <PartyForm
-          key={editingParty?.id ?? "create"}
-          onClose={closeSheet}
-          orgSlug={orgSlug}
-          party={editingParty}
-        />
+        {isEditing ? (
+          <QueryState
+            empty={null}
+            error={partyQuery.error}
+            errorFallback={m.owner_records__parties_error_fallback()}
+            errorTitle={m.owner_records__parties_error_title()}
+            isEmpty={false}
+            isError={partyQuery.isError}
+            isLoading={partyQuery.isLoading}
+          >
+            {editingParty ? (
+              <PartyForm
+                key={editingParty.id}
+                onClose={closeSheet}
+                orgSlug={orgSlug}
+                party={editingParty}
+              />
+            ) : null}
+          </QueryState>
+        ) : (
+          <PartyForm key="create" onClose={closeSheet} orgSlug={orgSlug} party={null} />
+        )}
       </RecordSheet>
     </RecordsPageLayout>
   );

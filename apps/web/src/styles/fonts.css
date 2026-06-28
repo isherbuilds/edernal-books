@@ -51,5 +51,5 @@
    * headings, so repointing it would reskin unrelated text. This separate token gives amount columns a
    * real serif (paired with `tabular-nums`) for the midday-style figures without touching anything else.
    */
-  --font-amount: ui-serif, Georgia, "Times New Roman", serif;
+  --font-amount: ui-serif, georgia, "Times New Roman", serif;
 }

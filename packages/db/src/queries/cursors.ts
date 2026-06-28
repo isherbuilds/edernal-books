@@ -25,7 +25,7 @@ export function decodeCursor<T>(cursor: string, parsePayload: (payload: unknown)
   }
 
   const parsed = parsePayload(payload);
-  if (!parsed) {
+  if (parsed === null) {
     throw new DbCursorError();
   }
 

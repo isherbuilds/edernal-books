@@ -42,7 +42,7 @@ export function GeneralLedgerPage({ orgSlug }: GeneralLedgerPageProps) {
   });
   const pages = ledgerQuery.data?.pages ?? [];
   const visibleLines = pages.flatMap((page) => page.lines);
-  const balanceLabel = ledgerQuery.hasNextPage ? "page-end" : "closing";
+  const balanceLabel = ledgerQuery.hasNextPage ? "loaded-page closing balance" : "closing balance";
   const openingBalanceMinor = pages[0]?.openingBalanceMinor;
   const pageEndBalanceMinor = pages.at(-1)?.closingBalanceMinor;
 

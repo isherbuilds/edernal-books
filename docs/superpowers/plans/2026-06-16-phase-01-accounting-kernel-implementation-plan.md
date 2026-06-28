@@ -27,7 +27,7 @@
 
 Updated: 2026-06-27 after Phase 1 merge to `main`.
 
-Phase 1 is implemented in `main`:
+Phase 1 was implemented in `main`; checklist sections below remain historical implementation reference:
 
 - `packages/core/src/accounting` with default ledger account definitions, journal validation, report arithmetic, contracts for internal fiscal-year setup, default chart seed, posting, reversal, and minor-unit string transport.
 - `packages/db` accounting schema for periods, accounts, source documents, journal entries, journal lines, and atomic number sequences.

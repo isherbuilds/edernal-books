@@ -1,18 +1,8 @@
-import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { orpc } from "@tsu-stack/api/client/tanstack-start/orpc";
-import {
-  type CreateItemInput,
-  type ListItemsInput,
-  type SetItemActiveInput,
-  type UpdateItemInput
-} from "@tsu-stack/core/items";
-import {
-  type CreatePartyInput,
-  type ListPartiesInput,
-  type SetPartyActiveInput,
-  type UpdatePartyInput
-} from "@tsu-stack/core/parties";
+import { type GetItemInput, type ListItemsInput } from "@tsu-stack/core/items";
+import { type GetPartyInput, type ListPartiesInput } from "@tsu-stack/core/parties";
 
 type PartiesQueryInput = Omit<ListPartiesInput, "cursor" | "limit"> & {
   limit?: ListPartiesInput["limit"];
@@ -37,6 +27,15 @@ export function usePartiesQuery(input: PartiesQueryInput) {
   );
 }
 
+export function usePartyQuery(input: GetPartyInput, enabled: boolean) {
+  return useQuery({
+    ...orpc.parties.get.queryOptions({
+      input
+    }),
+    enabled
+  });
+}
+
 export function useCreatePartyMutation() {
   const queryClient = useQueryClient();
 
@@ -44,6 +43,7 @@ export function useCreatePartyMutation() {
     orpc.parties.create.mutationOptions({
       onSuccess: async () => {
         await queryClient.invalidateQueries({ queryKey: orpc.parties.list.key() });
+        await queryClient.invalidateQueries({ queryKey: orpc.parties.get.key() });
       }
     })
   );
@@ -56,6 +56,7 @@ export function useUpdatePartyMutation() {
     orpc.parties.update.mutationOptions({
       onSuccess: async () => {
         await queryClient.invalidateQueries({ queryKey: orpc.parties.list.key() });
+        await queryClient.invalidateQueries({ queryKey: orpc.parties.get.key() });
       }
     })
   );
@@ -68,6 +69,7 @@ export function useSetPartyActiveMutation() {
     orpc.parties.setActive.mutationOptions({
       onSuccess: async () => {
         await queryClient.invalidateQueries({ queryKey: orpc.parties.list.key() });
+        await queryClient.invalidateQueries({ queryKey: orpc.parties.get.key() });
       }
     })
   );
@@ -88,6 +90,15 @@ export function useItemsQuery(input: ItemsQueryInput) {
   );
 }
 
+export function useItemQuery(input: GetItemInput, enabled: boolean) {
+  return useQuery({
+    ...orpc.items.get.queryOptions({
+      input
+    }),
+    enabled
+  });
+}
+
 export function useCreateItemMutation() {
   const queryClient = useQueryClient();
 
@@ -95,6 +106,7 @@ export function useCreateItemMutation() {
     orpc.items.create.mutationOptions({
       onSuccess: async () => {
         await queryClient.invalidateQueries({ queryKey: orpc.items.list.key() });
+        await queryClient.invalidateQueries({ queryKey: orpc.items.get.key() });
       }
     })
   );
@@ -107,6 +119,7 @@ export function useUpdateItemMutation() {
     orpc.items.update.mutationOptions({
       onSuccess: async () => {
         await queryClient.invalidateQueries({ queryKey: orpc.items.list.key() });
+        await queryClient.invalidateQueries({ queryKey: orpc.items.get.key() });
       }
     })
   );
@@ -119,14 +132,8 @@ export function useSetItemActiveMutation() {
     orpc.items.setActive.mutationOptions({
       onSuccess: async () => {
         await queryClient.invalidateQueries({ queryKey: orpc.items.list.key() });
+        await queryClient.invalidateQueries({ queryKey: orpc.items.get.key() });
       }
     })
   );
 }
-
-export type CreatePartyMutationInput = CreatePartyInput;
-export type UpdatePartyMutationInput = UpdatePartyInput;
-export type SetPartyActiveMutationInput = SetPartyActiveInput;
-export type CreateItemMutationInput = CreateItemInput;
-export type UpdateItemMutationInput = UpdateItemInput;
-export type SetItemActiveMutationInput = SetItemActiveInput;

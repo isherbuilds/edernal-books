@@ -26,15 +26,26 @@ describe("sqlInList", () => {
     kind: text("kind").notNull()
   });
 
-  it("builds a quoted, comma-separated IN list from a shared enum array", () => {
-    const { sql } = dialect.sqlToQuery(sqlInList(widget.kind, ["goods", "service"]));
+  it("builds a parameterized IN list from a shared enum array", () => {
+    const { params, sql } = dialect.sqlToQuery(sqlInList(widget.kind, ["goods", "service"]));
 
-    expect(sql).toBe(`"widget"."kind" IN ('goods', 'service')`);
+    expect(sql).toBe(`"widget"."kind" IN ($1, $2)`);
+    expect(params).toEqual(["goods", "service"]);
   });
 
   it("preserves enum order and spacing for a three-value list", () => {
-    const { sql } = dialect.sqlToQuery(sqlInList(widget.kind, ["sales", "purchases", "both"]));
+    const { params, sql } = dialect.sqlToQuery(
+      sqlInList(widget.kind, ["sales", "purchases", "both"])
+    );
 
-    expect(sql).toContain(`IN ('sales', 'purchases', 'both')`);
+    expect(sql).toContain(`IN ($1, $2, $3)`);
+    expect(params).toEqual(["sales", "purchases", "both"]);
+  });
+
+  it("returns a false condition for empty lists", () => {
+    const { params, sql } = dialect.sqlToQuery(sqlInList(widget.kind, []));
+
+    expect(sql).toBe("false");
+    expect(params).toEqual([]);
   });
 });

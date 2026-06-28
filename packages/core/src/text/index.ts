@@ -11,5 +11,10 @@ const EmptyTextAsNullSchema = z
   .transform(() => null);
 
 export function nullableTextInput(schema: z.ZodType<string>) {
-  return z.union([EmptyTextAsNullSchema, schema, z.null()]).optional();
+  return z
+    .preprocess(
+      (value) => (typeof value === "string" ? value.trim() : value),
+      z.union([EmptyTextAsNullSchema, schema, z.null()])
+    )
+    .optional();
 }

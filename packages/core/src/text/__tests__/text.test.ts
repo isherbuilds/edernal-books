@@ -25,6 +25,7 @@ describe("nullableTextInput", () => {
 
   it("passes through valid values, null, and undefined", () => {
     expect(schema.parse("user@example.test")).toBe("user@example.test");
+    expect(schema.parse(" user@example.test ")).toBe("user@example.test");
     expect(schema.parse(null)).toBeNull();
     expect(schema.parse(undefined)).toBeUndefined();
   });

@@ -70,7 +70,8 @@ Done:
 
 Not done:
 
-- Phase 2 owner workflow MVP is not implemented.
+- Phase 2 foundation is implemented for parties, items, records UI primitives,
+  and cursor pagination; the full owner workflow MVP is not implemented.
 - Local DB integration verification still requires local Postgres/Docker to be running.
 - Transactional outbox writes remain intentionally limited to commands with real async consumers.
 

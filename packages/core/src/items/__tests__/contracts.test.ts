@@ -125,7 +125,7 @@ describe("item contracts", () => {
   });
 
   it("exposes organization-scoped item DTO shape without inventory fields", () => {
-    const item = ItemSchema.parse({
+    const input = {
       createdAt: "2026-06-27T00:00:00.000Z",
       description: null,
       expenseAccountId: null,
@@ -142,14 +142,20 @@ describe("item contracts", () => {
       unit: "ream",
       updatedAt: "2026-06-27T00:00:00.000Z",
       usage: "both"
-    });
+    };
+    const item = ItemSchema.parse(input);
 
     expect(item).toMatchObject({
       kind: "goods",
       name: "Printer Paper",
       usage: "both"
     });
-    expect("quantityOnHand" in item).toBe(false);
-    expect("warehouseId" in item).toBe(false);
+    expect(ItemSchema.safeParse({ ...input, quantityOnHand: "1" }).success).toBe(false);
+    expect(
+      ItemSchema.safeParse({
+        ...input,
+        warehouseId: "018ff8d9-ae36-7d5b-8f21-8687bde90003"
+      }).success
+    ).toBe(false);
   });
 });

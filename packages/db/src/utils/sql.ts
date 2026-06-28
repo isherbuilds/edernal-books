@@ -9,13 +9,15 @@ export function escapeLikePattern(value: string): string {
   return value.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
 }
 
-/**
- * Builds a `column IN ('a', 'b', ...)` SQL fragment from a shared enum array so CHECK constraints
- * stay derived from the same source of truth as the column's enum type and can never drift.
- * Values are trusted compile-time enum literals, not user input.
- */
 export function sqlInList(column: Column, values: readonly string[]): SQL {
-  const literals = values.map((value) => `'${value}'`).join(", ");
+  if (values.length === 0) {
+    return sql`false`;
+  }
 
-  return sql`${column} IN (${sql.raw(literals)})`;
+  const literals = sql.join(
+    values.map((value) => sql`${value}`),
+    sql`, `
+  );
+
+  return sql`${column} IN (${literals})`;
 }

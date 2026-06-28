@@ -31,8 +31,11 @@ type ComboboxProps<T extends ComboboxItem> = {
   itemToLabel?: (item: T) => string;
   name?: string;
   id?: string;
+  selectedItem?: T | null;
   className?: string;
   contentClassName?: string;
+  "aria-describedby"?: string;
+  "aria-invalid"?: boolean;
 };
 
 function ComboboxOption({ className, children, ...props }: ComboboxPrimitive.Item.Props) {
@@ -75,12 +78,19 @@ function Combobox<T extends ComboboxItem>({
   itemToLabel,
   name,
   id,
+  selectedItem: selectedItemProp,
   className,
-  contentClassName
+  contentClassName,
+  "aria-describedby": ariaDescribedBy,
+  "aria-invalid": ariaInvalid
 }: ComboboxProps<T>) {
   const selectedItem = React.useMemo<ComboboxItem | null>(
-    () => (value == null ? null : (items.find((item) => item.value === value) ?? null)),
-    [items, value]
+    () =>
+      value == null
+        ? null
+        : (items.find((item) => item.value === value) ??
+          (selectedItemProp?.value === value ? selectedItemProp : null)),
+    [items, selectedItemProp, value]
   );
 
   const handleInputValueChange = (next: string) => {
@@ -109,6 +119,8 @@ function Combobox<T extends ComboboxItem>({
       <div data-slot="combobox" className="relative w-full">
         <ComboboxPrimitive.Input
           id={id}
+          aria-describedby={ariaDescribedBy}
+          aria-invalid={ariaInvalid}
           placeholder={placeholder}
           disabled={disabled}
           data-slot="combobox-input"

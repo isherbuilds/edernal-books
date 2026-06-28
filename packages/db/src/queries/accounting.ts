@@ -311,7 +311,8 @@ export async function listLedgerAccounts(
   db: Database,
   input: ListLedgerAccountsDbInput
 ): Promise<LedgerAccountListItem[]> {
-  const search = input.q ? `%${escapeLikePattern(input.q.trim())}%` : undefined;
+  const trimmedQuery = input.q?.trim();
+  const search = trimmedQuery ? `%${escapeLikePattern(trimmedQuery)}%` : undefined;
   const where = search
     ? and(
         eq(ledgerAccount.organizationId, input.organizationId),

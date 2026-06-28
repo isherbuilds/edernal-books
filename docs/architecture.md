@@ -254,9 +254,10 @@ The source of truth is
 ## Database Model Today
 
 Current schema includes Better Auth identity/organization tables, Phase 0
-app-owned platform tables, and the Phase 1 ledger kernel. This diagram shows
-the platform foundation subset; the ledger kernel is documented in the DB
-package architecture and schema revision plan:
+app-owned platform tables, the Phase 1 ledger kernel, and the Phase 2 owner
+workflow foundation tables (`party`, `item`). This diagram shows the platform
+foundation subset; the ledger and owner workflow tables are documented in the
+DB package architecture and schema revision plan:
 
 ```mermaid
 erDiagram

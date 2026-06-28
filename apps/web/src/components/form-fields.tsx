@@ -139,6 +139,7 @@ type FormComboboxFieldProps<T extends ComboboxItem> = {
   onValueChange: (value: string | null) => void;
   placeholder?: string;
   renderItem?: (item: T) => ReactNode;
+  selectedItem?: T | null;
   itemToLabel?: (item: T) => string;
   value: string | null;
 };
@@ -159,6 +160,7 @@ function FormComboboxField<T extends ComboboxItem>({
   onValueChange,
   placeholder,
   renderItem,
+  selectedItem,
   itemToLabel,
   value
 }: FormComboboxFieldProps<T>) {
@@ -170,6 +172,8 @@ function FormComboboxField<T extends ComboboxItem>({
     <Field data-invalid={hasError ? true : undefined}>
       <FieldLabel htmlFor={id}>{label}</FieldLabel>
       <Combobox
+        aria-describedby={errorId}
+        aria-invalid={hasError ? true : undefined}
         disabled={disabled}
         emptyText={emptyText}
         id={id}
@@ -183,6 +187,7 @@ function FormComboboxField<T extends ComboboxItem>({
         onValueChange={onValueChange}
         placeholder={placeholder}
         renderItem={renderItem}
+        selectedItem={selectedItem}
         value={value}
       />
       {description ? <FieldDescription>{description}</FieldDescription> : null}

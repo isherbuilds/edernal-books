@@ -39,6 +39,12 @@ describe("parties and items migration", () => {
     );
   });
 
+  it("keeps party tax and country invariants at the database boundary", () => {
+    expect(migration).toContain(`CONSTRAINT "party_country_code_ck"`);
+    expect(migration).toContain(`CONSTRAINT "party_gstin_ck"`);
+    expect(migration).toContain(`CONSTRAINT "party_pan_ck"`);
+  });
+
   it("keeps the composite account foreign keys that enforce org-scoped account refs at the database", () => {
     expect(migration).toContain(
       'FOREIGN KEY ("organization_id","sales_account_id") REFERENCES "ledger_account"("organization_id","id") ON DELETE RESTRICT'

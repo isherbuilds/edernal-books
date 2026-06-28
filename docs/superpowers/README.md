@@ -56,10 +56,10 @@ inside the transaction before number allocation to preserve voucher-number
 continuity under concurrent retries. Reconsider a central replay store only when
 Phase 6 public API semantics need heterogeneous response replay.
 
-Verification note: `rtk vp check` and `rtk vp run -r test:unit` passed on
-2026-06-27. `rtk vp run --filter @tsu-stack/db test:integration` requires
+Verification note: `vp check` and `vp run -r test:unit` passed on
+2026-06-27. `vp run --filter @tsu-stack/db test:integration` requires
 local Postgres on the configured `DATABASE_URL`; rerun it after
-`rtk vp run db:dev:start` and `rtk vp run db:migrate` before the first Phase 2
+`vp run db:dev:start` and `vp run db:migrate` before the first Phase 2
 schema change.
 
 Next step:

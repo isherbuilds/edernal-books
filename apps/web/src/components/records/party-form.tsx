@@ -31,17 +31,24 @@ function createPartyFormSchema() {
       .string()
       .trim()
       .min(1, { message: m.owner_records__parties_display_name_required() }),
-    email: z.string(),
+    email: z
+      .string()
+      .trim()
+      .refine((value) => value === "" || z.email().max(320).safeParse(value).success),
     gstRegistrationType: GstRegistrationTypeSchema,
     gstin: z
       .string()
-      .refine((value) => value.trim() === "" || GstinSchema.safeParse(value).success, {
+      .trim()
+      .refine((value) => value === "" || GstinSchema.safeParse(value).success, {
         message: m.owner_records__parties_gstin_invalid()
       }),
     kind: PartyKindSchema,
-    pan: z.string().refine((value) => value.trim() === "" || PanSchema.safeParse(value).success, {
-      message: m.owner_records__parties_pan_invalid()
-    }),
+    pan: z
+      .string()
+      .trim()
+      .refine((value) => value === "" || PanSchema.safeParse(value).success, {
+        message: m.owner_records__parties_pan_invalid()
+      }),
     phone: z.string()
   });
 }

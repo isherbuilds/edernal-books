@@ -45,14 +45,14 @@ export const PartySchema = z
     displayName: z.string().trim().min(1).max(240),
     email: z.email().max(320).nullable(),
     gstRegistrationType: GstRegistrationTypeSchema,
-    gstin: z.string().nullable(),
+    gstin: GstinSchema.nullable(),
     id: z.uuid(),
     isActive: z.boolean(),
     kind: PartyKindSchema,
     legalName: z.string().nullable(),
     normalizedName: z.string().trim().min(1).max(240),
     organizationId: z.string().min(1),
-    pan: z.string().nullable(),
+    pan: PanSchema.nullable(),
     phone: z.string().nullable(),
     postalCode: z.string().nullable(),
     state: z.string().nullable(),
@@ -86,9 +86,19 @@ export type CreatePartyInput = z.infer<typeof CreatePartyInputSchema>;
 
 export const UpdatePartyInputSchema = OrgSlugInputSchema.extend({
   id: z.uuid(),
-  ...Object.fromEntries(
-    Object.entries(partyInputShape).map(([key, schema]) => [key, schema.optional()])
-  ),
+  addressLine1: partyInputShape.addressLine1.optional(),
+  addressLine2: partyInputShape.addressLine2.optional(),
+  city: partyInputShape.city.optional(),
+  countryCode: partyInputShape.countryCode.optional(),
+  displayName: partyInputShape.displayName.optional(),
+  email: partyInputShape.email.optional(),
+  gstin: partyInputShape.gstin.optional(),
+  kind: partyInputShape.kind.optional(),
+  legalName: partyInputShape.legalName.optional(),
+  pan: partyInputShape.pan.optional(),
+  phone: partyInputShape.phone.optional(),
+  postalCode: partyInputShape.postalCode.optional(),
+  state: partyInputShape.state.optional(),
   gstRegistrationType: GstRegistrationTypeSchema.optional(),
   isActive: z.boolean().optional()
 }).strict();
@@ -99,6 +109,11 @@ export const SetPartyActiveInputSchema = OrgSlugInputSchema.extend({
   isActive: z.boolean()
 }).strict();
 export type SetPartyActiveInput = z.infer<typeof SetPartyActiveInputSchema>;
+
+export const GetPartyInputSchema = OrgSlugInputSchema.extend({
+  id: z.uuid()
+}).strict();
+export type GetPartyInput = z.infer<typeof GetPartyInputSchema>;
 
 export const ListPartiesInputSchema = OrgSlugInputSchema.extend({
   ...CursorPaginationInputSchema.shape,

@@ -5,6 +5,7 @@ import {
   type ItemErrorCode,
   ItemErrorCodeSchema,
   CreateItemInputSchema,
+  GetItemInputSchema,
   ItemSchema,
   ListItemsInputSchema,
   ListItemsOutputSchema,
@@ -13,6 +14,7 @@ import {
 } from "@tsu-stack/core/items";
 import {
   createItem,
+  getItem,
   ItemDbError,
   listItems,
   setItemActive,
@@ -59,6 +61,23 @@ export const itemsRouter = {
         throwItemDbError(errors, error);
       }
     }),
+  get: organizationPermissionProcedure(GetItemInputSchema, canAccessAccounting)
+    .route({
+      description: "Get an organization good or service",
+      method: "GET"
+    })
+    .errors(itemErrors)
+    .output(ItemSchema)
+    .handler(async ({ context, errors, input }) => {
+      try {
+        return await getItem(context.db, {
+          id: input.id,
+          organizationId: context.organizationId
+        });
+      } catch (error) {
+        throwItemDbError(errors, error);
+      }
+    }),
   create: organizationPermissionProcedure(CreateItemInputSchema, canAccessAccounting)
     .route({
       description: "Create an organization good or service",
@@ -70,7 +89,8 @@ export const itemsRouter = {
       try {
         return await createItem(context.db, {
           ...input,
-          organizationId: context.organizationId
+          organizationId: context.organizationId,
+          userId: context.authSession.user.id
         });
       } catch (error) {
         throwItemDbError(errors, error);
@@ -87,7 +107,8 @@ export const itemsRouter = {
       try {
         return await updateItem(context.db, {
           ...input,
-          organizationId: context.organizationId
+          organizationId: context.organizationId,
+          userId: context.authSession.user.id
         });
       } catch (error) {
         throwItemDbError(errors, error);
@@ -105,7 +126,8 @@ export const itemsRouter = {
         return await setItemActive(context.db, {
           id: input.id,
           isActive: input.isActive,
-          organizationId: context.organizationId
+          organizationId: context.organizationId,
+          userId: context.authSession.user.id
         });
       } catch (error) {
         throwItemDbError(errors, error);

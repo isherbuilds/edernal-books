@@ -8,22 +8,16 @@ type PageLayoutProps = {
   className?: string;
 };
 
-/**
- * Canonical app-page container. Every authenticated page (records, accounting,
- * reports, settings) renders inside this so width, padding, background, and
- * vertical rhythm stay identical across the app. The surrounding `_shell` route
- * provides the sidebar + header chrome; this owns the page body.
- */
 export function PageLayout({ children, className }: PageLayoutProps) {
   return (
-    <main
+    <section
       className={cn(
-        "mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-6 bg-background p-4 sm:p-6",
+        "mx-auto flex w-full max-w-6xl flex-col gap-6 bg-background p-4 sm:p-6",
         className
       )}
     >
       {children}
-    </main>
+    </section>
   );
 }
 
@@ -36,7 +30,6 @@ type PageHeaderProps = {
   title: ReactNode;
 };
 
-/** Page title block: eyebrow (section + icon) → title → description, with optional actions. */
 export function PageHeader({ actions, description, eyebrow, icon, title }: PageHeaderProps) {
   return (
     <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -61,7 +54,6 @@ type EmptyStateProps = {
   title: ReactNode;
 };
 
-/** First-run / no-data state: dashed card with icon, title, description, optional action. */
 export function EmptyState({ actionLabel, description, icon, onAction, title }: EmptyStateProps) {
   return (
     <div className="flex flex-col items-center justify-center gap-4 rounded-lg border border-dashed py-20 text-center">
@@ -88,7 +80,6 @@ type NoResultsProps = {
   title: ReactNode;
 };
 
-/** Filtered-to-empty state: same frame as EmptyState but offers a "clear" affordance. */
 export function NoResults({ actionLabel, description, onAction, title }: NoResultsProps) {
   return (
     <div className="flex flex-col items-center justify-center gap-4 rounded-lg border border-dashed py-20 text-center">

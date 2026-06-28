@@ -65,6 +65,15 @@ export const party = pgTable(
       "party_gst_registration_type_ck",
       sqlInList(table.gstRegistrationType, GST_REGISTRATION_TYPES)
     ),
+    check(
+      "party_country_code_ck",
+      sql`${table.countryCode} is null or ${table.countryCode} ~ '^[A-Z]{2}$'`
+    ),
+    check(
+      "party_gstin_ck",
+      sql`${table.gstin} is null or ${table.gstin} ~ '^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$'`
+    ),
+    check("party_pan_ck", sql`${table.pan} is null or ${table.pan} ~ '^[A-Z]{5}[0-9]{4}[A-Z]$'`),
     check("party_display_name_not_blank_ck", sql`length(trim(${table.displayName})) > 0`),
     check("party_normalized_name_not_blank_ck", sql`length(trim(${table.normalizedName})) > 0`)
   ]

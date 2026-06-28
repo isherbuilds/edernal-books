@@ -14,7 +14,7 @@ the repo's own theme tokens (no hardcoded hex), so dark mode and the lime theme 
   dark mode. Reference tokens by name — never raw colors or `text-gray-*`.
   - Surfaces: `bg-background` (page), `bg-card` (raised), `bg-secondary` (chips/badges), `bg-muted` (subtle fills).
   - Text: `text-foreground`, `text-muted-foreground` (secondary copy), `text-destructive` (errors).
-  - Lines/last: `border`, `border-dashed` (empty frames), `rounded-lg`.
+  - Lines/radius: `border`, `border-dashed` (empty frames), `rounded-lg`.
 - **Type**: Inter Variable everywhere. Headings `text-2xl font-semibold tracking-normal`; body `text-sm`.
 - **Money**: integer minor units, formatted with `formatMinorUnits(...)`, rendered with
   `font-amount tabular-nums` (the serif `--font-amount` family + fixed-width digits). This is the

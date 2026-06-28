@@ -59,9 +59,9 @@ export function AccountSearchSelect({
   placeholder,
   value
 }: AccountSearchSelectProps) {
-  const [inputValue, setInputValue] = useState("");
+  const [inputValue, setInputValue] = useState<string | null>(null);
   const [pickedOption, setPickedOption] = useState<AccountComboboxOption | null>(null);
-  const debouncedQuery = useDebouncedValue(inputValue.trim());
+  const debouncedQuery = useDebouncedValue((inputValue ?? "").trim());
   const accountsQuery = useChartAccountsQuery(orgSlug, {
     q: debouncedQuery.length > 0 ? debouncedQuery : undefined
   });
@@ -70,7 +70,10 @@ export function AccountSearchSelect({
     .filter((account) => account.active && !account.isGroup && account.allowManualPosting)
     .map(toAccountComboboxOption);
 
-  const selectedOption = pickedOption && pickedOption.value === value ? pickedOption : null;
+  const selectedOption =
+    (pickedOption && pickedOption.value === value ? pickedOption : null) ??
+    postableOptions.find((option) => option.value === value) ??
+    null;
   const options =
     selectedOption && !postableOptions.some((option) => option.value === selectedOption.value)
       ? [selectedOption, ...postableOptions]
@@ -83,7 +86,7 @@ export function AccountSearchSelect({
       emptyText={emptyText}
       error={error}
       id={id}
-      inputValue={inputValue}
+      inputValue={inputValue ?? selectedOption?.label ?? ""}
       items={options}
       label={label}
       loading={accountsQuery.isLoading}
@@ -91,14 +94,17 @@ export function AccountSearchSelect({
       name={name ?? "account"}
       onInputValueChange={setInputValue}
       onValueChange={(nextValue) => {
-        setPickedOption(
-          nextValue ? (options.find((option) => option.value === nextValue) ?? null) : null
-        );
-        setInputValue("");
+        const nextOption = nextValue
+          ? (options.find((option) => option.value === nextValue) ?? null)
+          : null;
+
+        setPickedOption(nextOption);
+        setInputValue(nextOption ? null : "");
         onValueChange(nextValue);
       }}
       placeholder={placeholder}
       renderItem={renderAccountComboboxOption}
+      selectedItem={selectedOption}
       value={value}
     />
   );

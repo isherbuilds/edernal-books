@@ -12,7 +12,7 @@ import {
 import { clampCursorLimit } from "@tsu-stack/core/pagination";
 import { normalizeName } from "@tsu-stack/core/text";
 
-import { type Database } from "#@/client";
+import { type Database, type TransactionClient } from "#@/client";
 import {
   createCursorPage,
   DbCursorError,
@@ -21,6 +21,7 @@ import {
   type NamedKeysetCursor,
   parseNamedKeysetCursor
 } from "#@/queries/cursors";
+import { auditEvent } from "#@/schema/audit";
 import { item } from "#@/schema/items";
 import { escapeLikePattern } from "#@/utils/sql";
 
@@ -42,6 +43,12 @@ type UpdateItemDbInput = Omit<UpdateItemInput, "orgSlug"> & OrganizationScopedIn
 type SetItemActiveDbInput = OrganizationScopedInput & {
   id: string;
   isActive: boolean;
+};
+type AuditedMutationInput = {
+  userId: string;
+};
+type GetItemDbInput = OrganizationScopedInput & {
+  id: string;
 };
 type ListItemsDbInput = OrganizationScopedInput & {
   cursor?: string;
@@ -74,7 +81,8 @@ export function toItemInsert(input: CreateItemDbInput) {
 export async function listItems(db: Database, input: ListItemsDbInput): Promise<ListItemsOutput> {
   const limit = clampCursorLimit(input);
   const cursor = input.cursor ? decodeItemCursor(input.cursor) : undefined;
-  const search = input.q ? `%${escapeLikePattern(input.q.trim())}%` : undefined;
+  const trimmedQuery = input.q?.trim();
+  const search = trimmedQuery ? `%${escapeLikePattern(trimmedQuery)}%` : undefined;
   const whereConditions = [
     eq(item.organizationId, input.organizationId),
     input.includeInactive ? undefined : eq(item.isActive, true),
@@ -102,38 +110,132 @@ export async function listItems(db: Database, input: ListItemsDbInput): Promise<
   };
 }
 
-export async function createItem(db: Database, input: CreateItemDbInput): Promise<Item> {
-  try {
-    const [row] = await db.insert(item).values(toItemInsert(input)).returning();
+export async function getItem(db: Database, input: GetItemDbInput): Promise<Item> {
+  const row = await selectItemRow(db, input);
 
-    return toItemDto(row);
+  if (!row) {
+    throw new ItemDbError("ITEM_NOT_FOUND");
+  }
+
+  return toItemDto(row);
+}
+
+export async function createItem(
+  db: Database,
+  input: CreateItemDbInput & AuditedMutationInput
+): Promise<Item> {
+  try {
+    return await db.transaction(async (tx) => {
+      const [row] = await tx.insert(item).values(toItemInsert(input)).returning();
+      await insertItemAuditEvent(tx, {
+        action: "item.created",
+        after: toItemDto(row),
+        entityId: row.id,
+        organizationId: input.organizationId,
+        userId: input.userId
+      });
+
+      return toItemDto(row);
+    });
   } catch (error) {
     throw mapItemDbError(error);
   }
 }
 
-export async function updateItem(db: Database, input: UpdateItemDbInput): Promise<Item> {
-  const { id, organizationId, ...values } = input;
+export async function updateItem(
+  db: Database,
+  input: UpdateItemDbInput & AuditedMutationInput
+): Promise<Item> {
+  const { id, organizationId, userId, ...values } = input;
 
   try {
-    const [row] = await db
-      .update(item)
-      .set(toItemUpdate(values))
-      .where(and(eq(item.id, id), eq(item.organizationId, organizationId)))
-      .returning();
+    return await db.transaction(async (tx) => {
+      const before = await selectItemRow(tx, { id, organizationId });
 
-    if (!row) {
-      throw new ItemDbError("ITEM_NOT_FOUND");
-    }
+      if (!before) {
+        throw new ItemDbError("ITEM_NOT_FOUND");
+      }
 
-    return toItemDto(row);
+      const updateValues = toItemUpdate(values);
+      const hasUpdateValues = Object.values(updateValues).some((value) => value !== undefined);
+
+      if (!hasUpdateValues) {
+        return toItemDto(before);
+      }
+
+      const [row] = await tx
+        .update(item)
+        .set(updateValues)
+        .where(and(eq(item.id, id), eq(item.organizationId, organizationId)))
+        .returning();
+
+      if (!row) {
+        throw new ItemDbError("ITEM_NOT_FOUND");
+      }
+
+      await insertItemAuditEvent(tx, {
+        action:
+          Object.keys(values).length === 1 && values.isActive !== undefined
+            ? values.isActive
+              ? "item.activated"
+              : "item.deactivated"
+            : "item.updated",
+        after: toItemDto(row),
+        before: toItemDto(before),
+        entityId: row.id,
+        organizationId,
+        userId
+      });
+
+      return toItemDto(row);
+    });
   } catch (error) {
     throw mapItemDbError(error);
   }
 }
 
-export async function setItemActive(db: Database, input: SetItemActiveDbInput): Promise<Item> {
+export async function setItemActive(
+  db: Database,
+  input: SetItemActiveDbInput & AuditedMutationInput
+): Promise<Item> {
   return updateItem(db, input);
+}
+
+async function selectItemRow(db: Database | TransactionClient, input: GetItemDbInput) {
+  const [row] = await db
+    .select()
+    .from(item)
+    .where(and(eq(item.id, input.id), eq(item.organizationId, input.organizationId)))
+    .limit(1);
+
+  return row ?? null;
+}
+
+async function insertItemAuditEvent(
+  tx: TransactionClient,
+  input: {
+    action: string;
+    after: Item;
+    before?: Item;
+    entityId: string;
+    organizationId: string;
+    userId: string;
+  }
+) {
+  await tx.insert(auditEvent).values({
+    action: input.action,
+    entityId: input.entityId,
+    entityType: "item",
+    organizationId: input.organizationId,
+    payloadJson: {
+      after: input.after,
+      before: input.before,
+      metadata: { source: "user" }
+    },
+    scopeId: input.entityId,
+    scopeType: "item",
+    userId: input.userId
+  });
 }
 
 function itemUsageCondition(usage: ItemUsage): SQL {

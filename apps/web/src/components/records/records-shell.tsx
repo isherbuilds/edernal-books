@@ -184,6 +184,7 @@ export function RecordFilterPills({
           onClick={() => onRemove(pill.key)}
           type="button"
         >
+          <span className="sr-only">Remove filter: </span>
           {pill.label}
           <XIcon className="size-3 text-muted-foreground transition-colors group-hover:text-foreground" />
         </button>

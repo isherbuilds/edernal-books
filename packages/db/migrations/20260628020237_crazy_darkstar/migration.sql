@@ -50,17 +50,6 @@ CREATE TABLE "currency" (
 	"symbol" text NOT NULL
 );
 --> statement-breakpoint
-INSERT INTO "currency" ("active", "code", "decimal_places", "name", "symbol") VALUES
-	(true, 'INR', 2, 'Indian Rupee', '₹'),
-	(true, 'USD', 2, 'US Dollar', '$'),
-	(true, 'EUR', 2, 'Euro', '€'),
-	(true, 'GBP', 2, 'Pound Sterling', '£')
-ON CONFLICT ("code") DO UPDATE SET
-	"active" = excluded."active",
-	"decimal_places" = excluded."decimal_places",
-	"name" = excluded."name",
-	"symbol" = excluded."symbol";
---> statement-breakpoint
 CREATE TABLE "exchange_rate" (
 	"base_currency_code" text,
 	"created_at" timestamp DEFAULT now() NOT NULL,
@@ -96,6 +85,31 @@ CREATE TABLE "invitation" (
 	"expires_at" timestamp NOT NULL,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"inviter_id" text NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "item" (
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"description" text,
+	"expense_account_id" uuid,
+	"hsn_code" text,
+	"id" uuid PRIMARY KEY,
+	"is_active" boolean DEFAULT true NOT NULL,
+	"kind" text NOT NULL,
+	"name" text NOT NULL,
+	"normalized_name" text NOT NULL,
+	"organization_id" text NOT NULL,
+	"purchase_rate_minor" bigint,
+	"sales_account_id" uuid,
+	"sales_rate_minor" bigint,
+	"unit" text,
+	"updated_at" timestamp DEFAULT now() NOT NULL,
+	"usage" text NOT NULL,
+	CONSTRAINT "item_kind_ck" CHECK ("kind" IN ('goods', 'service')),
+	CONSTRAINT "item_usage_ck" CHECK ("usage" IN ('sales', 'purchases', 'both')),
+	CONSTRAINT "item_name_not_blank_ck" CHECK (length(trim("name")) > 0),
+	CONSTRAINT "item_normalized_name_not_blank_ck" CHECK (length(trim("normalized_name")) > 0),
+	CONSTRAINT "item_sales_rate_minor_non_negative_ck" CHECK ("sales_rate_minor" IS NULL OR "sales_rate_minor" >= 0),
+	CONSTRAINT "item_purchase_rate_minor_non_negative_ck" CHECK ("purchase_rate_minor" IS NULL OR "purchase_rate_minor" >= 0)
 );
 --> statement-breakpoint
 CREATE TABLE "journal_entry" (
@@ -223,6 +237,36 @@ CREATE TABLE "outbox_event" (
 	CONSTRAINT "outbox_event_retry_count_ck" CHECK ("retry_count" >= 0)
 );
 --> statement-breakpoint
+CREATE TABLE "party" (
+	"address_line1" text,
+	"address_line2" text,
+	"city" text,
+	"country_code" text,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"display_name" text NOT NULL,
+	"email" text,
+	"gst_registration_type" text DEFAULT 'unregistered' NOT NULL,
+	"gstin" text,
+	"id" uuid PRIMARY KEY,
+	"is_active" boolean DEFAULT true NOT NULL,
+	"kind" text NOT NULL,
+	"legal_name" text,
+	"normalized_name" text NOT NULL,
+	"organization_id" text NOT NULL,
+	"pan" text,
+	"phone" text,
+	"postal_code" text,
+	"state" text,
+	"updated_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "party_kind_ck" CHECK ("kind" IN ('customer', 'vendor', 'both')),
+	CONSTRAINT "party_gst_registration_type_ck" CHECK ("gst_registration_type" IN ('registered_regular', 'registered_composition', 'unregistered', 'consumer')),
+	CONSTRAINT "party_country_code_ck" CHECK ("country_code" is null or "country_code" ~ '^[A-Z]{2}$'),
+	CONSTRAINT "party_gstin_ck" CHECK ("gstin" is null or "gstin" ~ '^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$'),
+	CONSTRAINT "party_pan_ck" CHECK ("pan" is null or "pan" ~ '^[A-Z]{5}[0-9]{4}[A-Z]$'),
+	CONSTRAINT "party_display_name_not_blank_ck" CHECK (length(trim("display_name")) > 0),
+	CONSTRAINT "party_normalized_name_not_blank_ck" CHECK (length(trim("normalized_name")) > 0)
+);
+--> statement-breakpoint
 CREATE TABLE "session" (
 	"id" text PRIMARY KEY,
 	"expires_at" timestamp NOT NULL,
@@ -273,6 +317,13 @@ CREATE UNIQUE INDEX "fiscal_year_organization_id_start_date_uidx" ON "fiscal_yea
 CREATE INDEX "fiscal_year_organization_id_idx" ON "fiscal_year" ("organization_id");--> statement-breakpoint
 CREATE INDEX "invitation_organizationId_idx" ON "invitation" ("organization_id");--> statement-breakpoint
 CREATE INDEX "invitation_email_idx" ON "invitation" ("email");--> statement-breakpoint
+CREATE UNIQUE INDEX "item_organization_id_id_uidx" ON "item" ("organization_id","id");--> statement-breakpoint
+CREATE UNIQUE INDEX "item_organization_id_normalized_name_uidx" ON "item" ("organization_id","normalized_name") WHERE is_active;--> statement-breakpoint
+CREATE INDEX "item_organization_id_normalized_name_id_idx" ON "item" ("organization_id","normalized_name","id");--> statement-breakpoint
+CREATE INDEX "item_organization_id_idx" ON "item" ("organization_id");--> statement-breakpoint
+CREATE INDEX "item_organization_id_kind_idx" ON "item" ("organization_id","kind");--> statement-breakpoint
+CREATE INDEX "item_organization_id_usage_idx" ON "item" ("organization_id","usage");--> statement-breakpoint
+CREATE INDEX "item_organization_id_active_idx" ON "item" ("organization_id","is_active");--> statement-breakpoint
 CREATE UNIQUE INDEX "journal_entry_organization_id_id_uidx" ON "journal_entry" ("organization_id","id");--> statement-breakpoint
 CREATE UNIQUE INDEX "journal_entry_organization_id_operation_key_uidx" ON "journal_entry" ("organization_id","operation_key");--> statement-breakpoint
 CREATE UNIQUE INDEX "journal_entry_organization_id_entry_number_uidx" ON "journal_entry" ("organization_id","entry_number");--> statement-breakpoint
@@ -295,6 +346,12 @@ CREATE INDEX "number_sequence_organization_id_idx" ON "number_sequence" ("organi
 CREATE UNIQUE INDEX "organization_slug_uidx" ON "organization" ("slug");--> statement-breakpoint
 CREATE INDEX "outbox_event_organization_id_idx" ON "outbox_event" ("organization_id");--> statement-breakpoint
 CREATE INDEX "outbox_event_status_available_at_idx" ON "outbox_event" ("status","available_at");--> statement-breakpoint
+CREATE UNIQUE INDEX "party_organization_id_id_uidx" ON "party" ("organization_id","id");--> statement-breakpoint
+CREATE UNIQUE INDEX "party_organization_id_normalized_name_uidx" ON "party" ("organization_id","normalized_name") WHERE is_active;--> statement-breakpoint
+CREATE INDEX "party_organization_id_normalized_name_id_idx" ON "party" ("organization_id","normalized_name","id");--> statement-breakpoint
+CREATE INDEX "party_organization_id_idx" ON "party" ("organization_id");--> statement-breakpoint
+CREATE INDEX "party_organization_id_kind_idx" ON "party" ("organization_id","kind");--> statement-breakpoint
+CREATE INDEX "party_organization_id_active_idx" ON "party" ("organization_id","is_active");--> statement-breakpoint
 CREATE INDEX "session_userId_idx" ON "session" ("user_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "source_document_organization_id_id_uidx" ON "source_document" ("organization_id","id");--> statement-breakpoint
 CREATE UNIQUE INDEX "source_document_organization_id_type_number_uidx" ON "source_document" ("organization_id","type","document_number") WHERE "document_number" IS NOT NULL;--> statement-breakpoint
@@ -312,6 +369,9 @@ ALTER TABLE "fiscal_year" ADD CONSTRAINT "fiscal_year_closed_by_user_id_fkey" FO
 ALTER TABLE "fiscal_year" ADD CONSTRAINT "fiscal_year_organization_id_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organization"("id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "invitation" ADD CONSTRAINT "invitation_organization_id_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organization"("id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "invitation" ADD CONSTRAINT "invitation_inviter_id_user_id_fkey" FOREIGN KEY ("inviter_id") REFERENCES "user"("id") ON DELETE CASCADE;--> statement-breakpoint
+ALTER TABLE "item" ADD CONSTRAINT "item_organization_id_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organization"("id") ON DELETE CASCADE;--> statement-breakpoint
+ALTER TABLE "item" ADD CONSTRAINT "item_organization_id_sales_account_id_fkey" FOREIGN KEY ("organization_id","sales_account_id") REFERENCES "ledger_account"("organization_id","id") ON DELETE RESTRICT;--> statement-breakpoint
+ALTER TABLE "item" ADD CONSTRAINT "item_organization_id_expense_account_id_fkey" FOREIGN KEY ("organization_id","expense_account_id") REFERENCES "ledger_account"("organization_id","id") ON DELETE RESTRICT;--> statement-breakpoint
 ALTER TABLE "journal_entry" ADD CONSTRAINT "journal_entry_organization_id_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organization"("id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "journal_entry" ADD CONSTRAINT "journal_entry_posted_by_user_id_fkey" FOREIGN KEY ("posted_by") REFERENCES "user"("id") ON DELETE SET NULL;--> statement-breakpoint
 ALTER TABLE "journal_entry" ADD CONSTRAINT "journal_entry_organization_id_accounting_period_id_fkey" FOREIGN KEY ("organization_id","accounting_period_id") REFERENCES "accounting_period"("organization_id","id") ON DELETE RESTRICT;--> statement-breakpoint
@@ -329,5 +389,6 @@ ALTER TABLE "number_sequence" ADD CONSTRAINT "number_sequence_organization_id_fi
 ALTER TABLE "organization_setting" ADD CONSTRAINT "organization_setting_base_currency_code_currency_code_fkey" FOREIGN KEY ("base_currency_code") REFERENCES "currency"("code");--> statement-breakpoint
 ALTER TABLE "organization_setting" ADD CONSTRAINT "organization_setting_organization_id_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organization"("id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "outbox_event" ADD CONSTRAINT "outbox_event_organization_id_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organization"("id") ON DELETE CASCADE;--> statement-breakpoint
+ALTER TABLE "party" ADD CONSTRAINT "party_organization_id_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organization"("id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "session" ADD CONSTRAINT "session_user_id_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "user"("id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "source_document" ADD CONSTRAINT "source_document_organization_id_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organization"("id") ON DELETE CASCADE;
