@@ -1,14 +1,10 @@
 import { useParams } from "@tanstack/react-router";
 import {
   CirclePlusIcon,
-  LandmarkIcon,
   LayoutDashboardIcon,
   MailIcon,
   NotebookTabsIcon,
-  ReceiptTextIcon,
-  Settings2Icon,
-  UsersIcon,
-  WalletCardsIcon
+  Settings2Icon
 } from "lucide-react";
 import { type ReactNode } from "react";
 
@@ -90,12 +86,11 @@ type MainNavigationItem = {
 };
 
 function getMainNavigation(orgSlug: string, showAccounting: boolean): MainNavigationItem[] {
-  const dashboardLink = getOrgAppLink(orgSlug, "/$orgSlug");
   const items: MainNavigationItem[] = [
     {
       key: "dashboard",
       title: m.navbar__dashboard(),
-      link: dashboardLink,
+      link: getOrgAppLink(orgSlug, "/$orgSlug"),
       icon: <LayoutDashboardIcon />
     },
     {
@@ -114,33 +109,6 @@ function getMainNavigation(orgSlug: string, showAccounting: boolean): MainNaviga
       icon: <NotebookTabsIcon />
     });
   }
-
-  items.push(
-    {
-      key: "invoices",
-      title: m.app_shell__invoices(),
-      link: dashboardLink,
-      icon: <ReceiptTextIcon />
-    },
-    {
-      key: "banking",
-      title: m.app_shell__banking(),
-      link: dashboardLink,
-      icon: <LandmarkIcon />
-    },
-    {
-      key: "expenses",
-      title: m.app_shell__expenses(),
-      link: dashboardLink,
-      icon: <WalletCardsIcon />
-    },
-    {
-      key: "customers",
-      title: m.app_shell__customers(),
-      link: dashboardLink,
-      icon: <UsersIcon />
-    }
-  );
 
   return items;
 }

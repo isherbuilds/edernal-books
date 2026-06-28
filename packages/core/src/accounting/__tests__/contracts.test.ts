@@ -181,6 +181,25 @@ describe("accounting contracts", () => {
     ).toBe(false);
   });
 
+  it("defaults the general ledger to a report-sized page and caps it at 200", () => {
+    expect(
+      GeneralLedgerInputSchema.parse({
+        accountId: "018ff8d9-ae36-7d5b-8f21-8687bde90001",
+        orgSlug: "demo"
+      })
+    ).toMatchObject({
+      limit: 100
+    });
+
+    expect(
+      GeneralLedgerInputSchema.safeParse({
+        accountId: "018ff8d9-ae36-7d5b-8f21-8687bde90001",
+        limit: 201,
+        orgSlug: "demo"
+      }).success
+    ).toBe(false);
+  });
+
   it("rejects report date ranges with fromDate after toDate", () => {
     expect(
       GeneralLedgerInputSchema.safeParse({

@@ -11,13 +11,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from "@tsu-stack/ui/components/dropdown-menu";
-import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle
-} from "@tsu-stack/ui/components/empty";
 import { Input } from "@tsu-stack/ui/components/input";
 import {
   Sheet,
@@ -28,14 +21,6 @@ import {
   SheetTitle
 } from "@tsu-stack/ui/components/sheet";
 import { Spinner } from "@tsu-stack/ui/components/spinner";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from "@tsu-stack/ui/components/table";
 
 import { formatMinorUnits, getTodayDateString } from "@/utils/accounting-format";
 
@@ -46,6 +31,9 @@ import {
 } from "@/hooks/use-accounting";
 
 import { JournalEntryForm } from "@/components/accounting/journal-entry-form";
+import { type DataColumn, DataTable, DataTableContainer } from "@/components/data-table";
+import { EmptyState, PageHeader, PageLayout } from "@/components/page-layout";
+import { QueryState } from "@/components/query-state";
 
 type JournalEntriesPageProps = {
   orgSlug: string;
@@ -73,111 +61,121 @@ export function JournalEntriesPage({ orgSlug }: JournalEntriesPageProps) {
   const entries = entriesQuery.data?.entries ?? [];
   const reversingEntry = entries.find((entry) => entry.id === reversingEntryId);
 
-  return (
-    <main className="flex min-h-screen flex-col gap-4 bg-background p-4 sm:p-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-            <Rows3Icon className="size-4" />
-            Accounting
-          </div>
-          <h1 className="text-2xl font-semibold tracking-normal">Journal entries</h1>
-          <p className="max-w-2xl text-sm text-muted-foreground">
-            Post balanced journals and reverse posted entries.
-          </p>
-        </div>
+  const columns: DataColumn<(typeof entries)[number]>[] = [
+    {
+      cell: (entry) => entry.postingDate,
+      cellClassName: "tabular-nums",
+      header: "Date",
+      id: "date"
+    },
+    {
+      cell: (entry) => entry.entryNumber,
+      cellClassName: "font-medium",
+      header: "Number",
+      id: "number"
+    },
+    {
+      cell: (entry) => entry.description ?? "No description",
+      header: "Description",
+      id: "description"
+    },
+    {
+      align: "right",
+      cell: (entry) => formatMinorUnits(entry.totalMinor),
+      cellClassName: "font-amount tabular-nums",
+      header: "Amount",
+      id: "amount"
+    },
+    {
+      cell: (entry) =>
+        entry.reversalOfEntryId ? (
+          <Badge variant="outline">Reversal</Badge>
+        ) : (
+          <Badge variant="secondary">Posted</Badge>
+        ),
+      header: "State",
+      id: "state"
+    },
+    {
+      align: "right",
+      cell: (entry) => (
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            render={<Button aria-label="Journal actions" size="icon-sm" variant="ghost" />}
+          >
+            <MoreHorizontalIcon className="size-4" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem
+              disabled={Boolean(entry.reversalOfEntryId)}
+              onClick={() => {
+                setReversalReason("");
+                setReversingEntryId(entry.id);
+              }}
+            >
+              <RotateCcwIcon />
+              Reverse
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ),
+      header: <span className="sr-only">Actions</span>,
+      headClassName: "w-12",
+      id: "actions",
+      stopRowClick: true
+    }
+  ];
 
-        <div className="flex flex-wrap gap-2">
-          <Button onClick={() => setEntryMode("opening-balance")} type="button" variant="outline">
-            Opening balances
-          </Button>
-          <Button onClick={() => setEntryMode("manual")} type="button">
-            <PlusIcon data-icon="inline-start" />
-            New journal
-          </Button>
-        </div>
-      </div>
+  return (
+    <PageLayout>
+      <PageHeader
+        actions={
+          <>
+            <Button onClick={() => setEntryMode("opening-balance")} type="button" variant="outline">
+              Opening balances
+            </Button>
+            <Button onClick={() => setEntryMode("manual")} type="button">
+              <PlusIcon data-icon="inline-start" />
+              New journal
+            </Button>
+          </>
+        }
+        description="Post balanced journals and reverse posted entries. Posted entries are immutable — correct them with a reversal."
+        eyebrow="Accounting"
+        icon={<Rows3Icon className="size-4" />}
+        title="Journal entries"
+      />
 
       {message ? (
-        <div className="border bg-card px-3 py-2 text-sm text-muted-foreground">{message}</div>
+        <div className="rounded-lg border bg-card px-3 py-2 text-sm text-muted-foreground">
+          {message}
+        </div>
       ) : null}
 
-      {entriesQuery.isLoading ? (
-        <div className="flex min-h-72 items-center justify-center border">
-          <Spinner />
-        </div>
-      ) : entriesQuery.isError ? (
-        <ErrorBlock error={entriesQuery.error} title="Could not load journals" />
-      ) : entries.length === 0 ? (
-        <Empty className="min-h-72 border">
-          <EmptyHeader>
-            <EmptyMedia variant="icon">
-              <Rows3Icon />
-            </EmptyMedia>
-            <EmptyTitle>No journal entries</EmptyTitle>
-            <EmptyDescription>Post a manual or opening-balance journal.</EmptyDescription>
-          </EmptyHeader>
-        </Empty>
-      ) : (
-        <div className="overflow-x-auto border bg-background">
-          <Table className="min-w-[920px]">
-            <TableHeader>
-              <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Number</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
-                <TableHead>State</TableHead>
-                <TableHead className="w-12">
-                  <span className="sr-only">Actions</span>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {entries.map((entry) => (
-                <TableRow key={entry.id}>
-                  <TableCell className="tabular-nums">{entry.postingDate}</TableCell>
-                  <TableCell className="font-medium">{entry.entryNumber}</TableCell>
-                  <TableCell>{entry.description ?? "No description"}</TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {formatMinorUnits(entry.totalMinor)}
-                  </TableCell>
-                  <TableCell>
-                    {entry.reversalOfEntryId ? (
-                      <Badge variant="outline">Reversal</Badge>
-                    ) : (
-                      <Badge variant="secondary">Posted</Badge>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger
-                        render={
-                          <Button aria-label="Journal actions" size="icon-sm" variant="ghost" />
-                        }
-                      >
-                        <MoreHorizontalIcon />
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          disabled={Boolean(entry.reversalOfEntryId)}
-                          onClick={() => {
-                            setReversalReason("");
-                            setReversingEntryId(entry.id);
-                          }}
-                        >
-                          <RotateCcwIcon />
-                          Reverse
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      )}
+      <QueryState
+        empty={
+          <EmptyState
+            description="Post a manual or opening-balance journal."
+            icon={<Rows3Icon className="size-5" />}
+            title="No journal entries"
+          />
+        }
+        error={entriesQuery.error}
+        errorFallback="Accounting request failed."
+        errorTitle="Could not load journals"
+        isEmpty={entries.length === 0}
+        isError={entriesQuery.isError}
+        isLoading={entriesQuery.isLoading}
+      >
+        <DataTableContainer>
+          <DataTable
+            columns={columns}
+            getRowId={(entry) => entry.id}
+            minWidthClassName="min-w-[920px]"
+            rows={entries}
+          />
+        </DataTableContainer>
+      </QueryState>
 
       <Sheet
         open={entryMode !== null}
@@ -268,7 +266,7 @@ export function JournalEntriesPage({ orgSlug }: JournalEntriesPageProps) {
           </form>
         </SheetContent>
       </Sheet>
-    </main>
+    </PageLayout>
   );
 
   function submitReversal(event: FormEvent<HTMLFormElement>) {
@@ -309,7 +307,7 @@ export function JournalEntriesPage({ orgSlug }: JournalEntriesPageProps) {
 
 function ErrorBlock({ error, title }: { error: unknown; title: string }) {
   return (
-    <div className="border border-destructive/30 bg-destructive/5 p-4">
+    <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4">
       <h2 className="text-sm font-medium text-destructive">{title}</h2>
       <p className="mt-1 text-sm text-muted-foreground">
         {error instanceof Error ? error.message : "Accounting request failed."}

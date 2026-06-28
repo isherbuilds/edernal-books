@@ -7,6 +7,7 @@ import { ENV_SERVER } from "@tsu-stack/env/server/env";
 import { createLogger } from "@tsu-stack/logger/server";
 
 import { db } from "#@/client";
+import { seedSupportedCurrencies } from "#@/queries/currency";
 
 let migrationFnCalled = false;
 const MIGRATION_MAX_ATTEMPTS = 3;
@@ -50,6 +51,10 @@ export async function migrateDatabase(): Promise<void> {
       await migrate(db, {
         migrationsFolder: join(import.meta.dirname, "../migrations")
       });
+      // Reference currencies back the organization_setting.base_currency_code FK but are not
+      // emitted by Drizzle schema generation. Seed them (idempotent upsert) so the first
+      // onboarding write does not fail with a foreign-key violation on a migrate-only deploy.
+      await seedSupportedCurrencies(db);
       log.emit({ attempt, event: "database_migration_completed" });
       return;
     } catch (error) {

@@ -4,6 +4,7 @@ import { type FormEvent, useState } from "react";
 import { type LedgerAccountListItem } from "@tsu-stack/core/accounting";
 import { Button } from "@tsu-stack/ui/components/button";
 import { Checkbox } from "@tsu-stack/ui/components/checkbox";
+import { Combobox } from "@tsu-stack/ui/components/combobox";
 import {
   Field,
   FieldContent,
@@ -16,7 +17,10 @@ import { Separator } from "@tsu-stack/ui/components/separator";
 
 import { getTodayDateString, parseDecimalAmountToMinorUnits } from "@/utils/accounting-format";
 
-import { AccountSearchSelect } from "@/components/accounting/account-search-select";
+import {
+  renderAccountComboboxOption,
+  toAccountComboboxOption
+} from "@/components/accounting/account-search-select";
 
 type JournalLineFormValue = {
   accountId: string;
@@ -70,6 +74,7 @@ export function JournalEntryForm({ accounts, mode, onSubmit, pending }: JournalE
       account.allowManualPosting &&
       (account.systemKey !== "opening_balance_difference" || canUseDifferenceAccount)
   );
+  const postableAccountOptions = postableAccounts.map(toAccountComboboxOption);
   const usesDifferenceAccount = Boolean(
     differenceAccount && lines.some((line) => line.accountId === differenceAccount.id)
   );
@@ -198,12 +203,20 @@ export function JournalEntryForm({ accounts, mode, onSubmit, pending }: JournalE
               className="grid min-w-[720px] grid-cols-[minmax(180px,1.4fr)_110px_110px_minmax(160px,1fr)_40px] gap-2 border-b px-3 py-2 last:border-b-0"
               key={line.id}
             >
-              <AccountSearchSelect
-                accounts={postableAccounts}
-                aria-label={`Line ${index + 1} account`}
-                onValueChange={(accountId) => updateLine(index, { accountId })}
-                value={line.accountId}
-              />
+              <div>
+                <label className="sr-only" htmlFor={`${mode}-line-${index}-account`}>
+                  {`Line ${index + 1} account`}
+                </label>
+                <Combobox
+                  emptyText="No accounts found."
+                  id={`${mode}-line-${index}-account`}
+                  items={postableAccountOptions}
+                  onValueChange={(accountId) => updateLine(index, { accountId: accountId ?? "" })}
+                  placeholder="Search account"
+                  renderItem={renderAccountComboboxOption}
+                  value={line.accountId || null}
+                />
+              </div>
               <Input
                 aria-label={`Line ${index + 1} debit`}
                 inputMode="decimal"

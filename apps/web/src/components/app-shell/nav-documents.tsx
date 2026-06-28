@@ -1,5 +1,12 @@
 import { useParams } from "@tanstack/react-router";
-import { DatabaseIcon, FileChartColumnIcon, FileTextIcon, FolderIcon } from "lucide-react";
+import {
+  BoxesIcon,
+  DatabaseIcon,
+  FileChartColumnIcon,
+  FileTextIcon,
+  FolderIcon,
+  UserRoundIcon
+} from "lucide-react";
 import { type ReactNode } from "react";
 
 import { m } from "@tsu-stack/i18n/messages";
@@ -54,6 +61,18 @@ function getDocuments(orgSlug: string): {
   name: string;
 }[] {
   return [
+    {
+      id: "parties",
+      link: getOrgAppLink(orgSlug, "/$orgSlug/records/parties"),
+      name: m.app_shell__parties(),
+      icon: <UserRoundIcon />
+    },
+    {
+      id: "items",
+      link: getOrgAppLink(orgSlug, "/$orgSlug/records/items"),
+      name: m.app_shell__items(),
+      icon: <BoxesIcon />
+    },
     {
       id: "journal-register",
       link: getOrgAppLink(orgSlug, "/$orgSlug/accounting/journal-entries"),

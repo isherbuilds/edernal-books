@@ -21,6 +21,11 @@ Common commands:
 - `vp run -w fix` - workspace fix after cross-package/root changes
 - `vp run build` - build all packages
 
+## Git Discipline
+
+- Do not commit changes unless the user explicitly says to commit the changes.
+- Staging is allowed only when the user asks for it or it is needed for an explicitly requested commit.
+
 Start with the smallest relevant doc set. Open the most specific `.agents/*.md` file first, then follow links only when the task crosses into another concern.
 
 Public orientation starts at [README.md](README.md). Documentation map starts at [docs/README.md](docs/README.md). Architecture map starts at [docs/architecture.md](docs/architecture.md).
@@ -36,7 +41,7 @@ Public orientation starts at [README.md](README.md). Documentation map starts at
 
 ## Task Entry Points
 
-- UI work: [UI guidelines](.agents/ui.md). Add [Form patterns](.agents/forms.md) for forms, validation, field rerenders, or submit behavior. Add [TanStack patterns](.agents/tanstack-patterns.md) for routes/loaders/page composition. Add [Zustand state management](.agents/zustand.md) only for durable client-owned state shared across components.
+- UI work: [UI guidelines](.agents/ui.md) and [Design system](.agents/design-system.md) (page composition, shared layout/table primitives, read-states, money/visual standards). Add [Form patterns](.agents/forms.md) for forms, validation, field rerenders, or submit behavior. Add [TanStack patterns](.agents/tanstack-patterns.md) for routes/loaders/page composition. Add [Zustand state management](.agents/zustand.md) only for durable client-owned state shared across components.
 - Shared client state: prefer local state, props, or component injection first. Use [Zustand state management](.agents/zustand.md) when state is client-owned, durable, and read or updated by different components.
 - Bugfix: start with the owning domain doc, then [Workflow](.agents/workflow.md). Add [Testing](.agents/testing.md) for regression coverage and [Core package patterns](.agents/core.md) when shared contracts change.
 - Documentation work: start with [Documentation style guide](docs/documentation-style-guide.md). For accounting docs, read [Accounting planning hub](docs/superpowers/README.md).
@@ -45,6 +50,7 @@ Public orientation starts at [README.md](README.md). Documentation map starts at
 
 ## Domain Docs
 
+- [Design system](.agents/design-system.md): page composition, shared layout/table primitives (`PageLayout`, `PageHeader`, `DataTable`, `QueryState`), read-states, money rendering, theme tokens.
 - [TanStack patterns](.agents/tanstack-patterns.md): route structure, `beforeLoad`, layouts, route-level preloading, TanStack docs lookup.
 - [API fetching patterns](.agents/api-fetching-patterns.md): slice-local TanStack Query and oRPC client wrappers in `apps/web`.
 - [Form patterns](.agents/forms.md): React Hook Form, Zod v4, mutation submit behavior, accounting form shape.

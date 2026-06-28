@@ -29,6 +29,7 @@ import {
   reverseJournalEntry
 } from "@tsu-stack/db/queries";
 
+import { throwMappedDbError } from "#@/lib/db-error";
 import { organizationPermissionProcedure } from "#@/lib/procedures/factory";
 
 const accountingErrorDataSchema = z.object({
@@ -37,7 +38,7 @@ const accountingErrorDataSchema = z.object({
 
 type AccountingErrorDefinition = {
   data: typeof accountingErrorDataSchema;
-  status: 404 | 409 | 422;
+  status: 400 | 404 | 409 | 422;
 };
 
 const accountingErrors = Object.fromEntries(
@@ -109,9 +110,9 @@ export const accountingRouter = {
       })
       .errors(accountingErrors)
       .output(PostedJournalEntrySchema)
-      .handler(async ({ context, errors, input }) =>
-        catchAccountingDbError(errors, () =>
-          postJournalEntry(context.db, {
+      .handler(async ({ context, errors, input }) => {
+        try {
+          return await postJournalEntry(context.db, {
             description: input.description,
             lines: input.lines.map((line) => {
               return {
@@ -125,9 +126,11 @@ export const accountingRouter = {
             organizationId: context.organizationId,
             postingDate: input.postingDate,
             userId: context.authSession.user.id
-          })
-        )
-      ),
+          });
+        } catch (error) {
+          throwAccountingDbError(errors, error);
+        }
+      }),
     reverse: organizationPermissionProcedure(ReverseJournalEntryInputSchema, canAccessAccounting)
       .route({
         description: "Post a reversing journal entry transactionally",
@@ -135,18 +138,20 @@ export const accountingRouter = {
       })
       .errors(accountingErrors)
       .output(PostedJournalEntrySchema)
-      .handler(async ({ context, errors, input }) =>
-        catchAccountingDbError(errors, () =>
-          reverseJournalEntry(context.db, {
+      .handler(async ({ context, errors, input }) => {
+        try {
+          return await reverseJournalEntry(context.db, {
             description: input.description,
             journalEntryId: input.journalEntryId,
             operationKey: input.operationKey,
             organizationId: context.organizationId,
             postingDate: input.postingDate,
             userId: context.authSession.user.id
-          })
-        )
-      )
+          });
+        } catch (error) {
+          throwAccountingDbError(errors, error);
+        }
+      })
   },
   reports: {
     generalLedger: organizationPermissionProcedure(GeneralLedgerInputSchema, canAccessAccounting)
@@ -156,9 +161,11 @@ export const accountingRouter = {
       })
       .errors(accountingErrors)
       .output(GeneralLedgerOutputSchema)
-      .handler(async ({ context, errors, input }) =>
-        catchAccountingDbError(errors, async () => {
-          const report = await getGeneralLedger(context.db, {
+      .handler(async ({ context, errors, input }) => {
+        let report: Awaited<ReturnType<typeof getGeneralLedger>>;
+
+        try {
+          report = await getGeneralLedger(context.db, {
             accountId: input.accountId,
             cursor: input.cursor,
             fromDate: input.fromDate,
@@ -166,30 +173,32 @@ export const accountingRouter = {
             organizationId: context.organizationId,
             toDate: input.toDate
           });
+        } catch (error) {
+          throwAccountingDbError(errors, error);
+        }
 
-          return {
-            closingBalanceMinor: report.closingBalanceMinor.toString(),
-            lines: report.lines.map((line) => {
-              return {
-                accountCode: line.accountCode,
-                accountId: line.accountId,
-                accountName: line.accountName,
-                creditMinor: line.creditMinor.toString(),
-                debitMinor: line.debitMinor.toString(),
-                description: line.description,
-                entryNumber: line.entryNumber,
-                journalEntryId: line.journalEntryId,
-                lineNumber: line.lineNumber,
-                normalBalance: line.normalBalance,
-                postingDate: line.postingDate,
-                runningBalanceMinor: line.runningBalanceMinor.toString()
-              };
-            }),
-            nextCursor: report.nextCursor,
-            openingBalanceMinor: report.openingBalanceMinor.toString()
-          };
-        })
-      ),
+        return {
+          closingBalanceMinor: report.closingBalanceMinor.toString(),
+          lines: report.lines.map((line) => {
+            return {
+              accountCode: line.accountCode,
+              accountId: line.accountId,
+              accountName: line.accountName,
+              creditMinor: line.creditMinor.toString(),
+              debitMinor: line.debitMinor.toString(),
+              description: line.description,
+              entryNumber: line.entryNumber,
+              journalEntryId: line.journalEntryId,
+              lineNumber: line.lineNumber,
+              normalBalance: line.normalBalance,
+              postingDate: line.postingDate,
+              runningBalanceMinor: line.runningBalanceMinor.toString()
+            };
+          }),
+          nextCursor: report.nextCursor,
+          openingBalanceMinor: report.openingBalanceMinor.toString()
+        };
+      }),
     trialBalance: organizationPermissionProcedure(TrialBalanceInputSchema, canAccessAccounting)
       .route({
         description: "Read an organization-scoped trial balance from posted lines",
@@ -223,23 +232,14 @@ export const accountingRouter = {
   }
 };
 
-async function catchAccountingDbError<T>(
-  errors: AccountingErrorFactories,
-  action: () => Promise<T>
-): Promise<T> {
-  try {
-    return await action();
-  } catch (error) {
-    if (error instanceof AccountingDbError) {
-      throw errors[error.code]({ data: { code: error.code } });
-    }
-
-    throw error;
-  }
+function throwAccountingDbError(errors: AccountingErrorFactories, error: unknown): never {
+  throwMappedDbError(errors, error, AccountingDbError);
 }
 
-function statusForAccountingError(code: AccountingErrorCode): 404 | 409 | 422 {
+function statusForAccountingError(code: AccountingErrorCode): 400 | 404 | 409 | 422 {
   switch (code) {
+    case "GENERAL_LEDGER_CURSOR_INVALID":
+      return 400;
     case "ACCOUNTING_PERIOD_NOT_FOUND":
     case "JOURNAL_ENTRY_NOT_FOUND":
       return 404;
@@ -251,7 +251,6 @@ function statusForAccountingError(code: AccountingErrorCode): 404 | 409 | 422 {
     case "NUMBER_SEQUENCE_NOT_FOUND":
       return 409;
     case "FISCAL_YEAR_DATE_RANGE_INVALID":
-    case "GENERAL_LEDGER_CURSOR_INVALID":
     case "JOURNAL_ENTRY_NEEDS_TWO_LINES":
     case "JOURNAL_ENTRY_NOT_BALANCED":
     case "JOURNAL_ENTRY_LINE_ACCOUNT_NOT_POSTABLE":

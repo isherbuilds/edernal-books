@@ -85,8 +85,10 @@ export const organizationsRouter = {
         tradeName: input.tradeName
       };
 
-      const completedAt = await catchOrganizationSettingDbError(errors, () =>
-        context.db.transaction(async (tx) => {
+      let completedAt: Date;
+
+      try {
+        completedAt = await context.db.transaction(async (tx) => {
           const completion = await markOrganizationOnboardingCompleted(tx, {
             completedAt: requestedCompletedAt,
             organizationId: context.organizationId
@@ -111,8 +113,10 @@ export const organizationsRouter = {
           });
 
           return completion.completedAt;
-        })
-      );
+        });
+      } catch (error) {
+        throwOrganizationSettingDbError(errors, error);
+      }
 
       return {
         ok: true,
@@ -184,16 +188,18 @@ export const organizationsRouter = {
           tradeName: input.tradeName
         };
 
-        await catchOrganizationSettingDbError(errors, () =>
-          context.db.transaction(async (tx) => {
+        try {
+          await context.db.transaction(async (tx) => {
             await upsertOrganizationSetting(tx, settingInput);
             await logOrganizationSettingAudit(tx, {
               ...settingInput,
               source: "user",
               userId: context.authSession.user.id
             });
-          })
-        );
+          });
+        } catch (error) {
+          throwOrganizationSettingDbError(errors, error);
+        }
 
         return {
           ok: true,
@@ -203,19 +209,15 @@ export const organizationsRouter = {
   }
 };
 
-async function catchOrganizationSettingDbError<T>(
+function throwOrganizationSettingDbError(
   errors: OrganizationSettingErrorFactories,
-  action: () => Promise<T>
-): Promise<T> {
-  try {
-    return await action();
-  } catch (error) {
-    if (error instanceof OrganizationSettingDbError) {
-      throw errors.ACCOUNTING_FOUNDATION_SETTINGS_LOCKED({
-        data: { code: "ACCOUNTING_FOUNDATION_SETTINGS_LOCKED" }
-      });
-    }
-
-    throw error;
+  error: unknown
+): never {
+  if (error instanceof OrganizationSettingDbError) {
+    throw errors.ACCOUNTING_FOUNDATION_SETTINGS_LOCKED({
+      data: { code: "ACCOUNTING_FOUNDATION_SETTINGS_LOCKED" }
+    });
   }
+
+  throw error;
 }

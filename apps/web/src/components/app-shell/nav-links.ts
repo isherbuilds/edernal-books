@@ -24,6 +24,8 @@ export const navLinks: NavbarLink[] = [
 export type OrgAppLinkTo =
   | "/$orgSlug"
   | "/$orgSlug/accounting/journal-entries"
+  | "/$orgSlug/records/items"
+  | "/$orgSlug/records/parties"
   | "/$orgSlug/reports/general-ledger"
   | "/$orgSlug/reports/trial-balance"
   | "/$orgSlug/settings/accounting-periods"

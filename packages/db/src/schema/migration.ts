@@ -10,7 +10,9 @@ export {
 } from "#@/schema/auth.schema";
 export { auditEvent } from "#@/schema/audit";
 export { journalEntry, journalLine } from "#@/schema/journal";
+export { item } from "#@/schema/items";
 export { currency, exchangeRate, organizationSetting } from "#@/schema/organization";
 export { outboxEvent } from "#@/schema/outbox";
+export { party } from "#@/schema/parties";
 export { accountingPeriod, fiscalYear } from "#@/schema/periods";
 export { sourceDocument } from "#@/schema/source-documents";

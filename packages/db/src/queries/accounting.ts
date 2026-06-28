@@ -24,6 +24,7 @@ import { ledgerAccount, numberSequence } from "#@/schema/accounts";
 import { auditEvent } from "#@/schema/audit";
 import { journalEntry, journalLine } from "#@/schema/journal";
 import { accountingPeriod, fiscalYear } from "#@/schema/periods";
+import { escapeLikePattern } from "#@/utils/sql";
 
 export class AccountingDbError extends Error {
   code: AccountingErrorCode;
@@ -310,13 +311,15 @@ export async function listLedgerAccounts(
   db: Database,
   input: ListLedgerAccountsDbInput
 ): Promise<LedgerAccountListItem[]> {
-  const where = input.q
+  const trimmedQuery = input.q?.trim();
+  const search = trimmedQuery ? `%${escapeLikePattern(trimmedQuery)}%` : undefined;
+  const where = search
     ? and(
         eq(ledgerAccount.organizationId, input.organizationId),
         or(
-          ilike(ledgerAccount.code, `%${input.q}%`),
-          ilike(ledgerAccount.name, `%${input.q}%`),
-          ilike(ledgerAccount.accountType, `%${input.q}%`)
+          ilike(ledgerAccount.code, search),
+          ilike(ledgerAccount.name, search),
+          ilike(ledgerAccount.accountType, search)
         )
       )
     : eq(ledgerAccount.organizationId, input.organizationId);

@@ -253,8 +253,11 @@ The source of truth is
 
 ## Database Model Today
 
-Current worktree schema includes Better Auth identity/organization tables and
-Phase 0 app-owned platform tables:
+Current schema includes Better Auth identity/organization tables, Phase 0
+app-owned platform tables, the Phase 1 ledger kernel, and the Phase 2 owner
+workflow foundation tables (`party`, `item`). This diagram shows the platform
+foundation subset; ledger and owner workflow tables are tracked in the schema
+revision plan:
 
 ```mermaid
 erDiagram
@@ -350,8 +353,8 @@ erDiagram
   }
 ```
 
-The planned Phase 1 ledger kernel and later accounting schema are documented in
-[schema revision plan](superpowers/plans/2026-06-17-accounting-foundation-schema-revision-plan.md).
+The implemented Phase 1 ledger kernel and later accounting schema are documented
+in [schema revision plan](superpowers/plans/2026-06-17-accounting-foundation-schema-revision-plan.md).
 
 Phase 0 web routes:
 

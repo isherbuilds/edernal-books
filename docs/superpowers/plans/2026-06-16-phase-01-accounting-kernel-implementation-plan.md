@@ -25,9 +25,9 @@
 
 ## Current Implementation Status
 
-Updated: 2026-06-26 after Phase 1 scope review.
+Updated: 2026-06-27 after Phase 1 merge to `main`.
 
-The existing worktree should be simplified to this target before UI work:
+Phase 1 was implemented in `main`; checklist sections below remain historical implementation reference:
 
 - `packages/core/src/accounting` with default ledger account definitions, journal validation, report arithmetic, contracts for internal fiscal-year setup, default chart seed, posting, reversal, and minor-unit string transport.
 - `packages/db` accounting schema for periods, accounts, source documents, journal entries, journal lines, and atomic number sequences.
@@ -39,12 +39,13 @@ The existing worktree should be simplified to this target before UI work:
 - `packages/core/src/accounting/reports` pure report arithmetic helpers.
 - Focused unit tests for money/journal rules, DTO minor-unit strings, schema invariants, migration SQL, period building, sequence formatting, and report arithmetic.
 - DB integration tests for duplicate operation keys, concurrent duplicate replay, concurrent sequence allocation, fiscal-year sequence reset, sequence rollback after failed posting, posting date rejection, reversal behavior, and accounting-settings locks.
+- Web UI routes for chart view, accounting periods, journal entry register, trial balance, and general ledger.
+- Owner/accountant accounting affordances, with viewer blocked from accounting-kernel reports and actions by default.
 
-Still left in Phase 1:
+Still left outside Phase 1:
 
-- UI routes for chart view, accounting periods, journal entry register, trial balance, and general ledger.
-- Phase 1 UI permission copy and affordances for owner/accountant accounting access and no viewer report access by default.
 - Source-document writer consumers in Phase 2 owner workflows.
+- Durable async/outbox producers until Phase 5/6 or another real consumer exists.
 
 ---
 
@@ -675,7 +676,7 @@ rtk git commit -m "feat: add accounting reports and kernel ui"
 
 ## Phase 1 Completion Gate
 
-Do not start owner documents until:
+Do not start owner documents until these remain true:
 
 - `ledger_account`, `number_sequence`, `source_document`, `journal_entry`, and `journal_line` tables exist.
 - `party` and `tax_code` tables do not exist yet.
@@ -694,3 +695,6 @@ Do not start owner documents until:
 - Phase 1 journal lines are base-currency-only.
 - Viewer cannot access accounting-kernel reports or actions by default.
 - Accounting-core has no React, Hono, oRPC, Drizzle, or Better Auth dependency.
+
+Status: complete in `main`, with local DB integration verification requiring a
+running local Postgres instance before Phase 2 schema work starts.

@@ -5,8 +5,9 @@ query, migration, and database-client APIs while hiding transport/UI concerns.
 
 ## Current Schema
 
-Current worktree schema includes Better Auth identity/organization tables plus
-Phase 0 app-owned platform tables.
+Current schema includes Better Auth identity/organization tables, Phase 0
+app-owned platform tables, and the Phase 1 ledger kernel. This diagram shows
+the platform foundation subset; the ledger kernel is below.
 
 ```mermaid
 erDiagram
@@ -184,10 +185,13 @@ erDiagram
 Phase 1 posting enforces duplicate protection with
 `(organization_id, operation_key)` on `journal_entry`. Posting allocates
 `number_sequence` values with atomic `UPDATE ... RETURNING`, writes awaited
-audit rows transactionally, and relies on PostgreSQL triggers for posted journal
-immutability. Phase 1 accounting posting does not write outbox rows; add outbox
-producers only when a durable async consumer exists. Do not add a central
-idempotency table unless a later public API needs generic response replay.
+audit rows transactionally, and enforces posted journal immutability through the
+posting/reversal service boundary plus database constraints. PostgreSQL
+immutability triggers are deferred until a second writer path or
+public/integration API makes service bypass realistic. Phase 1 accounting
+posting does not write outbox rows; add outbox producers only when a durable
+async consumer exists. Do not add a central idempotency table unless a later
+public API needs generic response replay.
 
 The source of truth for foundation and ledger tables is
 [../../docs/superpowers/plans/2026-06-17-accounting-foundation-schema-revision-plan.md](../../docs/superpowers/plans/2026-06-17-accounting-foundation-schema-revision-plan.md).

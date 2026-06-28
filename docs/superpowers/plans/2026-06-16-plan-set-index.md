@@ -2,7 +2,7 @@
 
 Date: 2026-06-16
 
-Updated: 2026-06-26.
+Updated: 2026-06-27.
 
 Source spec: `docs/superpowers/specs/2026-06-16-ai-native-accounting-foundation-design.md`
 
@@ -42,8 +42,9 @@ Decision record: `docs/decisions/0001-accounting-foundation-spine.md`
 
 ## Current Progress
 
-Phase 0 code is complete. Phase 1 backend worktree must be simplified to the
-reviewed accounting-kernel scope before UI work and completion-gate verification.
+Phase 0 and Phase 1 code are complete on `main`. This PR adds the Phase 2
+foundation for parties, items, records UI primitives, and cursor pagination;
+the full owner workflow MVP remains next after local DB integration verification.
 
 Done:
 
@@ -61,12 +62,18 @@ Done:
 - Organization membership, settings audit, and schema invariant tests exist.
 - Business onboarding UI creates/selects a Better Auth business by slug.
 - Business settings UI reads and writes `organization_setting` through the organization settings procedures.
+- Phase 1 schema added `fiscal_year`, `accounting_period`, `ledger_account`, `number_sequence`, `source_document`, `journal_entry`, and `journal_line`.
+- Phase 1 posting and reversal services use operation-local idempotency, atomic `number_sequence` allocation, transactional `audit_event`, and no `outbox_event` writes.
+- Accounting report readers expose organization-scoped trial balance and account-scoped general ledger.
+- Accounting UI routes exist for chart of accounts, accounting periods, journal entries, trial balance, and general ledger.
+- Unit tests cover accounting contracts, journal validation, report arithmetic, schema invariants, migration SQL, and DB query helpers.
+- DB integration tests cover Phase 1 posting, duplicate operation keys, concurrent sequence allocation, reversals, report cursors, and onboarding setup when local Postgres is available.
 
 Not done:
 
-- Local migration apply is blocked until local Postgres/Docker is running.
-- Transactional outbox writes only for commands that have real async consumers.
-- Simplified Phase 1 accounting kernel schema and posting services.
+- Full Phase 2 owner workflow MVP is not implemented.
+- Local DB integration verification still requires local Postgres/Docker to be running.
+- Transactional outbox writes remain intentionally limited to commands with real async consumers.
 
 Important current decision: `outbox_event` is foundation infrastructure, not a blanket side effect for every mutation. Phase 1 posting writes awaited transactional audit rows, but no outbox rows until a durable async/public/integration consumer exists.
 

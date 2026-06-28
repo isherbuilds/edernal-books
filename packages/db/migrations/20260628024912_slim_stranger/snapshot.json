@@ -1,7 +1,7 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "76c3d45e-89e0-4891-8444-f64de8f7948e",
+  "id": "dcaf42d9-856a-407b-880e-54a5db385be5",
   "prevIds": [
     "00000000-0000-0000-0000-000000000000"
   ],
@@ -50,6 +50,12 @@
     },
     {
       "isRlsEnabled": false,
+      "name": "item",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
       "name": "journal_entry",
       "entityType": "tables",
       "schema": "public"
@@ -93,6 +99,12 @@
     {
       "isRlsEnabled": false,
       "name": "outbox_event",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "party",
       "entityType": "tables",
       "schema": "public"
     },
@@ -912,6 +924,214 @@
       "entityType": "columns",
       "schema": "public",
       "table": "invitation"
+    },
+    {
+      "type": "timestamp",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "item"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "description",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "item"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "expense_account_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "item"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "hsn_code",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "item"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "item"
+    },
+    {
+      "type": "boolean",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "true",
+      "generated": null,
+      "identity": null,
+      "name": "is_active",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "item"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "kind",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "item"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "name",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "item"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "normalized_name",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "item"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "organization_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "item"
+    },
+    {
+      "type": "bigint",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "purchase_rate_minor",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "item"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "sales_account_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "item"
+    },
+    {
+      "type": "bigint",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "sales_rate_minor",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "item"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "unit",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "item"
+    },
+    {
+      "type": "timestamp",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "item"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "usage",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "item"
     },
     {
       "type": "uuid",
@@ -2047,6 +2267,266 @@
     {
       "type": "text",
       "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "address_line1",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "party"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "address_line2",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "party"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "city",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "party"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "country_code",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "party"
+    },
+    {
+      "type": "timestamp",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "party"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "display_name",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "party"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "email",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "party"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "'unregistered'",
+      "generated": null,
+      "identity": null,
+      "name": "gst_registration_type",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "party"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "gstin",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "party"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "party"
+    },
+    {
+      "type": "boolean",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "true",
+      "generated": null,
+      "identity": null,
+      "name": "is_active",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "party"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "kind",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "party"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "legal_name",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "party"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "normalized_name",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "party"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "organization_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "party"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "pan",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "party"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "phone",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "party"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "postal_code",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "party"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "state",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "party"
+    },
+    {
+      "type": "timestamp",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "party"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
       "default": null,
@@ -2684,6 +3164,258 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
+      "name": "item_organization_id_id_uidx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "item"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "organization_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "normalized_name",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": "is_active",
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "item_organization_id_normalized_name_uidx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "item"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "organization_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "normalized_name",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "item_organization_id_normalized_name_id_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "item"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "organization_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "item_organization_id_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "item"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "organization_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "kind",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "item_organization_id_kind_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "item"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "organization_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "usage",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "item_organization_id_usage_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "item"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "organization_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "is_active",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "item_organization_id_active_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "item"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "organization_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "sales_account_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "item_organization_id_sales_account_id_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "item"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "organization_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "expense_account_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "item_organization_id_expense_account_id_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "item"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "organization_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
       "name": "journal_entry_organization_id_id_uidx",
       "entityType": "indexes",
       "schema": "public",
@@ -3267,6 +3999,174 @@
       "nameExplicit": true,
       "columns": [
         {
+          "value": "organization_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "party_organization_id_id_uidx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "party"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "organization_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "normalized_name",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": "is_active",
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "party_organization_id_normalized_name_uidx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "party"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "organization_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "normalized_name",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "party_organization_id_normalized_name_id_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "party"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "organization_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "party_organization_id_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "party"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "organization_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "kind",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "party_organization_id_kind_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "party"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "organization_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "is_active",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "party_organization_id_active_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "party"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
           "value": "user_id",
           "isExpression": false,
           "asc": true,
@@ -3607,6 +4507,61 @@
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
+      "name": "item_organization_id_organization_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "item"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "organization_id",
+        "sales_account_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "ledger_account",
+      "columnsTo": [
+        "organization_id",
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "RESTRICT",
+      "name": "item_organization_id_sales_account_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "item"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "organization_id",
+        "expense_account_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "ledger_account",
+      "columnsTo": [
+        "organization_id",
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "RESTRICT",
+      "name": "item_organization_id_expense_account_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "item"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "organization_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "organization",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
       "name": "journal_entry_organization_id_organization_id_fkey",
       "entityType": "fks",
       "schema": "public",
@@ -3901,6 +4856,23 @@
     {
       "nameExplicit": false,
       "columns": [
+        "organization_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "organization",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "party_organization_id_organization_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "party"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
         "user_id"
       ],
       "schemaTo": "public",
@@ -4010,6 +4982,16 @@
         "id"
       ],
       "nameExplicit": false,
+      "name": "item_pkey",
+      "schema": "public",
+      "table": "item",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
       "name": "journal_entry_pkey",
       "schema": "public",
       "table": "journal_entry",
@@ -4083,6 +5065,16 @@
       "name": "outbox_event_pkey",
       "schema": "public",
       "table": "outbox_event",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "party_pkey",
+      "schema": "public",
+      "table": "party",
       "entityType": "pks"
     },
     {
@@ -4190,6 +5182,48 @@
       "table": "fiscal_year"
     },
     {
+      "value": "\"kind\" IN ('goods', 'service')",
+      "name": "item_kind_ck",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "item"
+    },
+    {
+      "value": "\"usage\" IN ('sales', 'purchases', 'both')",
+      "name": "item_usage_ck",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "item"
+    },
+    {
+      "value": "length(trim(\"name\")) > 0",
+      "name": "item_name_not_blank_ck",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "item"
+    },
+    {
+      "value": "length(trim(\"normalized_name\")) > 0",
+      "name": "item_normalized_name_not_blank_ck",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "item"
+    },
+    {
+      "value": "\"sales_rate_minor\" IS NULL OR \"sales_rate_minor\" >= 0",
+      "name": "item_sales_rate_minor_non_negative_ck",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "item"
+    },
+    {
+      "value": "\"purchase_rate_minor\" IS NULL OR \"purchase_rate_minor\" >= 0",
+      "name": "item_purchase_rate_minor_non_negative_ck",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "item"
+    },
+    {
       "value": "\"reversal_of_entry_id\" IS NULL OR \"reversal_of_entry_id\" <> \"id\"",
       "name": "journal_entry_reversal_not_self_ck",
       "entityType": "checks",
@@ -4286,6 +5320,55 @@
       "entityType": "checks",
       "schema": "public",
       "table": "outbox_event"
+    },
+    {
+      "value": "\"kind\" IN ('customer', 'vendor', 'both')",
+      "name": "party_kind_ck",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "party"
+    },
+    {
+      "value": "\"gst_registration_type\" IN ('registered_regular', 'registered_composition', 'unregistered', 'consumer')",
+      "name": "party_gst_registration_type_ck",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "party"
+    },
+    {
+      "value": "\"country_code\" is null or \"country_code\" ~ '^[A-Z]{2}$'",
+      "name": "party_country_code_ck",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "party"
+    },
+    {
+      "value": "\"gstin\" is null or \"gstin\" ~ '^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$'",
+      "name": "party_gstin_ck",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "party"
+    },
+    {
+      "value": "\"pan\" is null or \"pan\" ~ '^[A-Z]{5}[0-9]{4}[A-Z]$'",
+      "name": "party_pan_ck",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "party"
+    },
+    {
+      "value": "length(trim(\"display_name\")) > 0",
+      "name": "party_display_name_not_blank_ck",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "party"
+    },
+    {
+      "value": "length(trim(\"normalized_name\")) > 0",
+      "name": "party_normalized_name_not_blank_ck",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "party"
     }
   ],
   "renames": []

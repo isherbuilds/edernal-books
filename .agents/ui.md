@@ -2,7 +2,7 @@
 
 Use this when adding or refactoring UI in `apps/web` or reusable components in `packages/ui`.
 
-This file is the source of truth for app UI composition, extraction decisions, and shared component boundaries. For route/file placement, follow [TanStack patterns](./tanstack-patterns.md). For complex client-owned state shared across components, follow [Zustand state management](./zustand.md).
+This file is the source of truth for app UI composition, extraction decisions, and shared component boundaries. For page composition, shared layout/table primitives, read-states, and money/visual standards, follow the [Design system](./design-system.md). For route/file placement, follow [TanStack patterns](./tanstack-patterns.md). For complex client-owned state shared across components, follow [Zustand state management](./zustand.md).
 
 ## Goals
 
