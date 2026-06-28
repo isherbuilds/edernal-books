@@ -7,5 +7,14 @@ export const PG_UNIQUE_VIOLATION = "23505";
 export const PG_FOREIGN_KEY_VIOLATION = "23503";
 
 export function isPostgresError(error: unknown): error is PostgresError {
-  return typeof error === "object" && error !== null && "code" in error;
+  if (typeof error !== "object" || error === null) {
+    return false;
+  }
+
+  const candidate = error as { code?: unknown; constraint?: unknown };
+
+  return (
+    typeof candidate.code === "string" &&
+    (candidate.constraint === undefined || typeof candidate.constraint === "string")
+  );
 }

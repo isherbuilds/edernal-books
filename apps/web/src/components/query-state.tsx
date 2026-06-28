@@ -38,7 +38,7 @@ export function QueryState({
       <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4">
         <h2 className="text-sm font-medium text-destructive">{errorTitle}</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          {error instanceof Error ? error.message : errorFallback}
+          {error instanceof Error ? error.message || errorFallback : errorFallback}
         </p>
       </div>
     );

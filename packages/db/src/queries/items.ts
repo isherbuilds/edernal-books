@@ -151,6 +151,9 @@ export async function updateItem(
 
   try {
     return await db.transaction(async (tx) => {
+      await tx.execute(
+        sql`SELECT 1 FROM ${item} WHERE ${item.id} = ${id} AND ${item.organizationId} = ${organizationId} FOR UPDATE`
+      );
       const before = await selectItemRow(tx, { id, organizationId });
 
       if (!before) {

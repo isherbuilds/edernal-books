@@ -27,10 +27,12 @@ import { FormSelectField, FormTextField } from "@/components/form-fields";
 import { handleRecordMutationError } from "@/components/records/record-error";
 
 function createPartyFormSchema() {
+  const optionalText = (maxLength: number) => z.string().trim().max(maxLength);
+
   return z.object({
-    addressLine1: z.string(),
-    addressLine2: z.string(),
-    city: z.string(),
+    addressLine1: optionalText(240),
+    addressLine2: optionalText(240),
+    city: optionalText(120),
     countryCode: optionalCoreField(
       PartyCountryCodeSchema,
       m.owner_records__parties_country_invalid()
@@ -38,16 +40,17 @@ function createPartyFormSchema() {
     displayName: z
       .string()
       .trim()
-      .min(1, { message: m.owner_records__parties_display_name_required() }),
+      .min(1, { message: m.owner_records__parties_display_name_required() })
+      .max(240),
     email: optionalCoreField(z.email().max(320), m.owner_records__parties_email_invalid()),
     gstRegistrationType: GstRegistrationTypeSchema,
     gstin: optionalCoreField(GstinSchema, m.owner_records__parties_gstin_invalid()),
     kind: PartyKindSchema,
-    legalName: z.string(),
+    legalName: optionalText(240),
     pan: optionalCoreField(PanSchema, m.owner_records__parties_pan_invalid()),
-    phone: z.string(),
-    postalCode: z.string(),
-    state: z.string()
+    phone: optionalText(64),
+    postalCode: optionalText(24),
+    state: optionalText(120)
   });
 }
 

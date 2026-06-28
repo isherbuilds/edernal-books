@@ -240,7 +240,7 @@ export function ItemsPage({ orgSlug }: ItemsPageProps) {
           <RecordSearchField
             ariaLabel={m.owner_records__items_search_label()}
             maxLength={SEARCH_QUERY_MAX_LENGTH}
-            onChange={(value) => setSearch({ q: value || undefined })}
+            onChange={(value) => setSearch({ q: value.trim().length > 0 ? value : undefined })}
             placeholder={m.owner_records__items_search_placeholder()}
             value={search.q ?? ""}
           />

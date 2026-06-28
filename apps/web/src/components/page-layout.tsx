@@ -66,7 +66,7 @@ export function EmptyState({ actionLabel, description, icon, onAction, title }: 
         <h3 className="text-base font-medium">{title}</h3>
         <p className="max-w-sm text-sm text-muted-foreground">{description}</p>
       </div>
-      {actionLabel && onAction ? (
+      {actionLabel != null && onAction ? (
         <Button onClick={onAction} type="button" variant="outline">
           {actionLabel}
         </Button>

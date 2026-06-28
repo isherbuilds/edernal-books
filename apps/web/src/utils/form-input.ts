@@ -7,14 +7,22 @@ export function getDateInputValue(date = new Date()) {
   return `${date.getFullYear()}-${month}-${day}`;
 }
 
-/**
- * An optional text field: an empty string is allowed (the value is simply unset), otherwise the
- * trimmed value must satisfy `schema`. Keeps the "blank or matches the core contract" rule in one
- * place so every optional field validates consistently against its shared schema.
- */
 export function optionalCoreField(schema: z.ZodType<string>, message: string) {
   return z
     .string()
     .trim()
-    .refine((value) => value === "" || schema.safeParse(value).success, { message });
+    .transform((value, context) => {
+      if (value === "") {
+        return "";
+      }
+
+      const parsed = schema.safeParse(value);
+
+      if (!parsed.success) {
+        context.addIssue({ code: "custom", message });
+        return z.NEVER;
+      }
+
+      return parsed.data;
+    });
 }

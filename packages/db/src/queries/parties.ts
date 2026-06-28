@@ -160,6 +160,9 @@ export async function updateParty(
 
   try {
     return await db.transaction(async (tx) => {
+      await tx.execute(
+        sql`SELECT 1 FROM ${party} WHERE ${party.id} = ${id} AND ${party.organizationId} = ${organizationId} FOR UPDATE`
+      );
       const before = await selectPartyRow(tx, { id, organizationId });
 
       if (!before) {

@@ -50,6 +50,8 @@ CREATE TABLE "currency" (
 	"symbol" text NOT NULL
 );
 --> statement-breakpoint
+INSERT INTO "currency" ("code", "name", "symbol", "decimal_places", "active") VALUES ('INR', 'Indian Rupee', '₹', 2, true) ON CONFLICT ("code") DO NOTHING;
+--> statement-breakpoint
 CREATE TABLE "exchange_rate" (
 	"base_currency_code" text,
 	"created_at" timestamp DEFAULT now() NOT NULL,
