@@ -1,25 +1,39 @@
 import { z } from "zod";
 
 import { OrgSlugInputSchema } from "#@/organizations/index";
+import { CursorPaginationInputSchema, CursorPaginationOutputSchema } from "#@/pagination";
+import { nullableTextInput } from "#@/text/index";
 
 export const PARTY_KINDS = ["customer", "vendor", "both"] as const;
-
-const EmptyTextAsNullSchema = z
-  .string()
-  .trim()
-  .length(0)
-  .transform(() => null);
-
-function nullableTextInput(schema: z.ZodType<string>) {
-  return z.union([EmptyTextAsNullSchema, schema, z.null()]).optional();
-}
-
-export function normalizePartyName(value: string): string {
-  return value.trim().replace(/\s+/g, " ").toLowerCase();
-}
+export const PARTY_ERROR_CODES = [
+  "PARTY_CURSOR_INVALID",
+  "PARTY_DUPLICATE_NAME",
+  "PARTY_NOT_FOUND"
+] as const;
 
 export const PartyKindSchema = z.enum(PARTY_KINDS);
 export type PartyKind = z.infer<typeof PartyKindSchema>;
+
+export const PartyErrorCodeSchema = z.enum(PARTY_ERROR_CODES);
+export type PartyErrorCode = z.infer<typeof PartyErrorCodeSchema>;
+
+export const GST_REGISTRATION_TYPES = [
+  "registered_regular",
+  "registered_composition",
+  "unregistered",
+  "consumer"
+] as const;
+
+export const GstRegistrationTypeSchema = z.enum(GST_REGISTRATION_TYPES);
+export type GstRegistrationType = z.infer<typeof GstRegistrationTypeSchema>;
+
+// GSTIN: 2-digit state code + 10-char PAN + entity code + 'Z' + checksum char.
+const GSTIN_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/;
+// PAN: 5 letters + 4 digits + 1 letter.
+const PAN_REGEX = /^[A-Z]{5}[0-9]{4}[A-Z]$/;
+
+export const GstinSchema = z.string().trim().toUpperCase().regex(GSTIN_REGEX);
+export const PanSchema = z.string().trim().toUpperCase().regex(PAN_REGEX);
 
 export const PartySchema = z
   .object({
@@ -30,12 +44,15 @@ export const PartySchema = z
     createdAt: z.iso.datetime(),
     displayName: z.string().trim().min(1).max(240),
     email: z.email().max(320).nullable(),
+    gstRegistrationType: GstRegistrationTypeSchema,
+    gstin: z.string().nullable(),
     id: z.uuid(),
     isActive: z.boolean(),
     kind: PartyKindSchema,
     legalName: z.string().nullable(),
     normalizedName: z.string().trim().min(1).max(240),
     organizationId: z.string().min(1),
+    pan: z.string().nullable(),
     phone: z.string().nullable(),
     postalCode: z.string().nullable(),
     state: z.string().nullable(),
@@ -51,14 +68,20 @@ const partyInputShape = {
   countryCode: nullableTextInput(z.string().trim().length(2).toUpperCase()),
   displayName: z.string().trim().min(1).max(240),
   email: nullableTextInput(z.email().trim().max(320)),
+  gstin: nullableTextInput(GstinSchema),
   kind: PartyKindSchema,
   legalName: nullableTextInput(z.string().trim().max(240)),
+  pan: nullableTextInput(PanSchema),
   phone: nullableTextInput(z.string().trim().max(64)),
   postalCode: nullableTextInput(z.string().trim().max(24)),
   state: nullableTextInput(z.string().trim().max(120))
 };
 
-export const CreatePartyInputSchema = OrgSlugInputSchema.extend(partyInputShape).strict();
+export const CreatePartyInputSchema = OrgSlugInputSchema.extend({
+  ...partyInputShape,
+  // Default only applies on create; updates must omit-or-set, never reset to default.
+  gstRegistrationType: GstRegistrationTypeSchema.default("unregistered")
+}).strict();
 export type CreatePartyInput = z.infer<typeof CreatePartyInputSchema>;
 
 export const UpdatePartyInputSchema = OrgSlugInputSchema.extend({
@@ -66,6 +89,7 @@ export const UpdatePartyInputSchema = OrgSlugInputSchema.extend({
   ...Object.fromEntries(
     Object.entries(partyInputShape).map(([key, schema]) => [key, schema.optional()])
   ),
+  gstRegistrationType: GstRegistrationTypeSchema.optional(),
   isActive: z.boolean().optional()
 }).strict();
 export type UpdatePartyInput = z.infer<typeof UpdatePartyInputSchema>;
@@ -77,6 +101,7 @@ export const SetPartyActiveInputSchema = OrgSlugInputSchema.extend({
 export type SetPartyActiveInput = z.infer<typeof SetPartyActiveInputSchema>;
 
 export const ListPartiesInputSchema = OrgSlugInputSchema.extend({
+  ...CursorPaginationInputSchema.shape,
   includeInactive: z.boolean().default(false).optional(),
   kind: PartyKindSchema.optional(),
   q: z.string().trim().min(1).max(120).optional()
@@ -85,6 +110,7 @@ export type ListPartiesInput = z.infer<typeof ListPartiesInputSchema>;
 
 export const ListPartiesOutputSchema = z
   .object({
+    nextCursor: CursorPaginationOutputSchema.shape.nextCursor,
     parties: z.array(PartySchema)
   })
   .strict();

@@ -53,7 +53,7 @@ Inventory is explicitly out of scope. No stock ledger, warehouse, quantity-on-ha
    - Add `packages/api/src/routers/parties/index.ts`.
    - Add `packages/api/src/routers/items/index.ts`.
    - Mount routers in `packages/api/src/routers/index.ts`.
-   - Use `organizationPermissionProcedure` with accounting access until a narrower owner-records permission exists.
+   - Use `organizationPermissionProcedure` with accounting access until narrower parties/items permissions exist.
    - Map DB errors to typed API errors.
 
 5. Web UI

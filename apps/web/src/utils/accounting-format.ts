@@ -8,6 +8,20 @@ export function formatMinorUnits(value: string): string {
   return `${sign}${rupees.toLocaleString("en-IN")}.${paise.toString().padStart(2, "0")}`;
 }
 
+export function minorUnitsToDecimalString(value: string): string {
+  const minor = BigInt(value);
+  const sign = minor < 0n ? "-" : "";
+  const absolute = minor < 0n ? -minor : minor;
+  const rupees = absolute / 100n;
+  const paise = absolute % 100n;
+
+  if (paise === 0n) {
+    return `${sign}${rupees.toString()}`;
+  }
+
+  return `${sign}${rupees.toString()}.${paise.toString().padStart(2, "0")}`;
+}
+
 export type MinorUnitParseResult =
   | {
       ok: true;
@@ -43,6 +57,20 @@ export function parseDecimalAmountToMinorUnits(value: string): MinorUnitParseRes
     ok: true,
     value: minorUnits
   };
+}
+
+export function parseDecimalRateToMinorUnits(value: string): MinorUnitParseResult {
+  if (!value.trim()) {
+    return { ok: true, value: null };
+  }
+
+  const parsed = parseDecimalAmountToMinorUnits(value);
+
+  if (!parsed.ok) {
+    return parsed;
+  }
+
+  return { ok: true, value: parsed.value ?? "0" };
 }
 
 export function getTodayDateString(): string {

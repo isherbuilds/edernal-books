@@ -1,13 +1,15 @@
 import { describe, expect, it } from "vite-plus/test";
 
-import { toItemInsert, toPartyInsert } from "#@/queries/owner-records";
+import { toItemInsert } from "#@/queries/items";
+import { toPartyInsert } from "#@/queries/parties";
 
-describe("owner records query helpers", () => {
+describe("parties and items query helpers", () => {
   it("normalizes party names and nullable fields for inserts", () => {
     expect(
       toPartyInsert({
         displayName: "  Acme   Traders  ",
         email: null,
+        gstRegistrationType: "unregistered",
         kind: "both",
         organizationId: "org_1"
       })
@@ -54,6 +56,22 @@ describe("owner records query helpers", () => {
       purchaseRateMinor: null,
       salesAccountId: null,
       salesRateMinor: null
+    });
+  });
+
+  it("preserves an explicit zero rate instead of coercing it to null", () => {
+    expect(
+      toItemInsert({
+        kind: "goods",
+        name: "Free Sample",
+        organizationId: "org_1",
+        purchaseRateMinor: "0",
+        salesRateMinor: "0",
+        usage: "both"
+      })
+    ).toMatchObject({
+      purchaseRateMinor: 0n,
+      salesRateMinor: 0n
     });
   });
 });

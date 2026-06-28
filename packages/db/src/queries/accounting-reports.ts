@@ -13,6 +13,7 @@ import {
 
 import { type Database, type TransactionClient } from "#@/client";
 import { AccountingDbError } from "#@/queries/accounting";
+import { decodeCursor, encodeCursor, takeCursorPage } from "#@/queries/cursors";
 import { ledgerAccount } from "#@/schema/accounts";
 import { journalEntry, journalLine } from "#@/schema/journal";
 
@@ -46,6 +47,10 @@ type GeneralLedgerCursor = {
 
 type GeneralLedgerCursorPayload = Omit<GeneralLedgerCursor, "runningBalanceMinor"> & {
   runningBalanceMinor: string;
+};
+type SignedCursorEnvelope = {
+  payload: unknown;
+  signature: string;
 };
 
 type GeneralLedgerRow = Omit<
@@ -129,7 +134,7 @@ export async function getGeneralLedger(
       ? cursor.runningBalanceMinor
       : await getOpeningBalanceMinor(tx, input);
     const rows = await getGeneralLedgerRows(tx, input, cursor);
-    const pageRows = rows.slice(0, input.limit);
+    const { hasNextPage, pageRows } = takeCursorPage(rows, input.limit);
     const lines = withGeneralLedgerRunningBalance(
       pageRows.map((row) => {
         return {
@@ -140,8 +145,7 @@ export async function getGeneralLedger(
     );
     const closingBalanceMinor = lines.at(-1)?.runningBalanceMinor ?? openingBalanceMinor;
     const lastLine = lines.at(-1);
-    const nextCursor =
-      rows.length > input.limit && lastLine ? encodeGeneralLedgerCursor(lastLine, input) : null;
+    const nextCursor = hasNextPage && lastLine ? encodeGeneralLedgerCursor(lastLine, input) : null;
 
     return {
       closingBalanceMinor,
@@ -319,37 +323,25 @@ function encodeGeneralLedgerCursor(
   };
   const payloadJson = JSON.stringify(payload);
 
-  return Buffer.from(
-    JSON.stringify({
-      payload,
-      signature: signCursorPayload(payloadJson)
-    })
-  ).toString("base64url");
+  return encodeCursor({
+    payload,
+    signature: signCursorPayload(payloadJson)
+  });
 }
 
 function decodeGeneralLedgerCursor(cursor: string): GeneralLedgerCursor {
-  let value: unknown;
+  let value: SignedCursorEnvelope;
 
   try {
-    value = JSON.parse(Buffer.from(cursor, "base64url").toString("utf8")) as unknown;
+    value = decodeCursor(cursor, parseSignedCursorEnvelope);
   } catch {
-    throw invalidCursorError();
-  }
-
-  if (
-    !value ||
-    typeof value !== "object" ||
-    !("payload" in value) ||
-    !("signature" in value) ||
-    !value.payload ||
-    typeof value.payload !== "object" ||
-    typeof value.signature !== "string"
-  ) {
     throw invalidCursorError();
   }
 
   const payload = value.payload;
   if (
+    !payload ||
+    typeof payload !== "object" ||
     !("accountId" in payload) ||
     !("entryNumber" in payload) ||
     !("journalEntryId" in payload) ||
@@ -388,6 +380,23 @@ function decodeGeneralLedgerCursor(cursor: string): GeneralLedgerCursor {
     postingDate: payload.postingDate,
     runningBalanceMinor: BigInt(payload.runningBalanceMinor),
     toDate
+  };
+}
+
+function parseSignedCursorEnvelope(value: unknown): SignedCursorEnvelope | null {
+  if (
+    !value ||
+    typeof value !== "object" ||
+    !("payload" in value) ||
+    !("signature" in value) ||
+    typeof value.signature !== "string"
+  ) {
+    return null;
+  }
+
+  return {
+    payload: value.payload,
+    signature: value.signature
   };
 }
 

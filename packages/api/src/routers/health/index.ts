@@ -86,7 +86,6 @@ export const healthRouter = {
         return { ...spec, security: [] };
       }
     })
-    .errors({})
     .output(HealthLiveOutputSchema)
     .handler(() => {
       return { status: "healthy", ...buildBaseHealth() };

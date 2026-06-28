@@ -13,6 +13,7 @@
     "./items": "./src/items/index.ts",
     "./organizations": "./src/organizations/index.ts",
     "./parties": "./src/parties/index.ts",
+    "./text": "./src/text/index.ts",
     "./*": "./src/*.ts"
   },
   "scripts": {

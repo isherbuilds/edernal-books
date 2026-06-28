@@ -1,13 +1,24 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { zodValidator } from "@tanstack/zod-adapter";
+import { z } from "zod";
 
 import { canAccessAccounting } from "@tsu-stack/auth/permissions";
+import { PartyKindSchema } from "@tsu-stack/core/parties";
 
 import { generateAppSeo } from "@/lib/seo";
 
 import { AccountingLockedState } from "@/components/accounting/accounting-locked-state";
-import { PartiesPage } from "@/components/owner-records/parties-page";
+import { PartiesPage } from "@/components/records/parties-page";
+
+const partiesSearchSchema = z.object({
+  id: z.string().optional().catch(undefined),
+  kind: PartyKindSchema.optional().catch(undefined),
+  q: z.string().optional().catch(undefined),
+  view: z.enum(["create", "edit"]).optional().catch(undefined)
+});
 
 export const Route = createFileRoute("/{-$locale}/_app/$orgSlug/_shell/records/parties")({
+  validateSearch: zodValidator(partiesSearchSchema),
   head: ({ params }) =>
     generateAppSeo({
       alternates: {

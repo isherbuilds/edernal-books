@@ -15,13 +15,7 @@ import { ACCOUNTING_PERIOD_STATUSES, FISCAL_YEAR_STATUSES } from "@tsu-stack/cor
 
 import { organization, user } from "#@/schema/auth.schema";
 import { createUuidV7 } from "#@/utils/id";
-
-const FISCAL_YEAR_STATUS_SQL = sql.raw(
-  FISCAL_YEAR_STATUSES.map((status) => `'${status}'`).join(", ")
-);
-const ACCOUNTING_PERIOD_STATUS_SQL = sql.raw(
-  ACCOUNTING_PERIOD_STATUSES.map((status) => `'${status}'`).join(", ")
-);
+import { sqlInList } from "#@/utils/sql";
 
 export const fiscalYear = pgTable(
   "fiscal_year",
@@ -45,7 +39,7 @@ export const fiscalYear = pgTable(
       table.startDate
     ),
     index("fiscal_year_organization_id_idx").on(table.organizationId),
-    check("fiscal_year_status_ck", sql`${table.status} IN (${FISCAL_YEAR_STATUS_SQL})`),
+    check("fiscal_year_status_ck", sqlInList(table.status, FISCAL_YEAR_STATUSES)),
     check("fiscal_year_date_order_ck", sql`${table.startDate} <= ${table.endDate}`)
   ]
 );
@@ -78,7 +72,7 @@ export const accountingPeriod = pgTable(
       foreignColumns: [fiscalYear.organizationId, fiscalYear.id],
       name: "accounting_period_organization_id_fiscal_year_id_fkey"
     }).onDelete("cascade"),
-    check("accounting_period_status_ck", sql`${table.status} IN (${ACCOUNTING_PERIOD_STATUS_SQL})`),
+    check("accounting_period_status_ck", sqlInList(table.status, ACCOUNTING_PERIOD_STATUSES)),
     check("accounting_period_date_order_ck", sql`${table.startDate} <= ${table.endDate}`)
   ]
 );

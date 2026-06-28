@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { OrgSlugInputSchema } from "#@/organizations/index";
+import { CursorPaginationInputSchema, CursorPaginationOutputSchema } from "#@/pagination";
 
 export const ACCOUNTING_ERROR_CODES = [
   "ACCOUNTING_PERIOD_CLOSED",
@@ -44,8 +45,16 @@ export type MinorUnitString = z.infer<typeof MinorUnitStringSchema>;
 
 const POSTGRES_BIGINT_MIN = "9223372036854775808";
 const POSTGRES_BIGINT_MAX = "9223372036854775807";
-const nonNegativeMinorUnitString = z.string().regex(/^\d+$/).refine(isPostgresBigintString);
-const positiveMinorUnitString = nonNegativeMinorUnitString.refine((value) => BigInt(value) > 0n);
+
+export const NonNegativeMinorUnitStringSchema = z
+  .string()
+  .regex(/^\d+$/)
+  .refine(isPostgresBigintString);
+export type NonNegativeMinorUnitString = z.infer<typeof NonNegativeMinorUnitStringSchema>;
+
+const positiveMinorUnitString = NonNegativeMinorUnitStringSchema.refine(
+  (value) => BigInt(value) > 0n
+);
 
 export const AccountingPeriodStatusSchema = z.enum(ACCOUNTING_PERIOD_STATUSES);
 export type AccountingPeriodStatus = z.infer<typeof AccountingPeriodStatusSchema>;
@@ -244,8 +253,7 @@ export type TrialBalanceOutput = z.infer<typeof TrialBalanceOutputSchema>;
 
 export const GeneralLedgerInputSchema = AccountingReportDateRangeInputSchema.extend({
   accountId: z.uuid(),
-  cursor: z.string().trim().min(1).optional(),
-  limit: z.number().int().min(1).max(500).default(200)
+  ...CursorPaginationInputSchema.shape
 }).strict();
 export type GeneralLedgerInput = z.infer<typeof GeneralLedgerInputSchema>;
 
@@ -271,7 +279,7 @@ export const GeneralLedgerOutputSchema = z
   .object({
     closingBalanceMinor: MinorUnitStringSchema,
     lines: z.array(GeneralLedgerLineSchema),
-    nextCursor: z.string().trim().min(1).nullable(),
+    nextCursor: CursorPaginationOutputSchema.shape.nextCursor,
     openingBalanceMinor: MinorUnitStringSchema
   })
   .strict();

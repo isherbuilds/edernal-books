@@ -15,6 +15,7 @@
     "@fontsource-variable/inter": "catalog:",
     "@hookform/resolvers": "catalog:",
     "@lonik/oh-image": "catalog:",
+    "@orpc/client": "catalog:",
     "@paper-design/shaders-react": "catalog:",
     "@tanstack/react-query": "catalog:",
     "@tanstack/react-router": "catalog:",

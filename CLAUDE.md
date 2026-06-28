@@ -110,7 +110,7 @@ For accounting work read `docs/superpowers/README.md` first. Core rules:
 ## Where to find detailed guidance
 
 `AGENTS.md` routes to task-specific docs in `.agents/`. Open the most specific doc first:
-`workflow.md`, `testing.md`, `vite-plus.md`, `ui.md`, `forms.md`, `tanstack-patterns.md`,
+`workflow.md`, `testing.md`, `vite-plus.md`, `ui.md`, `design-system.md`, `forms.md`, `tanstack-patterns.md`,
 `api-fetching-patterns.md`, `orpc.md`, `auth.md`, `i18n.md`, `core.md`,
 `backend-architecture.md`, `typescript.md`, `logging.md`, `media-storage.md`,
 `environment-variables.md`, `zustand.md`. Architecture map: `docs/architecture.md`.

@@ -20,7 +20,7 @@
     "db:seed": "vpx dotenvx run -f ../env/.env -- node --import tsx src/seed.ts",
     "auth:generate": "vp run -w auth:generate",
     "test:unit": "vp test",
-    "test:integration": "NODE_ENV=development DB_INTEGRATION_TESTS=1 vpx dotenvx run -f ../env/.env -- vp test src/queries/accounting.integration.test.ts"
+    "test:integration": "NODE_ENV=development DB_INTEGRATION_TESTS=1 vpx dotenvx run -f ../env/.env -- vp test src/queries/*.integration.test.ts"
   },
   "dependencies": {
     "@tsu-stack/core": "workspace:*",

@@ -1,7 +1,7 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "b8c23e8f-4259-43d8-8e6c-4499b029406d",
+  "id": "f2d58f9d-9fbc-4d85-8a1b-625e8d5135ab",
   "prevIds": [
     "76c3d45e-89e0-4891-8444-f64de8f7948e"
   ],
@@ -960,6 +960,19 @@
       "generated": null,
       "identity": null,
       "name": "expense_account_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "item"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "hsn_code",
       "entityType": "columns",
       "schema": "public",
       "table": "item"
@@ -2343,6 +2356,32 @@
       "table": "party"
     },
     {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "'unregistered'",
+      "generated": null,
+      "identity": null,
+      "name": "gst_registration_type",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "party"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "gstin",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "party"
+    },
+    {
       "type": "uuid",
       "typeSchema": null,
       "notNull": true,
@@ -2416,6 +2455,19 @@
       "generated": null,
       "identity": null,
       "name": "organization_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "party"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "pan",
       "entityType": "columns",
       "schema": "public",
       "table": "party"
@@ -3136,11 +3188,46 @@
         }
       ],
       "isUnique": true,
-      "where": null,
+      "where": "is_active",
       "with": "",
       "method": "btree",
       "concurrently": false,
       "name": "item_organization_id_normalized_name_uidx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "item"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "organization_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "normalized_name",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "item_organization_id_normalized_name_id_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "item"
@@ -3899,11 +3986,46 @@
         }
       ],
       "isUnique": true,
-      "where": null,
+      "where": "is_active",
       "with": "",
       "method": "btree",
       "concurrently": false,
       "name": "party_organization_id_normalized_name_uidx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "party"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "organization_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "normalized_name",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "party_organization_id_normalized_name_id_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "party"
@@ -5146,6 +5268,13 @@
     {
       "value": "\"kind\" IN ('customer', 'vendor', 'both')",
       "name": "party_kind_ck",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "party"
+    },
+    {
+      "value": "\"gst_registration_type\" IN ('registered_regular', 'registered_composition', 'unregistered', 'consumer')",
+      "name": "party_gst_registration_type_ck",
       "entityType": "checks",
       "schema": "public",
       "table": "party"

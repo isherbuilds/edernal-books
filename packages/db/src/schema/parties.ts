@@ -10,10 +10,11 @@ import {
   uuid
 } from "drizzle-orm/pg-core";
 
-import { PARTY_KINDS } from "@tsu-stack/core/parties";
+import { GST_REGISTRATION_TYPES, PARTY_KINDS } from "@tsu-stack/core/parties";
 
 import { organization } from "#@/schema/auth.schema";
 import { createUuidV7 } from "#@/utils/id";
+import { sqlInList } from "#@/utils/sql";
 
 export const party = pgTable(
   "party",
@@ -25,6 +26,10 @@ export const party = pgTable(
     createdAt: timestamp("created_at").defaultNow().notNull(),
     displayName: text("display_name").notNull(),
     email: text("email"),
+    gstRegistrationType: text("gst_registration_type", { enum: GST_REGISTRATION_TYPES })
+      .default("unregistered")
+      .notNull(),
+    gstin: text("gstin"),
     id: uuid("id").$defaultFn(createUuidV7).primaryKey(),
     isActive: boolean("is_active").default(true).notNull(),
     kind: text("kind", { enum: PARTY_KINDS }).notNull(),
@@ -33,6 +38,7 @@ export const party = pgTable(
     organizationId: text("organization_id")
       .notNull()
       .references(() => organization.id, { onDelete: "cascade" }),
+    pan: text("pan"),
     phone: text("phone"),
     postalCode: text("postal_code"),
     state: text("state"),
@@ -43,14 +49,22 @@ export const party = pgTable(
   },
   (table) => [
     uniqueIndex("party_organization_id_id_uidx").on(table.organizationId, table.id),
-    uniqueIndex("party_organization_id_normalized_name_uidx").on(
+    uniqueIndex("party_organization_id_normalized_name_uidx")
+      .on(table.organizationId, table.normalizedName)
+      .where(sql`is_active`),
+    index("party_organization_id_normalized_name_id_idx").on(
       table.organizationId,
-      table.normalizedName
+      table.normalizedName,
+      table.id
     ),
     index("party_organization_id_idx").on(table.organizationId),
     index("party_organization_id_kind_idx").on(table.organizationId, table.kind),
     index("party_organization_id_active_idx").on(table.organizationId, table.isActive),
-    check("party_kind_ck", sql`${table.kind} IN ('customer', 'vendor', 'both')`),
+    check("party_kind_ck", sqlInList(table.kind, PARTY_KINDS)),
+    check(
+      "party_gst_registration_type_ck",
+      sqlInList(table.gstRegistrationType, GST_REGISTRATION_TYPES)
+    ),
     check("party_display_name_not_blank_ck", sql`length(trim(${table.displayName})) > 0`),
     check("party_normalized_name_not_blank_ck", sql`length(trim(${table.normalizedName})) > 0`)
   ]

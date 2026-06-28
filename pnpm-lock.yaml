@@ -325,6 +325,9 @@ importers:
       '@lonik/oh-image':
         specifier: 'catalog:'
         version: 3.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sharp@0.35.2)
+      '@orpc/client':
+        specifier: 'catalog:'
+        version: 1.14.6
       '@paper-design/shaders-react':
         specifier: 'catalog:'
         version: 0.0.76(@types/react@19.2.17)(react@19.2.7)

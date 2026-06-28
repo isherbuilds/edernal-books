@@ -2,6 +2,8 @@ import { z } from "zod";
 
 import { canAccessAccounting } from "@tsu-stack/auth/permissions";
 import {
+  type ItemErrorCode,
+  ItemErrorCodeSchema,
   CreateItemInputSchema,
   ItemSchema,
   ListItemsInputSchema,
@@ -11,8 +13,8 @@ import {
 } from "@tsu-stack/core/items";
 import {
   createItem,
+  ItemDbError,
   listItems,
-  OwnerRecordDbError,
   setItemActive,
   updateItem
 } from "@tsu-stack/db/queries";
@@ -20,37 +22,19 @@ import {
 import { organizationPermissionProcedure } from "#@/lib/procedures/factory";
 
 const itemErrorDataSchema = z.object({
-  code: z.enum([
-    "ITEM_ACCOUNT_ORGANIZATION_MISMATCH",
-    "ITEM_NOT_FOUND",
-    "OWNER_RECORD_DUPLICATE_NAME"
-  ])
+  code: ItemErrorCodeSchema
 });
-
 const itemErrors = {
-  ITEM_ACCOUNT_ORGANIZATION_MISMATCH: {
-    data: itemErrorDataSchema,
-    status: 422
-  },
-  ITEM_NOT_FOUND: {
-    data: itemErrorDataSchema,
-    status: 404
-  },
-  OWNER_RECORD_DUPLICATE_NAME: {
-    data: itemErrorDataSchema,
-    status: 409
-  }
-};
+  ITEM_ACCOUNT_ORGANIZATION_MISMATCH: { data: itemErrorDataSchema, status: 422 },
+  ITEM_CURSOR_INVALID: { data: itemErrorDataSchema, status: 400 },
+  ITEM_DUPLICATE_NAME: { data: itemErrorDataSchema, status: 409 },
+  ITEM_NOT_FOUND: { data: itemErrorDataSchema, status: 404 }
+} as const;
 
-type ItemErrorFactories = {
-  ITEM_ACCOUNT_ORGANIZATION_MISMATCH: (input: {
-    data: { code: "ITEM_ACCOUNT_ORGANIZATION_MISMATCH" };
-  }) => unknown;
-  ITEM_NOT_FOUND: (input: { data: { code: "ITEM_NOT_FOUND" } }) => unknown;
-  OWNER_RECORD_DUPLICATE_NAME: (input: {
-    data: { code: "OWNER_RECORD_DUPLICATE_NAME" };
-  }) => unknown;
-};
+type ItemErrorFactories = Record<
+  ItemErrorCode,
+  (input: { data: { code: ItemErrorCode } }) => unknown
+>;
 
 export const itemsRouter = {
   list: organizationPermissionProcedure(ListItemsInputSchema, canAccessAccounting)
@@ -58,17 +42,22 @@ export const itemsRouter = {
       description: "List organization goods and services",
       method: "GET"
     })
+    .errors(itemErrors)
     .output(ListItemsOutputSchema)
-    .handler(async ({ context, input }) => {
-      const items = await listItems(context.db, {
-        includeInactive: input.includeInactive,
-        kind: input.kind,
-        organizationId: context.organizationId,
-        q: input.q,
-        usage: input.usage
-      });
-
-      return { items };
+    .handler(async ({ context, errors, input }) => {
+      try {
+        return await listItems(context.db, {
+          cursor: input.cursor,
+          includeInactive: input.includeInactive,
+          kind: input.kind,
+          limit: input.limit,
+          organizationId: context.organizationId,
+          q: input.q,
+          usage: input.usage
+        });
+      } catch (error) {
+        throwItemDbError(errors, error);
+      }
     }),
   create: organizationPermissionProcedure(CreateItemInputSchema, canAccessAccounting)
     .route({
@@ -77,14 +66,16 @@ export const itemsRouter = {
     })
     .errors(itemErrors)
     .output(ItemSchema)
-    .handler(async ({ context, errors, input }) =>
-      catchItemDbError(errors, () =>
-        createItem(context.db, {
+    .handler(async ({ context, errors, input }) => {
+      try {
+        return await createItem(context.db, {
           ...input,
           organizationId: context.organizationId
-        })
-      )
-    ),
+        });
+      } catch (error) {
+        throwItemDbError(errors, error);
+      }
+    }),
   update: organizationPermissionProcedure(UpdateItemInputSchema, canAccessAccounting)
     .route({
       description: "Update an organization good or service",
@@ -92,14 +83,16 @@ export const itemsRouter = {
     })
     .errors(itemErrors)
     .output(ItemSchema)
-    .handler(async ({ context, errors, input }) =>
-      catchItemDbError(errors, () =>
-        updateItem(context.db, {
+    .handler(async ({ context, errors, input }) => {
+      try {
+        return await updateItem(context.db, {
           ...input,
           organizationId: context.organizationId
-        })
-      )
-    ),
+        });
+      } catch (error) {
+        throwItemDbError(errors, error);
+      }
+    }),
   setActive: organizationPermissionProcedure(SetItemActiveInputSchema, canAccessAccounting)
     .route({
       description: "Activate or deactivate an organization good or service",
@@ -107,42 +100,23 @@ export const itemsRouter = {
     })
     .errors(itemErrors)
     .output(ItemSchema)
-    .handler(async ({ context, errors, input }) =>
-      catchItemDbError(errors, () =>
-        setItemActive(context.db, {
+    .handler(async ({ context, errors, input }) => {
+      try {
+        return await setItemActive(context.db, {
           id: input.id,
           isActive: input.isActive,
           organizationId: context.organizationId
-        })
-      )
-    )
+        });
+      } catch (error) {
+        throwItemDbError(errors, error);
+      }
+    })
 };
 
-async function catchItemDbError<T>(
-  errors: ItemErrorFactories,
-  action: () => Promise<T>
-): Promise<T> {
-  try {
-    return await action();
-  } catch (error) {
-    if (error instanceof OwnerRecordDbError) {
-      if (error.code === "ITEM_ACCOUNT_ORGANIZATION_MISMATCH") {
-        throw errors.ITEM_ACCOUNT_ORGANIZATION_MISMATCH({
-          data: { code: "ITEM_ACCOUNT_ORGANIZATION_MISMATCH" }
-        });
-      }
-
-      if (error.code === "ITEM_NOT_FOUND") {
-        throw errors.ITEM_NOT_FOUND({ data: { code: "ITEM_NOT_FOUND" } });
-      }
-
-      if (error.code === "OWNER_RECORD_DUPLICATE_NAME") {
-        throw errors.OWNER_RECORD_DUPLICATE_NAME({
-          data: { code: "OWNER_RECORD_DUPLICATE_NAME" }
-        });
-      }
-    }
-
-    throw error;
+function throwItemDbError(errors: ItemErrorFactories, error: unknown): never {
+  if (error instanceof ItemDbError) {
+    throw errors[error.code]({ data: { code: error.code } });
   }
+
+  throw error;
 }

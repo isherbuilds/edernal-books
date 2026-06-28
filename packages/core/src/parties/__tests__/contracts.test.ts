@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vite-plus/test";
 
+import { DEFAULT_CURSOR_LIMIT } from "#@/pagination";
 import {
   CreatePartyInputSchema,
   ListPartiesInputSchema,
+  PARTY_ERROR_CODES,
   PARTY_KINDS,
+  PartyErrorCodeSchema,
   PartySchema,
   UpdatePartyInputSchema
 } from "#@/parties/index";
@@ -11,6 +14,20 @@ import {
 describe("party contracts", () => {
   it("supports customer, vendor, and both party kinds", () => {
     expect(PARTY_KINDS).toEqual(["customer", "vendor", "both"]);
+  });
+
+  it("keeps party write error codes in the party contract", () => {
+    expect(PARTY_ERROR_CODES).toEqual([
+      "PARTY_CURSOR_INVALID",
+      "PARTY_DUPLICATE_NAME",
+      "PARTY_NOT_FOUND"
+    ]);
+
+    for (const code of PARTY_ERROR_CODES) {
+      expect(PartyErrorCodeSchema.parse(code)).toBe(code);
+    }
+
+    expect(PartyErrorCodeSchema.safeParse("NOPE").success).toBe(false);
   });
 
   it("accepts minimal create input and trims nullable contact fields", () => {
@@ -24,9 +41,35 @@ describe("party contracts", () => {
     ).toEqual({
       displayName: "Acme Traders",
       email: null,
+      gstRegistrationType: "unregistered",
       kind: "both",
       orgSlug: "demo"
     });
+  });
+
+  it("normalizes and validates GSTIN and PAN, defaulting registration type", () => {
+    expect(
+      CreatePartyInputSchema.parse({
+        displayName: "Acme Traders",
+        gstin: " 29abcde1234f1z5 ",
+        kind: "customer",
+        orgSlug: "demo",
+        pan: "abcde1234f"
+      })
+    ).toMatchObject({
+      gstRegistrationType: "unregistered",
+      gstin: "29ABCDE1234F1Z5",
+      pan: "ABCDE1234F"
+    });
+
+    expect(
+      CreatePartyInputSchema.safeParse({
+        displayName: "Acme Traders",
+        gstin: "not-a-gstin",
+        kind: "customer",
+        orgSlug: "demo"
+      }).success
+    ).toBe(false);
   });
 
   it("rejects unknown kind and empty display names", () => {
@@ -64,6 +107,7 @@ describe("party contracts", () => {
     ).toEqual({
       includeInactive: true,
       kind: "customer",
+      limit: DEFAULT_CURSOR_LIMIT,
       orgSlug: "demo",
       q: "acme"
     });
@@ -79,12 +123,15 @@ describe("party contracts", () => {
         createdAt: "2026-06-27T00:00:00.000Z",
         displayName: "Acme Traders",
         email: null,
+        gstRegistrationType: "unregistered",
+        gstin: null,
         id: "018ff8d9-ae36-7d5b-8f21-8687bde90001",
         isActive: true,
         kind: "both",
         legalName: null,
         normalizedName: "acme traders",
         organizationId: "org_123",
+        pan: null,
         phone: null,
         postalCode: null,
         state: null,

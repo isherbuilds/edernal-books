@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { nullableTextInput } from "#@/text/index";
+
 export const DEFAULT_ORGANIZATION_SETTINGS = {
   baseCurrencyCode: "INR",
   countryCode: "IN",
@@ -62,15 +64,6 @@ export const SUPPORTED_ORGANIZATION_TIMEZONES = [
 const orgSlugReferenceShape = {
   orgSlug: z.string().trim().min(1).max(160)
 };
-const EmptyTextAsNullSchema = z
-  .string()
-  .trim()
-  .length(0)
-  .transform(() => null);
-
-function nullableTextInput(schema: z.ZodType<string>) {
-  return z.union([EmptyTextAsNullSchema, schema, z.null()]).optional();
-}
 
 export const OrgSlugInputSchema = z.object(orgSlugReferenceShape).strict();
 export type OrgSlugInput = z.infer<typeof OrgSlugInputSchema>;

@@ -12,6 +12,7 @@ import {
   ReverseJournalEntryInputSchema,
   SetupFiscalYearInputSchema
 } from "#@/accounting/types";
+import { DEFAULT_CURSOR_LIMIT } from "#@/pagination";
 
 describe("accounting contracts", () => {
   it("uses reviewed Phase 1 accounting period statuses", () => {
@@ -179,6 +180,17 @@ describe("accounting contracts", () => {
         toDate: "2026-04-30"
       }).success
     ).toBe(false);
+  });
+
+  it("uses shared cursor pagination defaults for general ledger reads", () => {
+    expect(
+      GeneralLedgerInputSchema.parse({
+        accountId: "018ff8d9-ae36-7d5b-8f21-8687bde90001",
+        orgSlug: "demo"
+      })
+    ).toMatchObject({
+      limit: DEFAULT_CURSOR_LIMIT
+    });
   });
 
   it("rejects report date ranges with fromDate after toDate", () => {

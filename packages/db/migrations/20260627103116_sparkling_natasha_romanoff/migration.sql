@@ -2,6 +2,7 @@ CREATE TABLE "item" (
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"description" text,
 	"expense_account_id" uuid,
+	"hsn_code" text,
 	"id" uuid PRIMARY KEY,
 	"is_active" boolean DEFAULT true NOT NULL,
 	"kind" text NOT NULL,
@@ -30,29 +31,35 @@ CREATE TABLE "party" (
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"display_name" text NOT NULL,
 	"email" text,
+	"gst_registration_type" text DEFAULT 'unregistered' NOT NULL,
+	"gstin" text,
 	"id" uuid PRIMARY KEY,
 	"is_active" boolean DEFAULT true NOT NULL,
 	"kind" text NOT NULL,
 	"legal_name" text,
 	"normalized_name" text NOT NULL,
 	"organization_id" text NOT NULL,
+	"pan" text,
 	"phone" text,
 	"postal_code" text,
 	"state" text,
 	"updated_at" timestamp DEFAULT now() NOT NULL,
 	CONSTRAINT "party_kind_ck" CHECK ("kind" IN ('customer', 'vendor', 'both')),
+	CONSTRAINT "party_gst_registration_type_ck" CHECK ("gst_registration_type" IN ('registered_regular', 'registered_composition', 'unregistered', 'consumer')),
 	CONSTRAINT "party_display_name_not_blank_ck" CHECK (length(trim("display_name")) > 0),
 	CONSTRAINT "party_normalized_name_not_blank_ck" CHECK (length(trim("normalized_name")) > 0)
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX "item_organization_id_id_uidx" ON "item" ("organization_id","id");--> statement-breakpoint
-CREATE UNIQUE INDEX "item_organization_id_normalized_name_uidx" ON "item" ("organization_id","normalized_name");--> statement-breakpoint
+CREATE UNIQUE INDEX "item_organization_id_normalized_name_uidx" ON "item" ("organization_id","normalized_name") WHERE is_active;--> statement-breakpoint
+CREATE INDEX "item_organization_id_normalized_name_id_idx" ON "item" ("organization_id","normalized_name","id");--> statement-breakpoint
 CREATE INDEX "item_organization_id_idx" ON "item" ("organization_id");--> statement-breakpoint
 CREATE INDEX "item_organization_id_kind_idx" ON "item" ("organization_id","kind");--> statement-breakpoint
 CREATE INDEX "item_organization_id_usage_idx" ON "item" ("organization_id","usage");--> statement-breakpoint
 CREATE INDEX "item_organization_id_active_idx" ON "item" ("organization_id","is_active");--> statement-breakpoint
 CREATE UNIQUE INDEX "party_organization_id_id_uidx" ON "party" ("organization_id","id");--> statement-breakpoint
-CREATE UNIQUE INDEX "party_organization_id_normalized_name_uidx" ON "party" ("organization_id","normalized_name");--> statement-breakpoint
+CREATE UNIQUE INDEX "party_organization_id_normalized_name_uidx" ON "party" ("organization_id","normalized_name") WHERE is_active;--> statement-breakpoint
+CREATE INDEX "party_organization_id_normalized_name_id_idx" ON "party" ("organization_id","normalized_name","id");--> statement-breakpoint
 CREATE INDEX "party_organization_id_idx" ON "party" ("organization_id");--> statement-breakpoint
 CREATE INDEX "party_organization_id_kind_idx" ON "party" ("organization_id","kind");--> statement-breakpoint
 CREATE INDEX "party_organization_id_active_idx" ON "party" ("organization_id","is_active");--> statement-breakpoint

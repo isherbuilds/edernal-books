@@ -1,76 +1,105 @@
-import { SearchIcon } from "lucide-react";
-import { useId, useState } from "react";
+import { type ReactNode, useState } from "react";
 
 import { type LedgerAccountListItem } from "@tsu-stack/core/accounting";
-import { Input } from "@tsu-stack/ui/components/input";
 
-type AccountSearchSelectProps = {
-  accounts: LedgerAccountListItem[];
-  "aria-label": string;
-  onValueChange: (accountId: string) => void;
+import { useChartAccountsQuery } from "@/hooks/use-accounting";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
+
+import { FormComboboxField, type FormFieldError } from "@/components/form-fields";
+
+export type AccountComboboxOption = {
+  code: string;
+  label: string;
+  name: string;
   value: string;
 };
 
-export function AccountSearchSelect({
-  accounts,
-  "aria-label": ariaLabel,
-  onValueChange,
-  value
-}: AccountSearchSelectProps) {
-  const [query, setQuery] = useState("");
-  const [focused, setFocused] = useState(false);
-  const datalistId = useId();
-  const normalizedQuery = query.trim().toLocaleLowerCase();
-  const selected = accounts.find((account) => account.id === value);
-  const selectedLabel = selected ? getAccountOptionLabel(selected) : "";
-  const visibleAccounts = (
-    normalizedQuery
-      ? accounts.filter((account) =>
-          getAccountOptionLabel(account).toLocaleLowerCase().includes(normalizedQuery)
-        )
-      : accounts
-  ).slice(0, 8);
+export function toAccountComboboxOption(account: LedgerAccountListItem): AccountComboboxOption {
+  return {
+    code: account.code,
+    label: `${account.code} ${account.name}`,
+    name: account.name,
+    value: account.id
+  };
+}
 
+export function renderAccountComboboxOption(option: AccountComboboxOption): ReactNode {
   return (
-    <div className="relative">
-      <SearchIcon className="pointer-events-none absolute top-2 left-2 size-4 text-muted-foreground" />
-      <Input
-        aria-label={ariaLabel}
-        className="pl-8"
-        list={datalistId}
-        onBlur={() => {
-          setFocused(false);
-          setQuery("");
-        }}
-        onChange={(event) => {
-          const nextQuery = event.currentTarget.value;
-          const nextAccount = accounts.find(
-            (account) => getAccountOptionLabel(account) === nextQuery
-          );
-
-          setQuery(nextQuery);
-          if (nextAccount) {
-            onValueChange(nextAccount.id);
-          }
-        }}
-        onFocus={() => {
-          setFocused(true);
-          setQuery("");
-        }}
-        placeholder="Search account"
-        value={focused ? query : selectedLabel}
-      />
-      <datalist id={datalistId}>
-        {visibleAccounts.map((account) => (
-          <option key={account.id} value={getAccountOptionLabel(account)}>
-            {getAccountOptionLabel(account)}
-          </option>
-        ))}
-      </datalist>
-    </div>
+    <span className="flex min-w-0 items-baseline gap-2">
+      <span className="font-mono text-xs text-muted-foreground tabular-nums">{option.code}</span>
+      <span className="truncate">{option.name}</span>
+    </span>
   );
 }
 
-function getAccountOptionLabel(account: LedgerAccountListItem): string {
-  return `${account.code} ${account.name}`;
+type AccountSearchSelectProps = {
+  description?: ReactNode;
+  disabled?: boolean;
+  emptyText?: ReactNode;
+  error?: FormFieldError;
+  id?: string;
+  label: ReactNode;
+  name?: string;
+  onValueChange: (accountId: string | null) => void;
+  orgSlug: string;
+  placeholder?: string;
+  value: string | null;
+};
+
+export function AccountSearchSelect({
+  description,
+  disabled,
+  emptyText,
+  error,
+  id,
+  label,
+  name,
+  onValueChange,
+  orgSlug,
+  placeholder,
+  value
+}: AccountSearchSelectProps) {
+  const [inputValue, setInputValue] = useState("");
+  const [pickedOption, setPickedOption] = useState<AccountComboboxOption | null>(null);
+  const debouncedQuery = useDebouncedValue(inputValue.trim());
+  const accountsQuery = useChartAccountsQuery(orgSlug, {
+    q: debouncedQuery.length > 0 ? debouncedQuery : undefined
+  });
+
+  const postableOptions = (accountsQuery.data?.accounts ?? [])
+    .filter((account) => account.active && !account.isGroup && account.allowManualPosting)
+    .map(toAccountComboboxOption);
+
+  const selectedOption = pickedOption && pickedOption.value === value ? pickedOption : null;
+  const options =
+    selectedOption && !postableOptions.some((option) => option.value === selectedOption.value)
+      ? [selectedOption, ...postableOptions]
+      : postableOptions;
+
+  return (
+    <FormComboboxField<AccountComboboxOption>
+      description={description}
+      disabled={disabled}
+      emptyText={emptyText}
+      error={error}
+      id={id}
+      inputValue={inputValue}
+      items={options}
+      label={label}
+      loading={accountsQuery.isLoading}
+      manualFiltering
+      name={name ?? "account"}
+      onInputValueChange={setInputValue}
+      onValueChange={(nextValue) => {
+        setPickedOption(
+          nextValue ? (options.find((option) => option.value === nextValue) ?? null) : null
+        );
+        setInputValue("");
+        onValueChange(nextValue);
+      }}
+      placeholder={placeholder}
+      renderItem={renderAccountComboboxOption}
+      value={value}
+    />
+  );
 }

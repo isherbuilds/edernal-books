@@ -44,4 +44,12 @@
   --font-serif: "Inter Variable", Inter, sans-serif;
   --font-mono: "Inter Variable", Inter, sans-serif;
   --font-heading: var(--font-sans);
+
+  /*
+   * Dedicated serif stack for displayed money amounts (the `font-amount` utility).
+   * `--font-serif` is deliberately pinned to Inter above and is already used for marketing/onboarding
+   * headings, so repointing it would reskin unrelated text. This separate token gives amount columns a
+   * real serif (paired with `tabular-nums`) for the midday-style figures without touching anything else.
+   */
+  --font-amount: ui-serif, Georgia, "Times New Roman", serif;
 }

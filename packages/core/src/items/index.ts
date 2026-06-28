@@ -1,39 +1,18 @@
 import { z } from "zod";
 
+import { NonNegativeMinorUnitStringSchema } from "#@/accounting/types";
 import { OrgSlugInputSchema } from "#@/organizations/index";
+import { CursorPaginationInputSchema, CursorPaginationOutputSchema } from "#@/pagination";
+import { nullableTextInput } from "#@/text/index";
 
 export const ITEM_KINDS = ["goods", "service"] as const;
 export const ITEM_USAGES = ["sales", "purchases", "both"] as const;
-
-const EmptyTextAsNullSchema = z
-  .string()
-  .trim()
-  .length(0)
-  .transform(() => null);
-
-const POSTGRES_BIGINT_MAX = "9223372036854775807";
-
-function nullableTextInput(schema: z.ZodType<string>) {
-  return z.union([EmptyTextAsNullSchema, schema, z.null()]).optional();
-}
-
-function isPostgresNonNegativeBigintString(value: string): boolean {
-  if (!/^\d+$/.test(value)) {
-    return false;
-  }
-
-  const normalized = value.replace(/^0+(?=\d)/, "");
-
-  if (normalized.length !== POSTGRES_BIGINT_MAX.length) {
-    return normalized.length < POSTGRES_BIGINT_MAX.length;
-  }
-
-  return normalized <= POSTGRES_BIGINT_MAX;
-}
-
-export function normalizeItemName(value: string): string {
-  return value.trim().replace(/\s+/g, " ").toLowerCase();
-}
+export const ITEM_ERROR_CODES = [
+  "ITEM_ACCOUNT_ORGANIZATION_MISMATCH",
+  "ITEM_CURSOR_INVALID",
+  "ITEM_DUPLICATE_NAME",
+  "ITEM_NOT_FOUND"
+] as const;
 
 export const ItemKindSchema = z.enum(ITEM_KINDS);
 export type ItemKind = z.infer<typeof ItemKindSchema>;
@@ -41,17 +20,19 @@ export type ItemKind = z.infer<typeof ItemKindSchema>;
 export const ItemUsageSchema = z.enum(ITEM_USAGES);
 export type ItemUsage = z.infer<typeof ItemUsageSchema>;
 
-export const NonNegativeMinorUnitStringSchema = z
-  .string()
-  .regex(/^\d+$/)
-  .refine(isPostgresNonNegativeBigintString);
-export type NonNegativeMinorUnitString = z.infer<typeof NonNegativeMinorUnitStringSchema>;
+export const ItemErrorCodeSchema = z.enum(ITEM_ERROR_CODES);
+export type ItemErrorCode = z.infer<typeof ItemErrorCodeSchema>;
+
+// HSN (goods) / SAC (services) classification code — 4 to 8 digits.
+const HSN_CODE_REGEX = /^[0-9]{4,8}$/;
+export const HsnCodeSchema = z.string().trim().regex(HSN_CODE_REGEX);
 
 export const ItemSchema = z
   .object({
     createdAt: z.iso.datetime(),
     description: z.string().nullable(),
     expenseAccountId: z.uuid().nullable(),
+    hsnCode: z.string().nullable(),
     id: z.uuid(),
     isActive: z.boolean(),
     kind: ItemKindSchema,
@@ -71,6 +52,7 @@ export type Item = z.infer<typeof ItemSchema>;
 const itemInputShape = {
   description: nullableTextInput(z.string().trim().max(1000)),
   expenseAccountId: z.uuid().nullable().optional(),
+  hsnCode: nullableTextInput(HsnCodeSchema),
   kind: ItemKindSchema,
   name: z.string().trim().min(1).max(240),
   purchaseRateMinor: NonNegativeMinorUnitStringSchema.nullable().optional(),
@@ -99,6 +81,7 @@ export const SetItemActiveInputSchema = OrgSlugInputSchema.extend({
 export type SetItemActiveInput = z.infer<typeof SetItemActiveInputSchema>;
 
 export const ListItemsInputSchema = OrgSlugInputSchema.extend({
+  ...CursorPaginationInputSchema.shape,
   includeInactive: z.boolean().default(false).optional(),
   kind: ItemKindSchema.optional(),
   q: z.string().trim().min(1).max(120).optional(),
@@ -108,7 +91,8 @@ export type ListItemsInput = z.infer<typeof ListItemsInputSchema>;
 
 export const ListItemsOutputSchema = z
   .object({
-    items: z.array(ItemSchema)
+    items: z.array(ItemSchema),
+    nextCursor: CursorPaginationOutputSchema.shape.nextCursor
   })
   .strict();
 export type ListItemsOutput = z.infer<typeof ListItemsOutputSchema>;

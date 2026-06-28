@@ -2,17 +2,35 @@ import { describe, expect, it } from "vite-plus/test";
 
 import {
   CreateItemInputSchema,
+  ITEM_ERROR_CODES,
   ITEM_KINDS,
   ITEM_USAGES,
+  ItemErrorCodeSchema,
   ItemSchema,
   ListItemsInputSchema,
   UpdateItemInputSchema
 } from "#@/items/index";
+import { DEFAULT_CURSOR_LIMIT } from "#@/pagination";
 
 describe("item contracts", () => {
   it("separates item kind from sales/purchase usage", () => {
     expect(ITEM_KINDS).toEqual(["goods", "service"]);
     expect(ITEM_USAGES).toEqual(["sales", "purchases", "both"]);
+  });
+
+  it("keeps item write error codes in the item contract", () => {
+    expect(ITEM_ERROR_CODES).toEqual([
+      "ITEM_ACCOUNT_ORGANIZATION_MISMATCH",
+      "ITEM_CURSOR_INVALID",
+      "ITEM_DUPLICATE_NAME",
+      "ITEM_NOT_FOUND"
+    ]);
+
+    for (const code of ITEM_ERROR_CODES) {
+      expect(ItemErrorCodeSchema.parse(code)).toBe(code);
+    }
+
+    expect(ItemErrorCodeSchema.safeParse("NOPE").success).toBe(false);
   });
 
   it("accepts minimal service item input", () => {
@@ -99,6 +117,7 @@ describe("item contracts", () => {
     ).toEqual({
       includeInactive: true,
       kind: "goods",
+      limit: DEFAULT_CURSOR_LIMIT,
       orgSlug: "demo",
       q: "paper",
       usage: "purchases"
@@ -110,6 +129,7 @@ describe("item contracts", () => {
       createdAt: "2026-06-27T00:00:00.000Z",
       description: null,
       expenseAccountId: null,
+      hsnCode: null,
       id: "018ff8d9-ae36-7d5b-8f21-8687bde90001",
       isActive: true,
       kind: "goods",

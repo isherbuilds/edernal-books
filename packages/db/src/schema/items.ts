@@ -17,6 +17,7 @@ import { ITEM_KINDS, ITEM_USAGES } from "@tsu-stack/core/items";
 import { ledgerAccount } from "#@/schema/accounts";
 import { organization } from "#@/schema/auth.schema";
 import { createUuidV7 } from "#@/utils/id";
+import { sqlInList } from "#@/utils/sql";
 
 export const item = pgTable(
   "item",
@@ -24,6 +25,7 @@ export const item = pgTable(
     createdAt: timestamp("created_at").defaultNow().notNull(),
     description: text("description"),
     expenseAccountId: uuid("expense_account_id"),
+    hsnCode: text("hsn_code"),
     id: uuid("id").$defaultFn(createUuidV7).primaryKey(),
     isActive: boolean("is_active").default(true).notNull(),
     kind: text("kind", { enum: ITEM_KINDS }).notNull(),
@@ -44,9 +46,13 @@ export const item = pgTable(
   },
   (table) => [
     uniqueIndex("item_organization_id_id_uidx").on(table.organizationId, table.id),
-    uniqueIndex("item_organization_id_normalized_name_uidx").on(
+    uniqueIndex("item_organization_id_normalized_name_uidx")
+      .on(table.organizationId, table.normalizedName)
+      .where(sql`is_active`),
+    index("item_organization_id_normalized_name_id_idx").on(
       table.organizationId,
-      table.normalizedName
+      table.normalizedName,
+      table.id
     ),
     index("item_organization_id_idx").on(table.organizationId),
     index("item_organization_id_kind_idx").on(table.organizationId, table.kind),
@@ -62,8 +68,8 @@ export const item = pgTable(
       foreignColumns: [ledgerAccount.organizationId, ledgerAccount.id],
       name: "item_organization_id_expense_account_id_fkey"
     }).onDelete("restrict"),
-    check("item_kind_ck", sql`${table.kind} IN ('goods', 'service')`),
-    check("item_usage_ck", sql`${table.usage} IN ('sales', 'purchases', 'both')`),
+    check("item_kind_ck", sqlInList(table.kind, ITEM_KINDS)),
+    check("item_usage_ck", sqlInList(table.usage, ITEM_USAGES)),
     check("item_name_not_blank_ck", sql`length(trim(${table.name})) > 0`),
     check("item_normalized_name_not_blank_ck", sql`length(trim(${table.normalizedName})) > 0`),
     check(

@@ -158,6 +158,17 @@ Add owner workflow screens after API and data access are in place:
 
 The UI should avoid inventory wording. Use catalog language until Phase 9.
 
+### Implemented UI architecture (as built)
+
+After a Midday (`/tmp/midday` customers/products) reference review, the parties and items screens use a Midday-style but deliberately lightweight composition. This is the standard for future list/CRUD screens.
+
+- **Full-width data table** built on the shared `@tsu-stack/ui` `Table` plus the existing infinite `useInfiniteQuery` "Load more". No `@tanstack/react-table`, virtualization, column drag/resize/visibility, or persisted table settings — that machinery is over-engineered for these registers (Midday `Avoid` list).
+- **List state lives in the URL**, not component state. Routes declare `validateSearch: zodValidator(...)`; pages read it with `getRouteApi(routeId).useSearch()` / `useNavigate`. Params: `q` (debounced search), filter dimensions (`kind`, and `usage` for items), and `view: "create" | "edit"` + `id` for the editor. This matches `.agents/tanstack-patterns.md` ("named URL search state") and replaces Midday's `nuqs`.
+- **Create/edit happens in a right-side `Sheet`** opened by the `view`/`id` params (deep-linkable; closing clears them). Row click and the row `⋯` menu both open the edit sheet. Forms (`item-form.tsx`, `party-form.tsx`) are keyed by record id so they remount with fresh defaults, and call `items.update` / `parties.update`.
+- **Toolbar**: search field (left) + a Filters dropdown (radio groups) and primary "New" button (right); active filters render as removable pills. Two empty states: "no records yet → New" vs "no matches → Clear filters".
+- **Shared building blocks** live in `apps/web/src/components/records/records-shell.tsx` (`RecordsPageLayout`, `RecordsToolbar`, `RecordSearchField`, `RecordFilterMenu`, `RecordFilterPills`, `RecordPrimaryAction`, `RecordSheet`, `RecordRowActions`, `RecordActiveBadge`, `RecordsEmptyState`, `RecordsNoResults`, `RecordsTableContainer`, `RecordsLoadMore`). Read states across record and accounting list screens go through the generic `components/query-state.tsx`.
+- **Styling matches Midday's layout/feel using the repo theme tokens** (`text-muted-foreground`, `bg-secondary`, …) rather than Midday's hardcoded hex, so dark mode and the lime theme stay intact.
+
 ## Testing
 
 Follow TDD for implementation:
