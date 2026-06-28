@@ -11,11 +11,14 @@ import {
   GstinSchema,
   PARTY_KINDS,
   PanSchema,
+  PartyCountryCodeSchema,
   PartyKindSchema
 } from "@tsu-stack/core/parties";
 import { m } from "@tsu-stack/i18n/messages";
 import { Button } from "@tsu-stack/ui/components/button";
 import { Spinner } from "@tsu-stack/ui/components/spinner";
+
+import { optionalCoreField } from "@/utils/form-input";
 
 import { useCreatePartyMutation, useUpdatePartyMutation } from "@/hooks/use-records";
 import { useZodForm } from "@/hooks/use-zod-form";
@@ -25,37 +28,34 @@ import { handleRecordMutationError } from "@/components/records/record-error";
 
 function createPartyFormSchema() {
   return z.object({
+    addressLine1: z.string(),
+    addressLine2: z.string(),
     city: z.string(),
-    countryCode: z.string(),
+    countryCode: optionalCoreField(
+      PartyCountryCodeSchema,
+      m.owner_records__parties_country_invalid()
+    ),
     displayName: z
       .string()
       .trim()
       .min(1, { message: m.owner_records__parties_display_name_required() }),
-    email: z
-      .string()
-      .trim()
-      .refine((value) => value === "" || z.email().max(320).safeParse(value).success),
+    email: optionalCoreField(z.email().max(320), m.owner_records__parties_email_invalid()),
     gstRegistrationType: GstRegistrationTypeSchema,
-    gstin: z
-      .string()
-      .trim()
-      .refine((value) => value === "" || GstinSchema.safeParse(value).success, {
-        message: m.owner_records__parties_gstin_invalid()
-      }),
+    gstin: optionalCoreField(GstinSchema, m.owner_records__parties_gstin_invalid()),
     kind: PartyKindSchema,
-    pan: z
-      .string()
-      .trim()
-      .refine((value) => value === "" || PanSchema.safeParse(value).success, {
-        message: m.owner_records__parties_pan_invalid()
-      }),
-    phone: z.string()
+    legalName: z.string(),
+    pan: optionalCoreField(PanSchema, m.owner_records__parties_pan_invalid()),
+    phone: z.string(),
+    postalCode: z.string(),
+    state: z.string()
   });
 }
 
 type PartyFormValues = z.input<ReturnType<typeof createPartyFormSchema>>;
 
 const PARTY_FORM_DEFAULTS: PartyFormValues = {
+  addressLine1: "",
+  addressLine2: "",
   city: "",
   countryCode: "IN",
   displayName: "",
@@ -63,8 +63,11 @@ const PARTY_FORM_DEFAULTS: PartyFormValues = {
   gstRegistrationType: "unregistered",
   gstin: "",
   kind: "customer",
+  legalName: "",
   pan: "",
-  phone: ""
+  phone: "",
+  postalCode: "",
+  state: ""
 };
 
 export function partyKindLabel(kind: PartyKind): string {
@@ -111,6 +114,8 @@ function toFormValues(party: Party | null | undefined): PartyFormValues {
   }
 
   return {
+    addressLine1: party.addressLine1 ?? "",
+    addressLine2: party.addressLine2 ?? "",
     city: party.city ?? "",
     countryCode: party.countryCode ?? "",
     displayName: party.displayName,
@@ -118,8 +123,11 @@ function toFormValues(party: Party | null | undefined): PartyFormValues {
     gstRegistrationType: party.gstRegistrationType,
     gstin: party.gstin ?? "",
     kind: party.kind,
+    legalName: party.legalName ?? "",
     pan: party.pan ?? "",
-    phone: party.phone ?? ""
+    phone: party.phone ?? "",
+    postalCode: party.postalCode ?? "",
+    state: party.state ?? ""
   };
 }
 
@@ -147,6 +155,8 @@ export function PartyForm({ onClose, orgSlug, party }: PartyFormProps) {
 
   const submit = handleSubmit((values) => {
     const payload = {
+      addressLine1: values.addressLine1,
+      addressLine2: values.addressLine2,
       city: values.city,
       countryCode: values.countryCode,
       displayName: values.displayName,
@@ -154,8 +164,11 @@ export function PartyForm({ onClose, orgSlug, party }: PartyFormProps) {
       gstRegistrationType: values.gstRegistrationType,
       gstin: values.gstin,
       kind: values.kind,
+      legalName: values.legalName,
       pan: values.pan,
-      phone: values.phone
+      phone: values.phone,
+      postalCode: values.postalCode,
+      state: values.state
     };
 
     const onError = (error: unknown) =>
@@ -224,6 +237,12 @@ export function PartyForm({ onClose, orgSlug, party }: PartyFormProps) {
         {...register("displayName")}
       />
       <FormTextField
+        error={errors.legalName}
+        label={m.owner_records__parties_legal_name_label()}
+        placeholder={m.owner_records__parties_legal_name_placeholder()}
+        {...register("legalName")}
+      />
+      <FormTextField
         error={errors.email}
         label={m.owner_records__parties_email_label()}
         placeholder={m.owner_records__parties_email_placeholder()}
@@ -236,12 +255,38 @@ export function PartyForm({ onClose, orgSlug, party }: PartyFormProps) {
         placeholder={m.owner_records__parties_phone_placeholder()}
         {...register("phone")}
       />
-      <div className="grid gap-4 sm:grid-cols-[1fr_88px]">
+      <FormTextField
+        error={errors.addressLine1}
+        label={m.owner_records__parties_address_line1_label()}
+        placeholder={m.owner_records__parties_address_line1_placeholder()}
+        {...register("addressLine1")}
+      />
+      <FormTextField
+        error={errors.addressLine2}
+        label={m.owner_records__parties_address_line2_label()}
+        placeholder={m.owner_records__parties_address_line2_placeholder()}
+        {...register("addressLine2")}
+      />
+      <div className="grid gap-4 sm:grid-cols-2">
         <FormTextField
           error={errors.city}
           label={m.owner_records__parties_city_label()}
           placeholder={m.owner_records__parties_city_placeholder()}
           {...register("city")}
+        />
+        <FormTextField
+          error={errors.state}
+          label={m.owner_records__parties_state_label()}
+          placeholder={m.owner_records__parties_state_placeholder()}
+          {...register("state")}
+        />
+      </div>
+      <div className="grid gap-4 sm:grid-cols-[1fr_88px]">
+        <FormTextField
+          error={errors.postalCode}
+          label={m.owner_records__parties_postal_code_label()}
+          placeholder={m.owner_records__parties_postal_code_placeholder()}
+          {...register("postalCode")}
         />
         <FormTextField
           className="uppercase"

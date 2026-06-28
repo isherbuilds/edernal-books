@@ -73,6 +73,12 @@ export function DataTable<T>({
               onKeyDown={
                 onRowClick
                   ? (event) => {
+                      // Only the row itself activates on Enter/Space; keys from focusable
+                      // children (e.g. the row-action menu button) must not trigger the row.
+                      if (event.target !== event.currentTarget) {
+                        return;
+                      }
+
                       if (event.key === "Enter" || event.key === " ") {
                         event.preventDefault();
                         activateRow();

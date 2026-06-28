@@ -2,7 +2,7 @@ import { z } from "zod";
 
 import { OrgSlugInputSchema } from "#@/organizations/index";
 import { CursorPaginationInputSchema, CursorPaginationOutputSchema } from "#@/pagination";
-import { nullableTextInput } from "#@/text/index";
+import { nullableTextInput, SearchQuerySchema } from "#@/text/index";
 
 export const PARTY_KINDS = ["customer", "vendor", "both"] as const;
 export const PARTY_ERROR_CODES = [
@@ -31,16 +31,19 @@ export type GstRegistrationType = z.infer<typeof GstRegistrationTypeSchema>;
 const GSTIN_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/;
 // PAN: 5 letters + 4 digits + 1 letter.
 const PAN_REGEX = /^[A-Z]{5}[0-9]{4}[A-Z]$/;
+// ISO 3166-1 alpha-2 country code — matches the party_country_code_ck DB constraint.
+const COUNTRY_CODE_REGEX = /^[A-Z]{2}$/;
 
 export const GstinSchema = z.string().trim().toUpperCase().regex(GSTIN_REGEX);
 export const PanSchema = z.string().trim().toUpperCase().regex(PAN_REGEX);
+export const PartyCountryCodeSchema = z.string().trim().toUpperCase().regex(COUNTRY_CODE_REGEX);
 
 export const PartySchema = z
   .object({
     addressLine1: z.string().nullable(),
     addressLine2: z.string().nullable(),
     city: z.string().nullable(),
-    countryCode: z.string().trim().min(2).max(2).nullable(),
+    countryCode: PartyCountryCodeSchema.nullable(),
     createdAt: z.iso.datetime(),
     displayName: z.string().trim().min(1).max(240),
     email: z.email().max(320).nullable(),
@@ -65,7 +68,7 @@ const partyInputShape = {
   addressLine1: nullableTextInput(z.string().trim().max(240)),
   addressLine2: nullableTextInput(z.string().trim().max(240)),
   city: nullableTextInput(z.string().trim().max(120)),
-  countryCode: nullableTextInput(z.string().trim().length(2).toUpperCase()),
+  countryCode: nullableTextInput(PartyCountryCodeSchema),
   displayName: z.string().trim().min(1).max(240),
   email: nullableTextInput(z.email().trim().max(320)),
   gstin: nullableTextInput(GstinSchema),
@@ -119,7 +122,7 @@ export const ListPartiesInputSchema = OrgSlugInputSchema.extend({
   ...CursorPaginationInputSchema.shape,
   includeInactive: z.boolean().default(false).optional(),
   kind: PartyKindSchema.optional(),
-  q: z.string().trim().min(1).max(120).optional()
+  q: SearchQuerySchema.optional()
 }).strict();
 export type ListPartiesInput = z.infer<typeof ListPartiesInputSchema>;
 

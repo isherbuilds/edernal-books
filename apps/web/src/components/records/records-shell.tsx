@@ -67,6 +67,7 @@ export function RecordsToolbar({ children, pills, search }: RecordsToolbarProps)
 
 type RecordSearchFieldProps = {
   ariaLabel: string;
+  maxLength?: number;
   onChange: (value: string) => void;
   placeholder: string;
   value: string;
@@ -74,6 +75,7 @@ type RecordSearchFieldProps = {
 
 export function RecordSearchField({
   ariaLabel,
+  maxLength,
   onChange,
   placeholder,
   value
@@ -87,6 +89,7 @@ export function RecordSearchField({
         autoComplete="off"
         autoCorrect="off"
         className="pl-9"
+        maxLength={maxLength}
         onChange={(event) => onChange(event.currentTarget.value)}
         placeholder={placeholder}
         spellCheck={false}

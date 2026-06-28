@@ -253,7 +253,10 @@ export type TrialBalanceOutput = z.infer<typeof TrialBalanceOutputSchema>;
 
 export const GeneralLedgerInputSchema = AccountingReportDateRangeInputSchema.extend({
   accountId: z.uuid(),
-  ...CursorPaginationInputSchema.shape
+  ...CursorPaginationInputSchema.shape,
+  // The ledger is a report: keep a larger page than the generic list default (30) so a
+  // period's running/closing balance is visible without excessive "load more" fetches.
+  limit: z.number().int().min(1).max(200).default(100)
 }).strict();
 export type GeneralLedgerInput = z.infer<typeof GeneralLedgerInputSchema>;
 

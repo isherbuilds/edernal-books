@@ -1,8 +1,10 @@
 import { getRouteApi } from "@tanstack/react-router";
 import { UserRoundIcon } from "lucide-react";
+import { useMemo } from "react";
 import { toast } from "sonner";
 
-import { type Party, type PartyKind } from "@tsu-stack/core/parties";
+import { type Party, type PartyKind, PartyKindSchema } from "@tsu-stack/core/parties";
+import { SEARCH_QUERY_MAX_LENGTH } from "@tsu-stack/core/text";
 import { m } from "@tsu-stack/i18n/messages";
 
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
@@ -22,6 +24,7 @@ import {
   gstRegistrationTypeLabel,
   partyKindLabel
 } from "@/components/records/party-form";
+import { handleRecordMutationError } from "@/components/records/record-error";
 import {
   type RecordFilterGroup,
   RecordActiveBadge,
@@ -67,7 +70,10 @@ export function PartiesPage({ orgSlug }: PartiesPageProps) {
   });
   const partyQuery = usePartyQuery({ id: search.id ?? "", orgSlug }, isEditing);
   const setPartyActive = useSetPartyActiveMutation();
-  const parties = partiesQuery.data?.pages.flatMap((page) => page.parties) ?? [];
+  const parties = useMemo(
+    () => partiesQuery.data?.pages.flatMap((page) => page.parties) ?? [],
+    [partiesQuery.data]
+  );
 
   const hasFilters = Boolean((search.q ?? "").trim()) || Boolean(search.kind);
 
@@ -76,8 +82,10 @@ export function PartiesPage({ orgSlug }: PartiesPageProps) {
       allLabel: m.owner_records__filter_all(),
       id: "kind",
       label: m.owner_records__parties_kind_label(),
-      onValueChange: (value) =>
-        setSearch({ kind: value === "all" ? undefined : (value as PartyKind) }),
+      onValueChange: (value) => {
+        const parsed = PartyKindSchema.safeParse(value);
+        setSearch({ kind: parsed.success ? parsed.data : undefined });
+      },
       options: PARTY_KIND_OPTIONS,
       value: search.kind ?? "all"
     }
@@ -97,9 +105,13 @@ export function PartiesPage({ orgSlug }: PartiesPageProps) {
       { id: party.id, isActive: !party.isActive, orgSlug },
       {
         onError: (error) =>
-          toast.error(
-            error instanceof Error ? error.message : m.owner_records__parties_update_error()
-          )
+          handleRecordMutationError(error, {
+            onDuplicateName: () => toast.error(m.owner_records__parties_duplicate_name()),
+            onFallback: () =>
+              toast.error(
+                error instanceof Error ? error.message : m.owner_records__parties_update_error()
+              )
+          })
       }
     );
   };
@@ -192,7 +204,8 @@ export function PartiesPage({ orgSlug }: PartiesPageProps) {
         search={
           <RecordSearchField
             ariaLabel={m.owner_records__parties_search_label()}
-            onChange={(value) => setSearch({ q: value.trim() || undefined })}
+            maxLength={SEARCH_QUERY_MAX_LENGTH}
+            onChange={(value) => setSearch({ q: value || undefined })}
             placeholder={m.owner_records__parties_search_placeholder()}
             value={search.q ?? ""}
           />

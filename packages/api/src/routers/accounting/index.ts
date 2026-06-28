@@ -29,6 +29,7 @@ import {
   reverseJournalEntry
 } from "@tsu-stack/db/queries";
 
+import { throwMappedDbError } from "#@/lib/db-error";
 import { organizationPermissionProcedure } from "#@/lib/procedures/factory";
 
 const accountingErrorDataSchema = z.object({
@@ -232,11 +233,7 @@ export const accountingRouter = {
 };
 
 function throwAccountingDbError(errors: AccountingErrorFactories, error: unknown): never {
-  if (error instanceof AccountingDbError) {
-    throw errors[error.code]({ data: { code: error.code } });
-  }
-
-  throw error;
+  throwMappedDbError(errors, error, AccountingDbError);
 }
 
 function statusForAccountingError(code: AccountingErrorCode): 400 | 404 | 409 | 422 {

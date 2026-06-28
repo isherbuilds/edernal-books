@@ -49,7 +49,7 @@ export function PageHeader({ actions, description, eyebrow, icon, title }: PageH
 type EmptyStateProps = {
   actionLabel?: ReactNode;
   description: ReactNode;
-  icon: ReactNode;
+  icon?: ReactNode;
   onAction?: () => void;
   title: ReactNode;
 };
@@ -57,9 +57,11 @@ type EmptyStateProps = {
 export function EmptyState({ actionLabel, description, icon, onAction, title }: EmptyStateProps) {
   return (
     <div className="flex flex-col items-center justify-center gap-4 rounded-lg border border-dashed py-20 text-center">
-      <div className="flex size-11 items-center justify-center rounded-lg border bg-card text-muted-foreground">
-        {icon}
-      </div>
+      {icon ? (
+        <div className="flex size-11 items-center justify-center rounded-lg border bg-card text-muted-foreground">
+          {icon}
+        </div>
+      ) : null}
       <div className="flex flex-col gap-1">
         <h3 className="text-base font-medium">{title}</h3>
         <p className="max-w-sm text-sm text-muted-foreground">{description}</p>
@@ -80,16 +82,14 @@ type NoResultsProps = {
   title: ReactNode;
 };
 
+// A no-results panel is an icon-less empty state with a (required) reset action.
 export function NoResults({ actionLabel, description, onAction, title }: NoResultsProps) {
   return (
-    <div className="flex flex-col items-center justify-center gap-4 rounded-lg border border-dashed py-20 text-center">
-      <div className="flex flex-col gap-1">
-        <h3 className="text-base font-medium">{title}</h3>
-        <p className="max-w-sm text-sm text-muted-foreground">{description}</p>
-      </div>
-      <Button onClick={onAction} type="button" variant="outline">
-        {actionLabel}
-      </Button>
-    </div>
+    <EmptyState
+      actionLabel={actionLabel}
+      description={description}
+      onAction={onAction}
+      title={title}
+    />
   );
 }

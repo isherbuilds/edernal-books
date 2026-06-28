@@ -6,7 +6,6 @@ import {
   GetPartyInputSchema,
   ListPartiesInputSchema,
   ListPartiesOutputSchema,
-  type PartyErrorCode,
   PartyErrorCodeSchema,
   PartySchema,
   SetPartyActiveInputSchema,
@@ -21,6 +20,7 @@ import {
   updateParty
 } from "@tsu-stack/db/queries";
 
+import { throwMappedDbError } from "#@/lib/db-error";
 import { organizationPermissionProcedure } from "#@/lib/procedures/factory";
 
 const partyErrorDataSchema = z.object({
@@ -31,11 +31,6 @@ const partyErrors = {
   PARTY_DUPLICATE_NAME: { data: partyErrorDataSchema, status: 409 },
   PARTY_NOT_FOUND: { data: partyErrorDataSchema, status: 404 }
 } as const;
-
-type PartyErrorFactories = Record<
-  PartyErrorCode,
-  (input: { data: { code: PartyErrorCode } }) => unknown
->;
 
 export const partiesRouter = {
   list: organizationPermissionProcedure(ListPartiesInputSchema, canAccessAccounting)
@@ -56,7 +51,7 @@ export const partiesRouter = {
           q: input.q
         });
       } catch (error) {
-        throwPartyDbError(errors, error);
+        throwMappedDbError(errors, error, PartyDbError);
       }
     }),
   get: organizationPermissionProcedure(GetPartyInputSchema, canAccessAccounting)
@@ -73,7 +68,7 @@ export const partiesRouter = {
           organizationId: context.organizationId
         });
       } catch (error) {
-        throwPartyDbError(errors, error);
+        throwMappedDbError(errors, error, PartyDbError);
       }
     }),
   create: organizationPermissionProcedure(CreatePartyInputSchema, canAccessAccounting)
@@ -91,7 +86,7 @@ export const partiesRouter = {
           userId: context.authSession.user.id
         });
       } catch (error) {
-        throwPartyDbError(errors, error);
+        throwMappedDbError(errors, error, PartyDbError);
       }
     }),
   update: organizationPermissionProcedure(UpdatePartyInputSchema, canAccessAccounting)
@@ -109,7 +104,7 @@ export const partiesRouter = {
           userId: context.authSession.user.id
         });
       } catch (error) {
-        throwPartyDbError(errors, error);
+        throwMappedDbError(errors, error, PartyDbError);
       }
     }),
   setActive: organizationPermissionProcedure(SetPartyActiveInputSchema, canAccessAccounting)
@@ -128,15 +123,7 @@ export const partiesRouter = {
           userId: context.authSession.user.id
         });
       } catch (error) {
-        throwPartyDbError(errors, error);
+        throwMappedDbError(errors, error, PartyDbError);
       }
     })
 };
-
-function throwPartyDbError(errors: PartyErrorFactories, error: unknown): never {
-  if (error instanceof PartyDbError) {
-    throw errors[error.code]({ data: { code: error.code } });
-  }
-
-  throw error;
-}

@@ -1,8 +1,16 @@
 import { getRouteApi } from "@tanstack/react-router";
 import { BoxesIcon } from "lucide-react";
+import { useMemo } from "react";
 import { toast } from "sonner";
 
-import { type Item, type ItemKind, type ItemUsage } from "@tsu-stack/core/items";
+import {
+  type Item,
+  type ItemKind,
+  ItemKindSchema,
+  type ItemUsage,
+  ItemUsageSchema
+} from "@tsu-stack/core/items";
+import { SEARCH_QUERY_MAX_LENGTH } from "@tsu-stack/core/text";
 import { m } from "@tsu-stack/i18n/messages";
 
 import { formatMinorUnits } from "@/utils/accounting-format";
@@ -25,6 +33,7 @@ import {
   itemKindLabel,
   itemUsageLabel
 } from "@/components/records/item-form";
+import { handleRecordMutationError } from "@/components/records/record-error";
 import {
   type RecordFilterGroup,
   RecordActiveBadge,
@@ -72,7 +81,10 @@ export function ItemsPage({ orgSlug }: ItemsPageProps) {
   });
   const itemQuery = useItemQuery({ id: search.id ?? "", orgSlug }, isEditing);
   const setItemActive = useSetItemActiveMutation();
-  const items = itemsQuery.data?.pages.flatMap((page) => page.items) ?? [];
+  const items = useMemo(
+    () => itemsQuery.data?.pages.flatMap((page) => page.items) ?? [],
+    [itemsQuery.data]
+  );
 
   const hasFilters =
     Boolean((search.q ?? "").trim()) || Boolean(search.kind) || Boolean(search.usage);
@@ -82,8 +94,10 @@ export function ItemsPage({ orgSlug }: ItemsPageProps) {
       allLabel: m.owner_records__filter_all(),
       id: "kind",
       label: m.owner_records__items_kind_label(),
-      onValueChange: (value) =>
-        setSearch({ kind: value === "all" ? undefined : (value as ItemKind) }),
+      onValueChange: (value) => {
+        const parsed = ItemKindSchema.safeParse(value);
+        setSearch({ kind: parsed.success ? parsed.data : undefined });
+      },
       options: ITEM_KIND_OPTIONS,
       value: search.kind ?? "all"
     },
@@ -91,8 +105,10 @@ export function ItemsPage({ orgSlug }: ItemsPageProps) {
       allLabel: m.owner_records__filter_all(),
       id: "usage",
       label: m.owner_records__items_usage_label(),
-      onValueChange: (value) =>
-        setSearch({ usage: value === "all" ? undefined : (value as ItemUsage) }),
+      onValueChange: (value) => {
+        const parsed = ItemUsageSchema.safeParse(value);
+        setSearch({ usage: parsed.success ? parsed.data : undefined });
+      },
       options: ITEM_USAGE_OPTIONS,
       value: search.usage ?? "all"
     }
@@ -119,9 +135,13 @@ export function ItemsPage({ orgSlug }: ItemsPageProps) {
       { id: item.id, isActive: !item.isActive, orgSlug },
       {
         onError: (error) =>
-          toast.error(
-            error instanceof Error ? error.message : m.owner_records__items_update_error()
-          )
+          handleRecordMutationError(error, {
+            onDuplicateName: () => toast.error(m.owner_records__items_duplicate_name()),
+            onFallback: () =>
+              toast.error(
+                error instanceof Error ? error.message : m.owner_records__items_update_error()
+              )
+          })
       }
     );
   };
@@ -219,7 +239,8 @@ export function ItemsPage({ orgSlug }: ItemsPageProps) {
         search={
           <RecordSearchField
             ariaLabel={m.owner_records__items_search_label()}
-            onChange={(value) => setSearch({ q: value.trim() || undefined })}
+            maxLength={SEARCH_QUERY_MAX_LENGTH}
+            onChange={(value) => setSearch({ q: value || undefined })}
             placeholder={m.owner_records__items_search_placeholder()}
             value={search.q ?? ""}
           />

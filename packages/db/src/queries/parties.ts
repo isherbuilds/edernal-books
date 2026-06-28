@@ -16,12 +16,13 @@ import {
   createCursorPage,
   DbCursorError,
   decodeCursor,
-  encodeCursor,
+  encodeNamedKeysetCursor,
   type NamedKeysetCursor,
   parseNamedKeysetCursor
 } from "#@/queries/cursors";
 import { auditEvent } from "#@/schema/audit";
 import { party } from "#@/schema/parties";
+import { isPostgresError, PG_UNIQUE_VIOLATION } from "#@/utils/pg-error";
 import { escapeLikePattern } from "#@/utils/sql";
 
 export class PartyDbError extends Error {
@@ -111,7 +112,7 @@ export async function listParties(
     .where(and(...whereConditions))
     .orderBy(asc(party.normalizedName), asc(party.id))
     .limit(limit + 1);
-  const page = createCursorPage(rows, limit, encodePartyCursor);
+  const page = createCursorPage(rows, limit, encodeNamedKeysetCursor);
 
   return {
     nextCursor: page.nextCursor,
@@ -325,22 +326,11 @@ function mapPartyDbError(error: unknown): Error {
     return new PartyDbError("PARTY_CURSOR_INVALID");
   }
 
-  if (isPostgresError(error) && error.code === "23505") {
+  if (isPostgresError(error) && error.code === PG_UNIQUE_VIOLATION) {
     return new PartyDbError("PARTY_DUPLICATE_NAME");
   }
 
   return error instanceof Error ? error : new Error(String(error));
-}
-
-function isPostgresError(error: unknown): error is { code: string } {
-  return typeof error === "object" && error !== null && "code" in error;
-}
-
-function encodePartyCursor(row: NamedKeysetCursor): string {
-  return encodeCursor({
-    id: row.id,
-    normalizedName: row.normalizedName
-  });
 }
 
 function decodePartyCursor(cursor: string): NamedKeysetCursor {

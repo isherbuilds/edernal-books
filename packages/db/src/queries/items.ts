@@ -17,12 +17,13 @@ import {
   createCursorPage,
   DbCursorError,
   decodeCursor,
-  encodeCursor,
+  encodeNamedKeysetCursor,
   type NamedKeysetCursor,
   parseNamedKeysetCursor
 } from "#@/queries/cursors";
 import { auditEvent } from "#@/schema/audit";
 import { item } from "#@/schema/items";
+import { isPostgresError, PG_FOREIGN_KEY_VIOLATION, PG_UNIQUE_VIOLATION } from "#@/utils/pg-error";
 import { escapeLikePattern } from "#@/utils/sql";
 
 export class ItemDbError extends Error {
@@ -102,7 +103,7 @@ export async function listItems(db: Database, input: ListItemsDbInput): Promise<
     .where(and(...whereConditions))
     .orderBy(asc(item.normalizedName), asc(item.id))
     .limit(limit + 1);
-  const page = createCursorPage(rows, limit, encodeItemCursor);
+  const page = createCursorPage(rows, limit, encodeNamedKeysetCursor);
 
   return {
     items: page.pageRows.map(toItemDto),
@@ -319,12 +320,12 @@ function mapItemDbError(error: unknown): Error {
   }
 
   if (isPostgresError(error)) {
-    if (error.code === "23505") {
+    if (error.code === PG_UNIQUE_VIOLATION) {
       return new ItemDbError("ITEM_DUPLICATE_NAME");
     }
 
     if (
-      error.code === "23503" &&
+      error.code === PG_FOREIGN_KEY_VIOLATION &&
       (error.constraint === "item_organization_id_sales_account_id_fkey" ||
         error.constraint === "item_organization_id_expense_account_id_fkey")
     ) {
@@ -333,17 +334,6 @@ function mapItemDbError(error: unknown): Error {
   }
 
   return error instanceof Error ? error : new Error(String(error));
-}
-
-function isPostgresError(error: unknown): error is { code: string; constraint?: string } {
-  return typeof error === "object" && error !== null && "code" in error;
-}
-
-function encodeItemCursor(row: NamedKeysetCursor): string {
-  return encodeCursor({
-    id: row.id,
-    normalizedName: row.normalizedName
-  });
 }
 
 function decodeItemCursor(cursor: string): NamedKeysetCursor {

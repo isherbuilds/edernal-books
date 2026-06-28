@@ -2,7 +2,6 @@ import { z } from "zod";
 
 import { canAccessAccounting } from "@tsu-stack/auth/permissions";
 import {
-  type ItemErrorCode,
   ItemErrorCodeSchema,
   CreateItemInputSchema,
   GetItemInputSchema,
@@ -21,6 +20,7 @@ import {
   updateItem
 } from "@tsu-stack/db/queries";
 
+import { throwMappedDbError } from "#@/lib/db-error";
 import { organizationPermissionProcedure } from "#@/lib/procedures/factory";
 
 const itemErrorDataSchema = z.object({
@@ -32,11 +32,6 @@ const itemErrors = {
   ITEM_DUPLICATE_NAME: { data: itemErrorDataSchema, status: 409 },
   ITEM_NOT_FOUND: { data: itemErrorDataSchema, status: 404 }
 } as const;
-
-type ItemErrorFactories = Record<
-  ItemErrorCode,
-  (input: { data: { code: ItemErrorCode } }) => unknown
->;
 
 export const itemsRouter = {
   list: organizationPermissionProcedure(ListItemsInputSchema, canAccessAccounting)
@@ -58,7 +53,7 @@ export const itemsRouter = {
           usage: input.usage
         });
       } catch (error) {
-        throwItemDbError(errors, error);
+        throwMappedDbError(errors, error, ItemDbError);
       }
     }),
   get: organizationPermissionProcedure(GetItemInputSchema, canAccessAccounting)
@@ -75,7 +70,7 @@ export const itemsRouter = {
           organizationId: context.organizationId
         });
       } catch (error) {
-        throwItemDbError(errors, error);
+        throwMappedDbError(errors, error, ItemDbError);
       }
     }),
   create: organizationPermissionProcedure(CreateItemInputSchema, canAccessAccounting)
@@ -93,7 +88,7 @@ export const itemsRouter = {
           userId: context.authSession.user.id
         });
       } catch (error) {
-        throwItemDbError(errors, error);
+        throwMappedDbError(errors, error, ItemDbError);
       }
     }),
   update: organizationPermissionProcedure(UpdateItemInputSchema, canAccessAccounting)
@@ -111,7 +106,7 @@ export const itemsRouter = {
           userId: context.authSession.user.id
         });
       } catch (error) {
-        throwItemDbError(errors, error);
+        throwMappedDbError(errors, error, ItemDbError);
       }
     }),
   setActive: organizationPermissionProcedure(SetItemActiveInputSchema, canAccessAccounting)
@@ -130,15 +125,7 @@ export const itemsRouter = {
           userId: context.authSession.user.id
         });
       } catch (error) {
-        throwItemDbError(errors, error);
+        throwMappedDbError(errors, error, ItemDbError);
       }
     })
 };
-
-function throwItemDbError(errors: ItemErrorFactories, error: unknown): never {
-  if (error instanceof ItemDbError) {
-    throw errors[error.code]({ data: { code: error.code } });
-  }
-
-  throw error;
-}

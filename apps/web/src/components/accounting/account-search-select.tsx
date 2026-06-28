@@ -1,4 +1,4 @@
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useMemo, useState } from "react";
 
 import { type LedgerAccountListItem } from "@tsu-stack/core/accounting";
 
@@ -66,18 +66,34 @@ export function AccountSearchSelect({
     q: debouncedQuery.length > 0 ? debouncedQuery : undefined
   });
 
-  const postableOptions = (accountsQuery.data?.accounts ?? [])
-    .filter((account) => account.active && !account.isGroup && account.allowManualPosting)
-    .map(toAccountComboboxOption);
+  const accounts = accountsQuery.data?.accounts;
 
-  const selectedOption =
-    (pickedOption && pickedOption.value === value ? pickedOption : null) ??
-    postableOptions.find((option) => option.value === value) ??
-    null;
-  const options =
-    selectedOption && !postableOptions.some((option) => option.value === selectedOption.value)
-      ? [selectedOption, ...postableOptions]
-      : postableOptions;
+  const postableOptions = useMemo(
+    () =>
+      (accounts ?? [])
+        .filter((account) => account.active && !account.isGroup && account.allowManualPosting)
+        .map(toAccountComboboxOption),
+    [accounts]
+  );
+
+  // Resolve the saved selection from the full chart, not just the postable subset, so an account
+  // that later became inactive/group/non-postable still renders instead of showing a blank field.
+  const selectedOption = useMemo(() => {
+    if (pickedOption && pickedOption.value === value) {
+      return pickedOption;
+    }
+
+    const saved = value ? accounts?.find((account) => account.id === value) : undefined;
+    return saved ? toAccountComboboxOption(saved) : null;
+  }, [accounts, pickedOption, value]);
+
+  const options = useMemo(
+    () =>
+      selectedOption && !postableOptions.some((option) => option.value === selectedOption.value)
+        ? [selectedOption, ...postableOptions]
+        : postableOptions,
+    [postableOptions, selectedOption]
+  );
 
   return (
     <FormComboboxField<AccountComboboxOption>

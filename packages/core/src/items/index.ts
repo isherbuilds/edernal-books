@@ -3,7 +3,7 @@ import { z } from "zod";
 import { NonNegativeMinorUnitStringSchema } from "#@/accounting/types";
 import { OrgSlugInputSchema } from "#@/organizations/index";
 import { CursorPaginationInputSchema, CursorPaginationOutputSchema } from "#@/pagination";
-import { nullableTextInput } from "#@/text/index";
+import { nullableTextInput, SearchQuerySchema } from "#@/text/index";
 
 export const ITEM_KINDS = ["goods", "service"] as const;
 export const ITEM_USAGES = ["sales", "purchases", "both"] as const;
@@ -96,7 +96,7 @@ export const ListItemsInputSchema = OrgSlugInputSchema.extend({
   ...CursorPaginationInputSchema.shape,
   includeInactive: z.boolean().default(false).optional(),
   kind: ItemKindSchema.optional(),
-  q: z.string().trim().min(1).max(120).optional(),
+  q: SearchQuerySchema.optional(),
   usage: ItemUsageSchema.optional()
 }).strict();
 export type ListItemsInput = z.infer<typeof ListItemsInputSchema>;

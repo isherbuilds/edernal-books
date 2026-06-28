@@ -1,4 +1,10 @@
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  type QueryClient,
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient
+} from "@tanstack/react-query";
 
 import { orpc } from "@tsu-stack/api/client/tanstack-start/orpc";
 import { type GetItemInput, type ListItemsInput } from "@tsu-stack/core/items";
@@ -12,40 +18,44 @@ type ItemsQueryInput = Omit<ListItemsInput, "cursor" | "limit"> & {
   limit?: ListItemsInput["limit"];
 };
 
+type RecordResource = {
+  get: { key: () => readonly unknown[] };
+  list: { key: () => readonly unknown[] };
+};
+
+/** Refresh a record resource's list + get caches after a successful create/update/setActive. */
+function invalidateRecord(queryClient: QueryClient, resource: RecordResource) {
+  return {
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: resource.list.key() }),
+        queryClient.invalidateQueries({ queryKey: resource.get.key() })
+      ]);
+    }
+  };
+}
+
 export function usePartiesQuery(input: PartiesQueryInput) {
   return useInfiniteQuery(
     orpc.parties.list.infiniteOptions({
       getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
       initialPageParam: undefined as string | undefined,
       input: (cursor) => {
-        return {
-          ...input,
-          cursor
-        };
+        return { ...input, cursor };
       }
     })
   );
 }
 
 export function usePartyQuery(input: GetPartyInput, enabled: boolean) {
-  return useQuery({
-    ...orpc.parties.get.queryOptions({
-      input
-    }),
-    enabled
-  });
+  return useQuery({ ...orpc.parties.get.queryOptions({ input }), enabled });
 }
 
 export function useCreatePartyMutation() {
   const queryClient = useQueryClient();
 
   return useMutation(
-    orpc.parties.create.mutationOptions({
-      onSuccess: async () => {
-        await queryClient.invalidateQueries({ queryKey: orpc.parties.list.key() });
-        await queryClient.invalidateQueries({ queryKey: orpc.parties.get.key() });
-      }
-    })
+    orpc.parties.create.mutationOptions(invalidateRecord(queryClient, orpc.parties))
   );
 }
 
@@ -53,12 +63,7 @@ export function useUpdatePartyMutation() {
   const queryClient = useQueryClient();
 
   return useMutation(
-    orpc.parties.update.mutationOptions({
-      onSuccess: async () => {
-        await queryClient.invalidateQueries({ queryKey: orpc.parties.list.key() });
-        await queryClient.invalidateQueries({ queryKey: orpc.parties.get.key() });
-      }
-    })
+    orpc.parties.update.mutationOptions(invalidateRecord(queryClient, orpc.parties))
   );
 }
 
@@ -66,12 +71,7 @@ export function useSetPartyActiveMutation() {
   const queryClient = useQueryClient();
 
   return useMutation(
-    orpc.parties.setActive.mutationOptions({
-      onSuccess: async () => {
-        await queryClient.invalidateQueries({ queryKey: orpc.parties.list.key() });
-        await queryClient.invalidateQueries({ queryKey: orpc.parties.get.key() });
-      }
-    })
+    orpc.parties.setActive.mutationOptions(invalidateRecord(queryClient, orpc.parties))
   );
 }
 
@@ -81,59 +81,32 @@ export function useItemsQuery(input: ItemsQueryInput) {
       getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
       initialPageParam: undefined as string | undefined,
       input: (cursor) => {
-        return {
-          ...input,
-          cursor
-        };
+        return { ...input, cursor };
       }
     })
   );
 }
 
 export function useItemQuery(input: GetItemInput, enabled: boolean) {
-  return useQuery({
-    ...orpc.items.get.queryOptions({
-      input
-    }),
-    enabled
-  });
+  return useQuery({ ...orpc.items.get.queryOptions({ input }), enabled });
 }
 
 export function useCreateItemMutation() {
   const queryClient = useQueryClient();
 
-  return useMutation(
-    orpc.items.create.mutationOptions({
-      onSuccess: async () => {
-        await queryClient.invalidateQueries({ queryKey: orpc.items.list.key() });
-        await queryClient.invalidateQueries({ queryKey: orpc.items.get.key() });
-      }
-    })
-  );
+  return useMutation(orpc.items.create.mutationOptions(invalidateRecord(queryClient, orpc.items)));
 }
 
 export function useUpdateItemMutation() {
   const queryClient = useQueryClient();
 
-  return useMutation(
-    orpc.items.update.mutationOptions({
-      onSuccess: async () => {
-        await queryClient.invalidateQueries({ queryKey: orpc.items.list.key() });
-        await queryClient.invalidateQueries({ queryKey: orpc.items.get.key() });
-      }
-    })
-  );
+  return useMutation(orpc.items.update.mutationOptions(invalidateRecord(queryClient, orpc.items)));
 }
 
 export function useSetItemActiveMutation() {
   const queryClient = useQueryClient();
 
   return useMutation(
-    orpc.items.setActive.mutationOptions({
-      onSuccess: async () => {
-        await queryClient.invalidateQueries({ queryKey: orpc.items.list.key() });
-        await queryClient.invalidateQueries({ queryKey: orpc.items.get.key() });
-      }
-    })
+    orpc.items.setActive.mutationOptions(invalidateRecord(queryClient, orpc.items))
   );
 }

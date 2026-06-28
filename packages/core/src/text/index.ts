@@ -4,6 +4,10 @@ export function normalizeName(value: string): string {
   return value.trim().replace(/\s+/g, " ").toLowerCase();
 }
 
+/** Shared upper bound for free-text search queries (list filters + the UI input). */
+export const SEARCH_QUERY_MAX_LENGTH = 120;
+export const SearchQuerySchema = z.string().trim().min(1).max(SEARCH_QUERY_MAX_LENGTH);
+
 const EmptyTextAsNullSchema = z
   .string()
   .trim()

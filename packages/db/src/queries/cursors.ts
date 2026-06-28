@@ -15,6 +15,11 @@ export function encodeCursor(payload: unknown): string {
   return Buffer.from(JSON.stringify(payload)).toString("base64url");
 }
 
+/** Encodes the `(normalizedName, id)` keyset tuple shared by every name-ordered record list. */
+export function encodeNamedKeysetCursor(cursor: NamedKeysetCursor): string {
+  return encodeCursor({ id: cursor.id, normalizedName: cursor.normalizedName });
+}
+
 export function decodeCursor<T>(cursor: string, parsePayload: (payload: unknown) => T | null): T {
   let payload: unknown;
 

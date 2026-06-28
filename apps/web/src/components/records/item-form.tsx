@@ -18,6 +18,7 @@ import { Button } from "@tsu-stack/ui/components/button";
 import { Spinner } from "@tsu-stack/ui/components/spinner";
 
 import { minorUnitsToDecimalString, parseDecimalRateToMinorUnits } from "@/utils/accounting-format";
+import { optionalCoreField } from "@/utils/form-input";
 
 import { useCreateItemMutation, useUpdateItemMutation } from "@/hooks/use-records";
 import { useZodForm } from "@/hooks/use-zod-form";
@@ -42,20 +43,11 @@ function itemRateSchema() {
   );
 }
 
-function hsnCodeSchema() {
-  return z
-    .string()
-    .trim()
-    .refine((value) => value === "" || HsnCodeSchema.safeParse(value).success, {
-      message: m.owner_records__items_hsn_invalid()
-    });
-}
-
 function createItemFormSchema() {
   return z.object({
     description: z.string().trim().max(1000),
     expenseAccountId: z.string(),
-    hsnCode: hsnCodeSchema(),
+    hsnCode: optionalCoreField(HsnCodeSchema, m.owner_records__items_hsn_invalid()),
     kind: ItemKindSchema,
     name: z.string().trim().min(1, { message: m.owner_records__items_name_required() }).max(240),
     purchaseRate: itemRateSchema(),
