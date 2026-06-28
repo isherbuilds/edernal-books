@@ -1,7 +1,7 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "3f125ec6-34c5-421a-a84e-4a1b99792f04",
+  "id": "51a55e8a-fdae-45d8-9834-51fd293fa51b",
   "prevIds": [
     "00000000-0000-0000-0000-000000000000"
   ],
@@ -3333,6 +3333,62 @@
       "method": "btree",
       "concurrently": false,
       "name": "item_organization_id_active_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "item"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "organization_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "sales_account_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "item_organization_id_sales_account_id_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "item"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "organization_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "expense_account_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "item_organization_id_expense_account_id_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "item"

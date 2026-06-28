@@ -42,8 +42,9 @@ Decision record: `docs/decisions/0001-accounting-foundation-spine.md`
 
 ## Current Progress
 
-Phase 0 and Phase 1 code are complete on `main`. Phase 2 is next, after a
-fresh design review and a local DB integration verification pass.
+Phase 0 and Phase 1 code are complete on `main`. This PR adds the Phase 2
+foundation for parties, items, records UI primitives, and cursor pagination;
+the full owner workflow MVP remains next after local DB integration verification.
 
 Done:
 
@@ -70,8 +71,7 @@ Done:
 
 Not done:
 
-- Phase 2 foundation is implemented for parties, items, records UI primitives,
-  and cursor pagination; the full owner workflow MVP is not implemented.
+- Full Phase 2 owner workflow MVP is not implemented.
 - Local DB integration verification still requires local Postgres/Docker to be running.
 - Transactional outbox writes remain intentionally limited to commands with real async consumers.
 

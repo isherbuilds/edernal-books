@@ -158,9 +158,18 @@ export async function updateItem(
 
       const updateValues = toItemUpdate(values);
       const hasUpdateValues = Object.values(updateValues).some((value) => value !== undefined);
+      const beforeDto = toItemDto(before);
 
       if (!hasUpdateValues) {
-        return toItemDto(before);
+        return beforeDto;
+      }
+
+      if (
+        Object.keys(values).length === 1 &&
+        values.isActive !== undefined &&
+        values.isActive === beforeDto.isActive
+      ) {
+        return beforeDto;
       }
 
       const [row] = await tx
@@ -174,14 +183,9 @@ export async function updateItem(
       }
 
       await insertItemAuditEvent(tx, {
-        action:
-          Object.keys(values).length === 1 && values.isActive !== undefined
-            ? values.isActive
-              ? "item.activated"
-              : "item.deactivated"
-            : "item.updated",
+        action: itemAuditAction(values, beforeDto),
         after: toItemDto(row),
-        before: toItemDto(before),
+        before: beforeDto,
         entityId: row.id,
         organizationId,
         userId
@@ -236,6 +240,17 @@ async function insertItemAuditEvent(
     scopeType: "item",
     userId: input.userId
   });
+}
+
+function itemAuditAction(
+  values: Omit<UpdateItemDbInput, "id" | "organizationId">,
+  before: Item
+): string {
+  if (Object.keys(values).length === 1 && values.isActive !== undefined) {
+    return values.isActive && !before.isActive ? "item.activated" : "item.deactivated";
+  }
+
+  return "item.updated";
 }
 
 function itemUsageCondition(usage: ItemUsage): SQL {
@@ -308,7 +323,11 @@ function mapItemDbError(error: unknown): Error {
       return new ItemDbError("ITEM_DUPLICATE_NAME");
     }
 
-    if (error.code === "23503") {
+    if (
+      error.code === "23503" &&
+      (error.constraint === "item_organization_id_sales_account_id_fkey" ||
+        error.constraint === "item_organization_id_expense_account_id_fkey")
+    ) {
       return new ItemDbError("ITEM_ACCOUNT_ORGANIZATION_MISMATCH");
     }
   }
@@ -316,7 +335,7 @@ function mapItemDbError(error: unknown): Error {
   return error instanceof Error ? error : new Error(String(error));
 }
 
-function isPostgresError(error: unknown): error is { code: string } {
+function isPostgresError(error: unknown): error is { code: string; constraint?: string } {
   return typeof error === "object" && error !== null && "code" in error;
 }
 

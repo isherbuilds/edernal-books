@@ -324,6 +324,8 @@ CREATE INDEX "item_organization_id_idx" ON "item" ("organization_id");--> statem
 CREATE INDEX "item_organization_id_kind_idx" ON "item" ("organization_id","kind");--> statement-breakpoint
 CREATE INDEX "item_organization_id_usage_idx" ON "item" ("organization_id","usage");--> statement-breakpoint
 CREATE INDEX "item_organization_id_active_idx" ON "item" ("organization_id","is_active");--> statement-breakpoint
+CREATE INDEX "item_organization_id_sales_account_id_idx" ON "item" ("organization_id","sales_account_id");--> statement-breakpoint
+CREATE INDEX "item_organization_id_expense_account_id_idx" ON "item" ("organization_id","expense_account_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "journal_entry_organization_id_id_uidx" ON "journal_entry" ("organization_id","id");--> statement-breakpoint
 CREATE UNIQUE INDEX "journal_entry_organization_id_operation_key_uidx" ON "journal_entry" ("organization_id","operation_key");--> statement-breakpoint
 CREATE UNIQUE INDEX "journal_entry_organization_id_entry_number_uidx" ON "journal_entry" ("organization_id","entry_number");--> statement-breakpoint

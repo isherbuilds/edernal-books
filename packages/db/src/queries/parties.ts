@@ -167,9 +167,18 @@ export async function updateParty(
 
       const updateValues = toPartyUpdate(values);
       const hasUpdateValues = Object.values(updateValues).some((value) => value !== undefined);
+      const beforeDto = toPartyDto(before);
 
       if (!hasUpdateValues) {
-        return toPartyDto(before);
+        return beforeDto;
+      }
+
+      if (
+        Object.keys(values).length === 1 &&
+        values.isActive !== undefined &&
+        values.isActive === beforeDto.isActive
+      ) {
+        return beforeDto;
       }
 
       const [row] = await tx
@@ -183,14 +192,9 @@ export async function updateParty(
       }
 
       await insertPartyAuditEvent(tx, {
-        action:
-          Object.keys(values).length === 1 && values.isActive !== undefined
-            ? values.isActive
-              ? "party.activated"
-              : "party.deactivated"
-            : "party.updated",
+        action: partyAuditAction(values, beforeDto),
         after: toPartyDto(row),
-        before: toPartyDto(before),
+        before: beforeDto,
         entityId: row.id,
         organizationId,
         userId
@@ -245,6 +249,17 @@ async function insertPartyAuditEvent(
     scopeType: "party",
     userId: input.userId
   });
+}
+
+function partyAuditAction(
+  values: Omit<UpdatePartyDbInput, "id" | "organizationId">,
+  before: Party
+): string {
+  if (Object.keys(values).length === 1 && values.isActive !== undefined) {
+    return values.isActive && !before.isActive ? "party.activated" : "party.deactivated";
+  }
+
+  return "party.updated";
 }
 
 function partyKindCondition(kind: PartyKind): SQL {

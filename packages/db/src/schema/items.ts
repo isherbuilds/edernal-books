@@ -58,6 +58,14 @@ export const item = pgTable(
     index("item_organization_id_kind_idx").on(table.organizationId, table.kind),
     index("item_organization_id_usage_idx").on(table.organizationId, table.usage),
     index("item_organization_id_active_idx").on(table.organizationId, table.isActive),
+    index("item_organization_id_sales_account_id_idx").on(
+      table.organizationId,
+      table.salesAccountId
+    ),
+    index("item_organization_id_expense_account_id_idx").on(
+      table.organizationId,
+      table.expenseAccountId
+    ),
     foreignKey({
       columns: [table.organizationId, table.salesAccountId],
       foreignColumns: [ledgerAccount.organizationId, ledgerAccount.id],

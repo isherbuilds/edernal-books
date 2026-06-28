@@ -40,9 +40,15 @@ describe("parties and items migration", () => {
   });
 
   it("keeps party tax and country invariants at the database boundary", () => {
-    expect(migration).toContain(`CONSTRAINT "party_country_code_ck"`);
-    expect(migration).toContain(`CONSTRAINT "party_gstin_ck"`);
-    expect(migration).toContain(`CONSTRAINT "party_pan_ck"`);
+    expect(migration).toContain(
+      `CONSTRAINT "party_country_code_ck" CHECK ("country_code" is null or "country_code" ~ '^[A-Z]{2}$')`
+    );
+    expect(migration).toContain(
+      `CONSTRAINT "party_gstin_ck" CHECK ("gstin" is null or "gstin" ~ '^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$')`
+    );
+    expect(migration).toContain(
+      `CONSTRAINT "party_pan_ck" CHECK ("pan" is null or "pan" ~ '^[A-Z]{5}[0-9]{4}[A-Z]$')`
+    );
   });
 
   it("keeps the composite account foreign keys that enforce org-scoped account refs at the database", () => {

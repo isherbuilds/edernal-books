@@ -256,8 +256,8 @@ The source of truth is
 Current schema includes Better Auth identity/organization tables, Phase 0
 app-owned platform tables, the Phase 1 ledger kernel, and the Phase 2 owner
 workflow foundation tables (`party`, `item`). This diagram shows the platform
-foundation subset; the ledger and owner workflow tables are documented in the
-DB package architecture and schema revision plan:
+foundation subset; ledger and owner workflow tables are tracked in the schema
+revision plan:
 
 ```mermaid
 erDiagram
