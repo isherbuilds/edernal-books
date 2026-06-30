@@ -3,13 +3,9 @@ import { toast } from "sonner";
 import { z } from "zod";
 
 import {
-  type GstRegistrationType,
   type Party,
-  type PartyKind,
-  GST_REGISTRATION_TYPES,
   GstRegistrationTypeSchema,
   GstinSchema,
-  PARTY_KINDS,
   PanSchema,
   PartyCountryCodeSchema,
   PartyKindSchema
@@ -24,6 +20,10 @@ import { useCreatePartyMutation, useUpdatePartyMutation } from "@/hooks/use-reco
 import { useZodForm } from "@/hooks/use-zod-form";
 
 import { FormSelectField, FormTextField } from "@/components/form-fields";
+import {
+  GST_REGISTRATION_TYPE_OPTIONS,
+  PARTY_KIND_OPTIONS
+} from "@/components/records/party-form-options";
 
 function createPartyFormSchema() {
   const optionalText = (maxLength: number) => z.string().trim().max(maxLength);
@@ -71,44 +71,6 @@ const PARTY_FORM_DEFAULTS: PartyFormValues = {
   postalCode: "",
   state: ""
 };
-
-export function partyKindLabel(kind: PartyKind): string {
-  switch (kind) {
-    case "customer":
-      return m.owner_records__party_kind_customer();
-    case "vendor":
-      return m.owner_records__party_kind_vendor();
-    case "both":
-      return m.owner_records__party_kind_both();
-  }
-}
-
-export const PARTY_KIND_OPTIONS = PARTY_KINDS.map((value) => {
-  return {
-    label: partyKindLabel(value),
-    value
-  };
-});
-
-export function gstRegistrationTypeLabel(type: GstRegistrationType): string {
-  switch (type) {
-    case "registered_regular":
-      return m.owner_records__gst_type_registered_regular();
-    case "registered_composition":
-      return m.owner_records__gst_type_registered_composition();
-    case "unregistered":
-      return m.owner_records__gst_type_unregistered();
-    case "consumer":
-      return m.owner_records__gst_type_consumer();
-  }
-}
-
-export const GST_REGISTRATION_TYPE_OPTIONS = GST_REGISTRATION_TYPES.map((value) => {
-  return {
-    label: gstRegistrationTypeLabel(value),
-    value
-  };
-});
 
 function toFormValues(party: Party | null | undefined): PartyFormValues {
   if (!party) {

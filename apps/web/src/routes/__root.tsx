@@ -1,4 +1,3 @@
-import interLatin from "@fontsource-variable/inter/files/inter-latin-wght-normal.woff2?url";
 import { type QueryClient } from "@tanstack/react-query";
 import { HeadContent, Scripts, createRootRouteWithContext } from "@tanstack/react-router";
 import { Fragment, type ReactNode } from "react";
@@ -47,13 +46,6 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
           rel: "sitemap",
           type: "application/xml"
         },
-        {
-          rel: "preload",
-          as: "font",
-          type: "font/woff2",
-          href: interLatin,
-          crossOrigin: "anonymous"
-        },
         { href: appCss, rel: "stylesheet" }
       ],
       meta: [...(rootSeo.meta ?? [])]
@@ -75,7 +67,6 @@ function RootDocumentInner({ children }: { children: ReactNode }) {
   return (
     <html suppressHydrationWarning lang={locale}>
       <head>
-        <script crossOrigin="anonymous" src="//unpkg.com/react-scan/dist/auto.global.js"></script>
         <HeadContent />
       </head>
       <body>

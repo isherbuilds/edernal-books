@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo } from "react";
 
 import { canAccessAccounting } from "@tsu-stack/auth/permissions";
 import { useNavigate } from "@tsu-stack/i18n/tanstack-start/hooks/use-navigate";
@@ -13,6 +12,7 @@ import {
 
 import { AccountingLockedState } from "@/components/accounting/accounting-locked-state";
 import { DocumentListPage } from "@/components/documents/document-list-page";
+import { getQueryState } from "@/components/query-state-model";
 
 export const Route = createFileRoute("/{-$locale}/_app/$orgSlug/_shell/purchase/bills/")({
   ssr: "data-only",
@@ -36,10 +36,10 @@ function RouteComponent() {
   const { orgSlug } = Route.useParams();
   const navigate = useNavigate();
   const query = usePurchaseDocumentsQuery({ orgSlug });
-  const documents = useMemo(
-    () => query.data?.pages.flatMap((page) => page.documents) ?? [],
-    [query.data]
-  );
+  const documents = [];
+  for (const page of query.data?.pages ?? []) {
+    documents.push(...page.documents);
+  }
 
   if (!canAccessAccounting(organization.role)) {
     return <AccountingLockedState />;
@@ -47,13 +47,9 @@ function RouteComponent() {
 
   return (
     <DocumentListPage
+      amountMode="outstanding"
       description="Draft, post, and void vendor bills and expenses."
       documents={documents}
-      error={query.error}
-      hasNextPage={query.hasNextPage}
-      isError={query.isError}
-      isFetchingNextPage={query.isFetchingNextPage}
-      isLoading={query.isLoading}
       newLabel="New bill"
       onLoadMore={() => query.fetchNextPage()}
       onNew={() => navigate({ params: { orgSlug }, to: "/$orgSlug/purchase/bills/new" })}
@@ -63,7 +59,17 @@ function RouteComponent() {
           to: "/$orgSlug/purchase/bills/$documentId"
         })
       }
-      showOutstanding
+      pagination={{
+        hasNextPage: query.hasNextPage,
+        loadingNextPage: query.isFetchingNextPage
+      }}
+      queryState={getQueryState({
+        dataPresent: Boolean(query.data),
+        empty: documents.length === 0,
+        error: query.error,
+        errored: query.isError,
+        loading: query.isLoading
+      })}
       title="Bills"
     />
   );

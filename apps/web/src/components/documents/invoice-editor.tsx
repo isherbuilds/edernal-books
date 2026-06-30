@@ -1,8 +1,9 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Controller, FormProvider, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 
 import { type SalesDocument } from "@tsu-stack/core/documents";
+import { type Party } from "@tsu-stack/core/parties";
 
 import { getTodayDateString, minorUnitsToDecimalString } from "@/utils/accounting-format";
 
@@ -100,34 +101,34 @@ export function InvoiceEditor({ document, onPosted, onSaved, orgSlug }: InvoiceE
     register
   } = form;
 
-  const customerOptions = useMemo(() => {
-    const parties = partiesQuery.data?.pages.flatMap((page) => page.parties) ?? [];
-    return parties
-      .filter((party) => party.kind === "customer" || party.kind === "both")
-      .map((party) => {
-        return { label: party.displayName, value: party.id };
-      });
-  }, [partiesQuery.data]);
+  const customerOptions: Array<{ label: string; value: string }> = [];
+  for (const page of partiesQuery.data?.pages ?? []) {
+    for (const party of page.parties) {
+      if (party.kind === "customer" || party.kind === "both") {
+        customerOptions.push({ label: party.displayName, value: party.id });
+      }
+    }
+  }
 
-  const incomeAccountOptions = useMemo(() => {
-    const accounts = accountsQuery.data?.accounts ?? [];
-    return accounts
-      .filter(
-        (account) =>
-          account.accountCategory === "income" &&
-          account.active &&
-          !account.isGroup &&
-          account.allowManualPosting
-      )
-      .map((account) => {
-        return { label: account.name, value: account.id };
-      });
-  }, [accountsQuery.data]);
+  const incomeAccountOptions = (accountsQuery.data?.accounts ?? []).reduce<
+    Array<{ label: string; value: string }>
+  >((options, account) => {
+    if (
+      account.accountCategory === "income" &&
+      account.active &&
+      !account.isGroup &&
+      account.allowManualPosting
+    ) {
+      options.push({ label: account.name, value: account.id });
+    }
 
-  const itemOptions = useMemo<DocumentItemOption[]>(() => {
-    const items = itemsQuery.data?.pages.flatMap((page) => page.items) ?? [];
-    return items.map((item) => {
-      return {
+    return options;
+  }, []);
+
+  const itemOptions: DocumentItemOption[] = [];
+  for (const page of itemsQuery.data?.pages ?? []) {
+    for (const item of page.items) {
+      itemOptions.push({
         accountId: item.salesAccountId,
         description: item.description ?? item.name,
         hsnCode: item.hsnCode,
@@ -135,15 +136,20 @@ export function InvoiceEditor({ document, onPosted, onSaved, orgSlug }: InvoiceE
         rateMinor: item.salesRateMinor,
         unit: item.unit,
         value: item.id
-      };
-    });
-  }, [itemsQuery.data]);
+      });
+    }
+  }
 
   const partyId = useWatch({ control, name: "partyId" });
-  const selectedCustomer = useMemo(() => {
-    const parties = partiesQuery.data?.pages.flatMap((page) => page.parties) ?? [];
-    return parties.find((party) => party.id === partyId) ?? null;
-  }, [partiesQuery.data, partyId]);
+  let selectedCustomer: Party | null = null;
+  findSelectedCustomer: for (const page of partiesQuery.data?.pages ?? []) {
+    for (const party of page.parties) {
+      if (party.id === partyId) {
+        selectedCustomer = party;
+        break findSelectedCustomer;
+      }
+    }
+  }
 
   const documentId = document?.id ?? null;
 

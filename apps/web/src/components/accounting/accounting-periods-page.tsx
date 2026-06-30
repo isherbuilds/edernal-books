@@ -7,20 +7,26 @@ import { Badge } from "@tsu-stack/ui/components/badge";
 import { type DataColumn, DataTable, DataTableContainer } from "@/components/data-table";
 import { EmptyState, PageHeader, PageLayout } from "@/components/page-layout";
 import { QueryState } from "@/components/query-state";
+import { getQueryState } from "@/components/query-state-model";
 
 type AccountingPeriodsPageProps = {
   orgSlug: string;
 };
 
 export function AccountingPeriodsPage({ orgSlug }: AccountingPeriodsPageProps) {
-  const periodsQuery = useQuery(
+  const {
+    data: periodsData,
+    error,
+    isError,
+    isLoading
+  } = useQuery(
     orpc.accounting.periods.list.queryOptions({
       input: {
         orgSlug
       }
     })
   );
-  const periods = periodsQuery.data?.periods ?? [];
+  const periods = periodsData?.periods ?? [];
 
   const columns: DataColumn<(typeof periods)[number]>[] = [
     {
@@ -65,12 +71,14 @@ export function AccountingPeriodsPage({ orgSlug }: AccountingPeriodsPageProps) {
             title="No accounting periods"
           />
         }
-        error={periodsQuery.error}
         errorFallback="Accounting period read failed."
         errorTitle="Could not load periods"
-        isEmpty={periods.length === 0}
-        isError={periodsQuery.isError}
-        isLoading={periodsQuery.isLoading}
+        state={getQueryState({
+          empty: periods.length === 0,
+          error,
+          errored: isError,
+          loading: isLoading
+        })}
       >
         <DataTableContainer>
           <DataTable

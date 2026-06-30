@@ -13,14 +13,20 @@ import { formatMinorUnits, getTodayDateString } from "@/utils/accounting-format"
 import { type DataColumn, DataTable, DataTableContainer } from "@/components/data-table";
 import { EmptyState, PageHeader, PageLayout } from "@/components/page-layout";
 import { QueryState } from "@/components/query-state";
+import { getQueryState } from "@/components/query-state-model";
 
 type TrialBalancePageProps = {
   orgSlug: string;
 };
 
 export function TrialBalancePage({ orgSlug }: TrialBalancePageProps) {
-  const [asOfDate, setAsOfDate] = useState(getTodayDateString());
-  const trialBalanceQuery = useQuery(
+  const [asOfDate, setAsOfDate] = useState(() => getTodayDateString());
+  const {
+    data: trialBalance,
+    error,
+    isError,
+    isLoading
+  } = useQuery(
     orpc.accounting.reports.trialBalance.queryOptions({
       input: {
         asOfDate,
@@ -28,7 +34,6 @@ export function TrialBalancePage({ orgSlug }: TrialBalancePageProps) {
       }
     })
   );
-  const trialBalance = trialBalanceQuery.data;
   const accounts = trialBalance?.accounts ?? [];
 
   const columns: DataColumn<(typeof accounts)[number]>[] = [
@@ -101,12 +106,14 @@ export function TrialBalancePage({ orgSlug }: TrialBalancePageProps) {
             title="No balances"
           />
         }
-        error={trialBalanceQuery.error}
         errorFallback="Trial balance request failed."
         errorTitle="Could not load trial balance"
-        isEmpty={accounts.length === 0}
-        isError={trialBalanceQuery.isError}
-        isLoading={trialBalanceQuery.isLoading}
+        state={getQueryState({
+          empty: accounts.length === 0,
+          error,
+          errored: isError,
+          loading: isLoading
+        })}
       >
         <DataTableContainer>
           <DataTable

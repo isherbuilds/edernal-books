@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect } from "react";
+import { createContext, use, useEffect } from "react";
 
 import { useAuth } from "@tsu-stack/auth/react/tanstack-start/hooks";
 import { clearIdentity, log, setIdentity } from "@tsu-stack/logger/client";
@@ -8,6 +8,7 @@ type LoggerContextValue = {
 };
 
 const LoggerContext = createContext<LoggerContextValue | null>(null);
+const loggerContextValue = { logger: log };
 
 export function LoggerProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
@@ -24,11 +25,11 @@ export function LoggerProvider({ children }: { children: React.ReactNode }) {
     };
   }, [user]);
 
-  return <LoggerContext.Provider value={{ logger: log }}>{children}</LoggerContext.Provider>;
+  return <LoggerContext.Provider value={loggerContextValue}>{children}</LoggerContext.Provider>;
 }
 
 export function useLogger(): typeof log {
-  const context = useContext(LoggerContext);
+  const context = use(LoggerContext);
   if (!context) {
     log.warn("logger-provider", "Called outside of LoggerProvider");
     return log;

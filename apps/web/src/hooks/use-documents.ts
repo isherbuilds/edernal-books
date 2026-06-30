@@ -293,19 +293,6 @@ type VoidDocumentMutationOptions = {
   onSuccess?: () => void;
 };
 
-export function documentKindLabel(kind: DocumentKind): string {
-  switch (kind) {
-    case "sales_invoice":
-      return "Invoice";
-    case "purchase_bill":
-      return "Bill";
-    case "expense":
-      return "Expense";
-    case "settlement":
-      return "Settlement";
-  }
-}
-
 export function documentStatusLabel(status: DocumentStatus): string {
   switch (status) {
     case "draft":

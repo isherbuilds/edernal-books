@@ -1,9 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { canAccessAccounting } from "@tsu-stack/auth/permissions";
-import { useNavigate } from "@tsu-stack/i18n/tanstack-start/hooks/use-navigate";
 
 import { generateAppSeo } from "@/lib/seo";
+
+import { useDocumentNavigation } from "@/hooks/use-document-navigation";
 
 import { AccountingLockedState } from "@/components/accounting/accounting-locked-state";
 import { BillEditor } from "@/components/documents/bill-editor";
@@ -23,14 +24,13 @@ export const Route = createFileRoute("/{-$locale}/_app/$orgSlug/_shell/purchase/
 function RouteComponent() {
   const { organization } = Route.useRouteContext();
   const { orgSlug } = Route.useParams();
-  const navigate = useNavigate();
+  const documentNavigation = useDocumentNavigation(orgSlug);
 
   if (!canAccessAccounting(organization.role)) {
     return <AccountingLockedState />;
   }
 
-  const goToDocument = (documentId: string) =>
-    navigate({ params: { documentId, orgSlug }, to: "/$orgSlug/purchase/bills/$documentId" });
+  const goToDocument = (documentId: string) => documentNavigation.purchaseBill(documentId);
 
   return (
     <PageLayout>

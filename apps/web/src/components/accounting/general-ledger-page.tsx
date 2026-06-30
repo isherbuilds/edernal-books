@@ -24,6 +24,7 @@ import {
 } from "@/components/data-table";
 import { EmptyState, PageHeader, PageLayout } from "@/components/page-layout";
 import { QueryState } from "@/components/query-state";
+import { getQueryState } from "@/components/query-state-model";
 
 type GeneralLedgerPageProps = {
   orgSlug: string;
@@ -148,12 +149,14 @@ export function GeneralLedgerPage({ orgSlug }: GeneralLedgerPageProps) {
             />
           )
         }
-        error={accountsQuery.error ?? ledgerQuery.error}
         errorFallback="General ledger request failed."
         errorTitle="Could not load ledger"
-        isEmpty={!accountId || visibleLines.length === 0}
-        isError={accountsQuery.isError || ledgerQuery.isError}
-        isLoading={accountsQuery.isLoading || (ledgerQuery.isLoading && visibleLines.length === 0)}
+        state={getQueryState({
+          empty: !accountId || visibleLines.length === 0,
+          error: accountsQuery.error ?? ledgerQuery.error,
+          errored: accountsQuery.isError || ledgerQuery.isError,
+          loading: accountsQuery.isLoading || (ledgerQuery.isLoading && visibleLines.length === 0)
+        })}
       >
         <div className="flex flex-col gap-3">
           {openingBalanceMinor != null && pageEndBalanceMinor != null ? (

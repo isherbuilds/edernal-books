@@ -7,6 +7,7 @@ import { useChartAccountsQuery } from "@/hooks/use-accounting";
 import { type DataColumn, DataTable, DataTableContainer } from "@/components/data-table";
 import { EmptyState, PageHeader, PageLayout } from "@/components/page-layout";
 import { QueryState } from "@/components/query-state";
+import { getQueryState } from "@/components/query-state-model";
 
 type ChartOfAccountsPageProps = {
   orgSlug: string;
@@ -73,12 +74,14 @@ export function ChartOfAccountsPage({ orgSlug }: ChartOfAccountsPageProps) {
             title="No ledger accounts"
           />
         }
-        error={accountsQuery.error}
         errorFallback="Accounting read failed."
         errorTitle="Could not load accounts"
-        isEmpty={accounts.length === 0}
-        isError={accountsQuery.isError}
-        isLoading={accountsQuery.isLoading}
+        state={getQueryState({
+          empty: accounts.length === 0,
+          error: accountsQuery.error,
+          errored: accountsQuery.isError,
+          loading: accountsQuery.isLoading
+        })}
       >
         <DataTableContainer>
           <DataTable

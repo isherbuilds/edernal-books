@@ -1,6 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Building2Icon, LogOutIcon, PlusIcon, UserPlusIcon } from "lucide-react";
-import { useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -36,29 +35,25 @@ type OrganizationSetupPageProps = {
   user: OrganizationSetupUser | null;
 };
 
-const CreateOrganizationFormSchema = z
-  .object({
-    organizationName: z.string().trim().min(1),
-    organizationSlug: z
-      .string()
-      .trim()
-      .transform(normalizeOrganizationSlug)
-      .pipe(
-        z
-          .string()
-          .min(1)
-          .max(80)
-          .refine((slug) => !isReservedOrganizationSlug(slug), {
-            message: m.organization_setup__business_slug_reserved()
-          })
-      )
-  })
-  .strict();
-const JoinOrganizationFormSchema = z
-  .object({
-    invitation: z.string().trim().transform(extractInvitationId).pipe(z.string().min(1))
-  })
-  .strict();
+const CreateOrganizationFormSchema = z.strictObject({
+  organizationName: z.string().trim().min(1),
+  organizationSlug: z
+    .string()
+    .trim()
+    .transform(normalizeOrganizationSlug)
+    .pipe(
+      z
+        .string()
+        .min(1)
+        .max(80)
+        .refine((slug) => !isReservedOrganizationSlug(slug), {
+          message: m.organization_setup__business_slug_reserved()
+        })
+    )
+});
+const JoinOrganizationFormSchema = z.strictObject({
+  invitation: z.string().trim().transform(extractInvitationId).pipe(z.string().min(1))
+});
 type CreateOrganizationFormValues = z.input<typeof CreateOrganizationFormSchema>;
 type JoinOrganizationFormValues = z.input<typeof JoinOrganizationFormSchema>;
 
@@ -127,7 +122,6 @@ export function OrganizationSetupPage({ user }: OrganizationSetupPageProps) {
 function CreateOrganizationPanel() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [isSlugManuallyEdited, setIsSlugManuallyEdited] = useState(false);
   const form = useZodForm(CreateOrganizationFormSchema, {
     defaultValues: {
       organizationName: "",
@@ -135,7 +129,7 @@ function CreateOrganizationPanel() {
     } satisfies CreateOrganizationFormValues
   });
   const {
-    formState: { errors },
+    formState: { dirtyFields, errors },
     handleSubmit,
     register,
     setValue
@@ -182,14 +176,13 @@ function CreateOrganizationPanel() {
   });
   const organizationNameField = register("organizationName", {
     onChange: (event) => {
-      if (!isSlugManuallyEdited) {
+      if (!dirtyFields.organizationSlug) {
         setValue("organizationSlug", normalizeOrganizationSlug(event.currentTarget.value));
       }
     }
   });
   const organizationSlugField = register("organizationSlug", {
     onChange: (event) => {
-      setIsSlugManuallyEdited(true);
       setValue("organizationSlug", normalizeOrganizationSlug(event.currentTarget.value));
     }
   });
