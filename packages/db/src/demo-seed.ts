@@ -88,6 +88,11 @@ type SalesTarget = {
   partyId: string;
 };
 
+type SalesTargetBuckets = {
+  allocated: SalesTarget[];
+  open: SalesTarget[];
+};
+
 type PurchaseTarget = SalesTarget & {
   documentKind: "expense" | "purchase_bill";
 };
@@ -122,7 +127,7 @@ async function main() {
       const items = await seedItems(tx, accounts);
 
       const counts = splitTransactionCount(totalTransactionCount);
-      const salesTargets = await seedSalesDocuments(tx, {
+      const salesTargetBuckets = await seedSalesDocuments(tx, {
         accounts,
         allocatedCount: counts.receipts,
         count: counts.salesInvoices,
@@ -145,17 +150,18 @@ async function main() {
         accounts,
         periods,
         purchaseTargets,
-        salesTargets,
+        salesTargets: salesTargetBuckets.allocated,
         sequences
       });
 
       await seedDraftAndVoidedDocuments(tx, {
         accounts,
         items,
+        openSalesTargets: salesTargetBuckets.open,
         parties,
         periods,
         purchaseTargets,
-        salesTargets,
+        salesTargets: salesTargetBuckets.allocated,
         sequences
       });
 
@@ -527,8 +533,9 @@ async function seedSalesDocuments(
     periods: PeriodRange[];
     sequences: Map<string, SequenceState>;
   }
-): Promise<SalesTarget[]> {
-  const targets: SalesTarget[] = [];
+): Promise<SalesTargetBuckets> {
+  const allocatedTargets: SalesTarget[] = [];
+  const openTargets: SalesTarget[] = [];
   const documents: SalesDocumentInsert[] = [];
   const lines: SalesDocumentLineInsert[] = [];
   const entries: JournalEntryInsert[] = [];
@@ -610,14 +617,18 @@ async function seedSalesDocuments(
     );
     audits.push(makeAudit("sales_document", documentId, "sales_document.posted", documentNumber));
 
+    const target = {
+      amountMinor,
+      date: invoiceDate,
+      documentId,
+      documentNumber,
+      partyId: customer.id
+    };
+
     if (isAllocated) {
-      targets.push({
-        amountMinor,
-        date: invoiceDate,
-        documentId,
-        documentNumber,
-        partyId: customer.id
-      });
+      allocatedTargets.push(target);
+    } else {
+      openTargets.push(target);
     }
 
     if (documents.length === BATCH_SIZE) {
@@ -641,7 +652,7 @@ async function seedSalesDocuments(
     type: "sales"
   });
 
-  return targets;
+  return { allocated: allocatedTargets, open: openTargets };
 }
 
 async function seedPurchaseDocuments(
@@ -910,6 +921,7 @@ async function seedDraftAndVoidedDocuments(
   input: {
     accounts: Accounts;
     items: SeededItem[];
+    openSalesTargets: SalesTarget[];
     parties: { customers: SeededParty[]; vendors: SeededParty[] };
     periods: PeriodRange[];
     purchaseTargets: PurchaseTarget[];
@@ -923,6 +935,7 @@ async function seedDraftAndVoidedDocuments(
   const purchaseDocuments: PurchaseDocumentInsert[] = [];
   const purchaseLines: PurchaseDocumentLineInsert[] = [];
   const settlementDocuments: SettlementDocumentInsert[] = [];
+  const settlementAllocations: SettlementAllocationInsert[] = [];
   const entries: JournalEntryInsert[] = [];
   const journalLines: JournalLineInsert[] = [];
   const audits: AuditEventInsert[] = [];
@@ -936,6 +949,7 @@ async function seedDraftAndVoidedDocuments(
     const customer = atModulo(input.parties.customers, index + 3);
     const vendor = atModulo(input.parties.vendors, index + 5);
     const amountMinor = BigInt(18_000 + index * 101);
+    const salesTarget = atModulo(input.openSalesTargets, index);
 
     salesDocuments.push({
       customerPartyId: customer.id,
@@ -1003,7 +1017,7 @@ async function seedDraftAndVoidedDocuments(
     });
 
     settlementDocuments.push({
-      amountMinor,
+      amountMinor: salesTarget.amountMinor,
       cashAccountId: input.accounts.bank,
       direction: "received",
       documentNumber: null,
@@ -1012,13 +1026,22 @@ async function seedDraftAndVoidedDocuments(
       journalEntryId: null,
       notes: "Demo draft receipt",
       organizationId: DEMO_ORG_ID,
-      partyId: customer.id,
+      partyId: salesTarget.partyId,
       paymentMode: "bank_transfer",
       postedAt: null,
       postedByUserId: null,
       reference: `DRAFT-UTR-${index + 1}`,
       settlementDate: date,
       status: "draft"
+    });
+    settlementAllocations.push({
+      amountMinor: salesTarget.amountMinor,
+      id: createUuidV7(),
+      organizationId: DEMO_ORG_ID,
+      purchaseDocumentId: null,
+      salesDocumentId: salesTarget.documentId,
+      settlementDocumentId: settlementId,
+      targetDocumentKind: "sales_invoice"
     });
   }
 
@@ -1027,6 +1050,7 @@ async function seedDraftAndVoidedDocuments(
   await tx.insert(purchaseDocumentTable).values(purchaseDocuments);
   await tx.insert(purchaseDocumentLineTable).values(purchaseLines);
   await tx.insert(settlementDocumentTable).values(settlementDocuments);
+  await tx.insert(settlementAllocationTable).values(settlementAllocations);
 
   for (let index = 0; index < 20; index += 1) {
     const date = dateForIndex(index + 311);
