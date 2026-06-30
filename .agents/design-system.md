@@ -19,7 +19,7 @@ the repo's own theme tokens (no hardcoded hex), so dark mode and the lime theme 
 - **Money**: integer minor units, formatted with `formatMinorUnits(...)`, rendered with
   `font-amount tabular-nums` (the serif `--font-amount` family + fixed-width digits). This is the
   single rule for every monetary cell/total. Dates use `tabular-nums` only (no `font-amount`).
-- **Icons**: `lucide-react`, sized `size-4` (inline/eyebrow) or `size-5` (empty-state media).
+- **Icons**: `lucide-react`, sized `size-4` for inline/action glyphs or `size-5` for empty-state media.
 
 ## Shared page primitives
 
@@ -28,7 +28,7 @@ Compose every app page from these. Prefer them over hand-rolling headers, tables
 | Primitive                        | File                         | Purpose                                                                                                                      |
 | -------------------------------- | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
 | `PageLayout`                     | `components/page-layout.tsx` | The one `<main>` container: `mx-auto max-w-6xl`, padding, `bg-background`, `gap-6`.                                          |
-| `PageHeader`                     | `components/page-layout.tsx` | Eyebrow (icon + section) → title → description, with an optional right-aligned `actions` slot.                               |
+| `PageHeader`                     | `components/page-layout.tsx` | Title → description, with an optional right-aligned `actions` slot. No visible route/category label above the title.         |
 | `EmptyState` / `NoResults`       | `components/page-layout.tsx` | First-run vs filtered-to-empty states (dashed frame).                                                                        |
 | `QueryState`                     | `components/query-state.tsx` | The loading / error / empty / success switch. Replaces hand-rolled `isLoading`/`isError` ladders and per-page `ErrorBlock`s. |
 | `DataTable<T>` / `DataColumn<T>` | `components/data-table.tsx`  | Column-driven table (Midday `columns` + render, no `@tanstack/react-table`). Optional `footer` slot for report totals.       |
@@ -44,8 +44,7 @@ List/CRUD pages add the records kit from `components/records/records-shell.tsx`:
 
 ```tsx
 <PageLayout>
-  <PageHeader eyebrow="Reports" icon={<ScaleIcon className="size-4" />}
-    title="Trial balance" description="…" actions={/* optional buttons */} />
+  <PageHeader title="Trial balance" description="…" actions={/* optional buttons */} />
 
   {/* optional: report filter row (flat flex/grid, NOT a Card) */}
 
@@ -95,6 +94,57 @@ const columns: DataColumn<Row>[] = [
   GSTIN/PAN are format-validated in `packages/core/src/parties` and normalized (trim + uppercase) server-side.
 - **Items** carry an `hsnCode` (HSN for goods / SAC for services) — a 4–8 digit code validated in
   `packages/core/src/items`, searchable, and required for GST-compliant invoicing.
+
+## Document editor & templates (invoices, bills, settlements)
+
+The primitives above cover registers and simple records. Invoices, bills, receipts, and
+payments need richer **structured editors** and, later, renderable output. Learn Midday's
+_code composition_ (shared contracts, template-package boundary, immutability); do
+**not** copy its WYSIWYG UX — an India GST document is generated from structured input,
+not typed into a rendered layout.
+
+References (Midday, for composition only): `apps/dashboard/src/components/invoice/{form,form-context,line-items,invoice-editor}.tsx`;
+`packages/invoice/src/{index,types}.tsx`; `packages/invoice/src/templates/{html,pdf,og}/`.
+
+- **Structured entry, generated output.** The editor is a labelled form + line-items table,
+  not a WYSIWYG canvas. The entry surface (party, lines, rates, HSN) is much smaller than the
+  output: a compliant invoice's tax breakup, totals, and amount-in-words are _computed_, not
+  typed, and its layout is statutory. The on-screen preview and the PDF are the _same document
+  data_ run through one template — but that rendered output is a **read-only generated artifact**
+  (on-demand preview / download / tokenized share route), never an editable surface.
+- **Compose shared leaves, not a config base.** Extract the complex, identical pieces —
+  line-items table, totals strip, party combobox, account picker, allocation panel,
+  Save-draft/Post action bar. Each surface page (`invoice-editor`, `bill-editor`,
+  `receipt-form`, `payment-form`) composes those leaves directly with its own labels and
+  fields. No single base editor taking a `{party, account, kind}` config object — that thin
+  abstraction is the anti-pattern (CLAUDE.md: option factories / thin wrappers are suspect).
+- **One shared document contract.** Define persistence commands and DTOs once in
+  `packages/core`. Editor-local schemas may normalize UI-only strings (rates, quantity, common
+  `accountId`) but must map directly into those core commands at submit. Preview and PDF consume
+  core DTOs so rendered output never drifts from posted data.
+- **Template package boundary.** PDF/HTML rendering lives in a dedicated package (e.g.
+  `packages/invoice` or `packages/documents`) exporting `templates/html` + `templates/pdf`
+  from that one shape, built on `@react-pdf/renderer` (lean, no headless browser; register
+  Inter via `Font.register`). The app imports rendered output; it never reimplements the
+  layout. Renderable output is **not** the accounting source of truth (decisions/0009).
+- **Line-item editing.** react-hook-form `FormProvider` + `useFieldArray` for lines
+  (add/remove only). Keep at least one line. Columns are a CSS grid driven by the same feature
+  flags — "columns are data," same rule as `DataTable`. Per-line totals are always computed,
+  never stored in form state. Rate stays directly editable; discount fields wait for GST/tax
+  accounting so totals, tax base, and journal postings are designed together.
+- **Draft saving.** Explicit **Save draft** (create on first save, then update) → **Post**.
+  New-document Post uses an atomic create-and-post command with a server-generated document ID and
+  client-stable operation/idempotency key. "Changed vs baseline" is a UI optimization, never the
+  write-dedupe (CLAUDE.md replay rule). Debounced autosave is an optional later enhancement under
+  the same key rule, not a default.
+- **Posted = no editor.** Posted documents are immutable: render read-only, no edit affordance,
+  correction is void + reversal. Same rule as posted journal rows.
+- **Money stays minor units.** Midday uses floats + `Intl.NumberFormat`; we deviate on purpose.
+  Totals compute in `packages/core` with explicit rounding; cells render with `formatMinorUnits`
+  - `font-amount tabular-nums` — never `font-mono`, never raw Intl currency in a cell. When we
+    add PDF, note `@react-pdf/renderer` strips minus signs — format the absolute value and prepend `-`.
+- **Nested fields read context.** Document sub-fields use `useFormContext()` / `useWatch()`, not
+  prop drilling.
 
 ## Adopting it on a new page
 

@@ -6,8 +6,10 @@ query, migration, and database-client APIs while hiding transport/UI concerns.
 ## Current Schema
 
 Current schema includes Better Auth identity/organization tables, Phase 0
-app-owned platform tables, and the Phase 1 ledger kernel. This diagram shows
-the platform foundation subset; the ledger kernel is below.
+app-owned platform tables, the Phase 1 ledger kernel, Phase 2 parties/items
+foundation tables, and the historical Phase 1 `source_document` table. This
+diagram shows the platform foundation subset; the current ledger kernel,
+owner-record foundation, and planned document spine are below.
 
 ```mermaid
 erDiagram
@@ -113,7 +115,7 @@ erDiagram
 
 Better Auth owns `user`, `session`, `account`, `verification`, `organization`,
 `member`, and `invitation`. The app owns `currency`, `exchange_rate`,
-`organization_setting`, `audit_event`, and `outbox_event`.
+`organization_setting`, `audit_event`, `outbox_event`, `party`, and `item`.
 
 `currency` rows are supported reference metadata seeded outside schema
 migrations. `exchange_rate` stores dated FX snapshots; posted documents and
@@ -123,6 +125,122 @@ latest rate row.
 App-owned UUID primary keys use application-side UUIDv7 runtime defaults.
 Better Auth-owned text ids stay under Better Auth's generator and schema
 contract.
+
+## Phase 2 Owner Records Foundation
+
+```mermaid
+erDiagram
+  organization ||--o{ party : owns
+  organization ||--o{ item : owns
+  ledger_account ||--o{ item : sales_default
+  ledger_account ||--o{ item : expense_default
+
+  party {
+    uuid id PK
+    text organization_id
+    text kind
+    text display_name
+    text normalized_name
+    boolean is_active
+  }
+  item {
+    uuid id PK
+    text organization_id
+    text kind
+    text usage
+    text name
+    text normalized_name
+    bigint sales_rate_minor
+    bigint purchase_rate_minor
+    boolean is_active
+  }
+```
+
+`party` and `item` are organization-scoped owner-record tables. They support
+the Phase 2.5 document spine but do not post accounting entries by
+themselves. Optional GST/PAN/HSN-style columns are tax-ready metadata only until
+Phase 3; they must not be interpreted as GST validation, tax calculation, or
+compliance state.
+
+## Planned Phase 2.5 Document Spine
+
+The typed document tables in this section are the accepted Phase 2.5 design,
+but they are not exported by the current branch. Current code still has the
+Phase 1 `source_document` table and `journal_entry.source_document_id`; it does
+not yet have `src/schema/documents.ts` or document query modules.
+
+```mermaid
+erDiagram
+  organization ||--o{ sales_document : owns
+  organization ||--o{ purchase_document : owns
+  organization ||--o{ settlement_document : owns
+  sales_document ||--o{ sales_document_line : contains
+  purchase_document ||--o{ purchase_document_line : contains
+  settlement_document ||--o{ settlement_allocation : allocates
+  party ||--o{ sales_document : customer
+  party ||--o{ purchase_document : vendor
+  party ||--o{ settlement_document : counterparty
+  ledger_account ||--o{ sales_document_line : income
+  ledger_account ||--o{ purchase_document_line : expense
+  ledger_account ||--o{ settlement_document : cash_bank
+  journal_entry |o--o| sales_document : posts
+  journal_entry |o--o| purchase_document : posts
+  journal_entry |o--o| settlement_document : posts
+
+  sales_document {
+    uuid id PK
+    text organization_id
+    text status
+    text draft_reference
+    text document_number
+    uuid journal_entry_id
+    bigint total_minor
+    bigint outstanding_minor
+  }
+  purchase_document {
+    uuid id PK
+    text organization_id
+    text document_kind
+    text status
+    text draft_reference
+    text document_number
+    uuid journal_entry_id
+    bigint total_minor
+    bigint outstanding_minor
+  }
+  settlement_document {
+    uuid id PK
+    text organization_id
+    text direction
+    text status
+    text draft_reference
+    text document_number
+    uuid journal_entry_id
+    bigint amount_minor
+  }
+```
+
+The planned document spine uses typed tables rather than a generic JSON document table:
+`sales_document`, `sales_document_line`, `purchase_document`,
+`purchase_document_line`, `settlement_document`, and
+`settlement_allocation`. Draft rows get `draft_reference` only. Posting
+allocates official `document_number` through `number_sequence`, creates
+balanced `journal_entry` rows, and writes audit in one transaction. ADR-0012
+plans nullable journal source metadata (`source_type`, `source_record_id`,
+`source_number`) as all-or-nothing trace/cache fields: manual journals keep all
+three null, while document postings set all three non-null. Void is terminal
+and creates a journal reversal. Posted/voided status transitions are guarded by
+row locks. Draft and create-and-post commands generate document ids inside the
+DB transaction; clients send `documentId` only for existing-document commands
+such as update, post, void, get, and detail navigation. Settlement allocations
+reject duplicate targets and enforce one allocation row per settlement/target
+document with partial unique indexes.
+
+When implemented, the API/DB layer should expose typed create-draft,
+update-draft, get, list, post, and void services through a small public barrel
+backed by split document query modules. The owner UI should provide draft
+editors, lists, detail pages, posting, voiding, and settlement allocations;
+PDF/share rendering remains a later UI slice.
 
 ## Phase 1 Ledger Kernel
 
@@ -153,18 +271,11 @@ erDiagram
     text entity_type
     bigint next_number
   }
-  source_document {
-    uuid id PK
-    text organization_id
-    text type
-    text document_number
-  }
   journal_entry {
     uuid id PK
     text organization_id
     uuid accounting_period_id FK
     uuid source_document_id FK
-    text operation_key
     text entry_number
   }
   journal_line {
@@ -177,16 +288,17 @@ erDiagram
   }
   fiscal_year ||--o{ accounting_period : contains
   accounting_period ||--o{ journal_entry : accepts
-  source_document ||--o{ journal_entry : posts
   journal_entry ||--o{ journal_line : contains
   ledger_account ||--o{ journal_line : classifies
 ```
 
-Phase 1 posting enforces duplicate protection with
-`(organization_id, operation_key)` on `journal_entry`. Posting allocates
-`number_sequence` values with atomic `UPDATE ... RETURNING`, writes awaited
-audit rows transactionally, and enforces posted journal immutability through the
-posting/reversal service boundary plus database constraints. PostgreSQL
+Posting allocates `number_sequence` values with atomic `UPDATE ... RETURNING`,
+writes awaited audit rows transactionally, links optional `source_document_id`
+for source-backed entries, and enforces posted journal immutability through the
+posting/reversal service boundary plus database constraints. ADR-0012 replaces
+`source_document_id` with nullable all-or-nothing source metadata in a later
+schema change: manual journals keep `source_type`, `source_record_id`, and
+`source_number` all null; document postings set all three. PostgreSQL
 immutability triggers are deferred until a second writer path or
 public/integration API makes service bypass realistic. Phase 1 accounting
 posting does not write outbox rows; add outbox producers only when a durable
@@ -292,8 +404,8 @@ Rules:
   as business writes only when that side effect is part of the durable contract.
 - avoid fire-and-forget persistence helpers; callers should decide whether a
   write is durable, transactional, or intentionally omitted.
-- request ids are for tracing only; operation-local idempotency belongs in the
-  command/query module that owns the mutation.
+- request ids are for tracing only; replay contracts belong only in the
+  command/query module that owns a real duplicate-creation risk.
 
 Current concrete examples:
 

@@ -2,7 +2,13 @@
 
 Date: 2026-06-16
 
-Updated: 2026-06-27.
+Updated: 2026-06-29.
+
+Source-document update: [ADR-0012](../../decisions/0012-replace-source-document-with-journal-source-metadata.md)
+supersedes the `source_document` table. Current architecture uses
+`journal_entry.source_type`, `source_record_id`, and `source_number` as
+trace/cache metadata, while typed documents link to ledger authority through
+`journal_entry_id`.
 
 Source spec: `docs/superpowers/specs/2026-06-16-ai-native-accounting-foundation-design.md`
 
@@ -15,6 +21,7 @@ Decision record: `docs/decisions/0001-accounting-foundation-spine.md`
 - `docs/superpowers/plans/2026-06-16-phase-00-platform-foundation-implementation-plan.md`
 - `docs/superpowers/plans/2026-06-16-phase-01-accounting-kernel-implementation-plan.md`
 - `docs/superpowers/plans/2026-06-16-phase-02-owner-workflow-mvp-detailed-plan.md`
+- `docs/superpowers/plans/2026-06-28-phase-02-5-document-spine-plan.md`
 - `docs/superpowers/plans/2026-06-16-phase-03-india-gst-core-detailed-plan.md`
 - `docs/superpowers/plans/2026-06-16-phase-04-bank-reconciliation-detailed-plan.md`
 - `docs/superpowers/plans/2026-06-16-phase-05-ai-assistant-detailed-plan.md`
@@ -30,21 +37,25 @@ Decision record: `docs/decisions/0001-accounting-foundation-spine.md`
 
 1. Phase 0: Platform Foundation.
 2. Phase 1: Accounting Kernel.
-3. Phase 2: Owner Workflow MVP.
-4. Phase 3: India GST Core.
-5. Phase 4: Bank and Reconciliation.
-6. Phase 5: AI Assistant.
-7. Phase 6: Platform API and Integrations.
-8. Phase 7: Service SMB Expansion.
-9. Phase 8: Accountant Mode.
-10. Phase 9: Trade, Inventory, Import, Export.
-11. Phase 10: Country-Agnostic Tax Engine.
+3. Phase 2: Owner Foundation.
+4. Phase 2.5: Document Spine.
+5. Phase 3: India GST Core.
+6. Phase 4: Bank and Reconciliation.
+7. Phase 5: AI Assistant.
+8. Phase 6: Platform API and Integrations.
+9. Phase 7: Service SMB Expansion.
+10. Phase 8: Accountant Mode.
+11. Phase 9: Trade, Inventory, Import, Export.
+12. Phase 10: Country-Agnostic Tax Engine.
 
 ## Current Progress
 
-Phase 0 and Phase 1 code are complete on `main`. This PR adds the Phase 2
-foundation for parties, items, records UI primitives, and cursor pagination;
-the full owner workflow MVP remains next after local DB integration verification.
+Phase 0 and Phase 1 code are complete on `main`. Phase 2 parties/items
+foundation exists in code. The 2026-06-28 Phase 2 gate drift was repaired:
+Paraglide messages were regenerated, DB integration now runs the intended test
+files, and party/item PostgreSQL error unwrapping handles Drizzle-wrapped
+errors. Phase 2.5 Document Spine is implemented as the bridge between
+owner records and Phase 3 GST.
 
 Done:
 
@@ -62,7 +73,9 @@ Done:
 - Organization membership, settings audit, and schema invariant tests exist.
 - Business onboarding UI creates/selects a Better Auth business by slug.
 - Business settings UI reads and writes `organization_setting` through the organization settings procedures.
-- Phase 1 schema added `fiscal_year`, `accounting_period`, `ledger_account`, `number_sequence`, `source_document`, `journal_entry`, and `journal_line`.
+- Phase 1 schema added `fiscal_year`, `accounting_period`, `ledger_account`,
+  `number_sequence`, historical `source_document`, `journal_entry`, and
+  `journal_line`; ADR-0012 removes `source_document`.
 - Phase 1 posting and reversal services use operation-local idempotency, atomic `number_sequence` allocation, transactional `audit_event`, and no `outbox_event` writes.
 - Accounting report readers expose organization-scoped trial balance and account-scoped general ledger.
 - Accounting UI routes exist for chart of accounts, accounting periods, journal entries, trial balance, and general ledger.
@@ -71,8 +84,9 @@ Done:
 
 Not done:
 
-- Full Phase 2 owner workflow MVP is not implemented.
-- Local DB integration verification still requires local Postgres/Docker to be running.
+- Full broad Phase 2 owner workflow MVP is not implemented. Parties/items and
+  Phase 2.5 document spine are implemented; PDF/share/email, rich draft
+  editing UI, bank matching, and dashboard breadth remain later slices.
 - Transactional outbox writes remain intentionally limited to commands with real async consumers.
 
 Important current decision: `outbox_event` is foundation infrastructure, not a blanket side effect for every mutation. Phase 1 posting writes awaited transactional audit rows, but no outbox rows until a durable async/public/integration consumer exists.
@@ -87,22 +101,23 @@ a central replay store only for Phase 6 public API response-replay semantics.
 ```mermaid
 flowchart TD
   P0["00 Platform Foundation<br/>org scope, audit, outbox"] --> P1["01 Accounting Kernel<br/>periods, accounts, journal, operation keys"]
-  P1 --> P2["02 Owner Workflow MVP<br/>party, item, invoice, expense, payment"]
-  P2 --> P3["03 India GST Core<br/>tax codes, GST reports, notes"]
-  P2 --> P4["04 Bank + Reconciliation<br/>statement import, matching"]
+  P1 --> P2["02 Owner Foundation<br/>party, item"]
+  P2 --> P25["02.5 Document Spine<br/>invoice, bill, settlement"]
+  P25 --> P3["03 India GST Core<br/>tax codes, GST reports, notes"]
+  P25 --> P4["04 Bank + Reconciliation<br/>statement import, matching"]
   P3 --> P4
   P4 --> P5["05 AI Assistant<br/>suggestions and explanations"]
   P5 --> P6["06 Platform API<br/>public API, webhooks, MCP"]
-  P2 --> P7["07 Service SMB<br/>quotes, retainers, recurring"]
+  P25 --> P7["07 Service SMB<br/>quotes, retainers, recurring"]
   P1 --> P8["08 Accountant Mode<br/>review, locks, exports"]
-  P2 --> P9["09 Trade + Inventory<br/>stock ledger, orders, FX"]
+  P25 --> P9["09 Trade + Inventory<br/>stock ledger, orders, FX"]
   P3 --> P10["10 Country Tax Engine<br/>tax packs and fixtures"]
 ```
 
 Execution rules:
 
 - Phase 0 and Phase 1 are hard gates.
-- Phase 3 should not start until Phase 2 document posting is stable.
+- Phase 3 should not start until Phase 2.5 document posting is stable.
 - Phase 5 can suggest and draft only after deterministic services exist.
 - Phase 6 exposes public contracts only after internal services are stable.
 - Phase 9 stock ledger is separate from tenant-scope inventory.
@@ -118,7 +133,8 @@ Use these names across all plans:
 - `outbox_event`, not `internal_event`.
 - operation-local idempotency keys, not a generic Phase 0 ledger.
 - `number_sequence`, not document-specific sequence tables.
-- `source_document` as the common document-to-ledger traceability shell.
+- journal source metadata as the document-to-ledger trace/cache, with
+  document workflows owning typed tables and `journal_entry_id` links.
 
 ## Plain-Language Glossary
 
@@ -139,17 +155,27 @@ Use these meanings when reading or implementing the plans:
 - `outbox_event`: a queued domain event written in the same database transaction as the business change when jobs, webhooks, AI indexing, or integrations need durable delivery.
 - `requestId`: per-attempt log correlation id. It is not replay protection.
 - `operation key`: domain command key used to prevent duplicate accounting commands, usually enforced with a per-organization unique constraint.
-- `source_document`: shared document header used to connect invoices, expenses, payments, and other business documents to accounting postings.
+- journal source metadata: `journal_entry.source_type`, `source_record_id`,
+  and `source_number` identify the typed document that produced a ledger entry;
+  business code still queries typed document tables, not source metadata.
+- `document spine`: owner-facing workflow that turns sales, purchase, receipt, and payment activity into source-backed posted documents.
+- `tax-ready metadata`: optional GSTIN/PAN/HSN/SAC-style fields preserved for later tax workflows, without tax calculation or compliance behavior.
+- `settlement`: one domain concept for money received and money paid; UI can use friendly labels.
 - `journal_entry`: one accounting posting operation.
 - `journal_line`: one debit or credit line inside a `journal_entry`.
-- `number_sequence`: the per-business counter that allocates journal, invoice, receipt, and other document numbers.
+- `number_sequence`: the per-business counter that allocates journal, invoice,
+  receipt, and other official document numbers during posting.
+- `draft_reference`: a non-official identifier for editable documents
+  before posting.
+- `official document number`: the human-readable document number assigned
+  only when posting succeeds.
 - `minor units`: integer money storage, such as paise/cents. INR 123.45 is stored as `12345`, avoiding floating-point rounding bugs.
 - `normal balance`: whether an account normally increases by debit or credit.
 - `control account`: a ledger account controlled by another workflow, such as Accounts Receivable from invoices, rather than casual manual journal entry.
 - `reconcilable account`: an account expected to be matched against statements or subledgers, such as bank or receivables.
 - `reversal`: correcting an accounting posting by creating a new opposite posting instead of editing history.
 - `subledger`: detailed customer/vendor/payment records that explain a control account balance.
-- `settlement` or `allocation`: linking a receipt/payment amount to one or more invoices/bills.
+- `allocation`: linking a settlement amount to one or more invoices/bills.
 - `OpenAPI snapshot`: a test fixture of the API schema used to detect accidental API changes. It is unrelated to stock inventory.
 - `report snapshot`: an immutable saved copy of a report/export at a point in time.
 - `MCP`: Model Context Protocol; future integration surface for AI/tools, not part of Phase 0/1.
@@ -173,9 +199,9 @@ Phase 0 and Phase 1 are foundation phases. They should be implemented slowly, te
 
 No invoice, expense, GST filing, bank reconciliation, AI assistant, public API, MCP, webhook delivery, recurring workflow, inventory, import/export, or country-pack work should begin until Phase 0 and Phase 1 are stable.
 
-## Phase Gate
+## Historical Phase 1 Gate
 
-Before moving beyond Phase 1:
+Before moving beyond Phase 1, the system needed:
 
 - Auth and organization membership work.
 - `organization_setting` exists for each business.
@@ -187,10 +213,11 @@ Before moving beyond Phase 1:
 - Fiscal years and accounting periods exist.
 - `ledger_account` chart exists.
 - `number_sequence` exists.
-- `source_document` minimal shell exists.
+- historical `source_document` minimal shell existed; ADR-0012 replaces it
+  with journal source metadata.
 - `journal_entry` and `journal_line` exist.
 - Posted journal entries are immutable.
 - Reversals create separate journal entries.
 - Trial balance balances.
 - Accounting-core tests pass.
-- Phase 1 does not include `party`, `tax_code`, owner documents, subledger, or balance-cache tables.
+- Phase 1 did not include `party`, `tax_code`, documents, subledger, or balance-cache tables.

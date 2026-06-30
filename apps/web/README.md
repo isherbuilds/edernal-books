@@ -12,6 +12,8 @@ app-specific wrappers around shared packages.
 - Keep route files readable and usually under 250 lines.
 - Compose page UI directly in routes when simple; move stateful or repeated UI
   into `src/components/<area>/...`.
+- Own owner-facing document register/detail/create/post/void screens under the
+  app shell.
 - Use TanStack Query as the server-data cache owner.
 - Use `@tsu-stack/api/client/tanstack-start/orpc` for typed API calls.
 - Use `@tsu-stack/i18n` for messages, localized links, and locale-aware routing.
@@ -116,6 +118,8 @@ Component rules:
   repeated use justifies them.
 - Keep owner-facing accounting routes free of debit/credit terminology unless
   the route is explicitly advanced/accountant mode.
+- Sales, purchase, and settlement documents use business labels such as invoice, bill, receipt, payment,
+  customer, vendor, total, outstanding, and document number.
 - Extract to `packages/ui` only when the component is app-agnostic and actively
   reused; keep routing, env, auth, locale, and SEO glue in `src/components`.
 

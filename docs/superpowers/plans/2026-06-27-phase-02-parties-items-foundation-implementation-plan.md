@@ -5,6 +5,10 @@ Status: Approved for implementation
 Spec: `docs/superpowers/specs/2026-06-27-phase-02-parties-items-design.md`
 Research: `docs/superpowers/specs/2026-06-27-phase-02-reference-architecture-research.md`
 
+2026-06-28 update: optional GST/PAN/HSN fields already present in the Phase 2
+foundation are tax-ready metadata only. See
+`docs/decisions/0006-quarantine-tax-ready-metadata-until-gst-core.md`.
+
 ## Scope
 
 Implement the Phase 2 foundation slice:
@@ -15,6 +19,7 @@ Implement the Phase 2 foundation slice:
 - Owner UI screens for customers/vendors and goods/services.
 
 Inventory remains out of scope; see the scope boundary in `docs/superpowers/specs/2026-06-27-phase-02-parties-items-design.md`.
+GST validation, tax calculation, and compliance behavior remain out of scope.
 
 ## Design Decisions
 
@@ -25,6 +30,7 @@ Inventory remains out of scope; see the scope boundary in `docs/superpowers/spec
 - Add optional item account defaults: `sales_account_id`, `expense_account_id`.
 - Use `is_active` instead of hard delete for owner workflows.
 - Keep search simple with organization-scoped `ILIKE`; defer full-text search.
+- Quarantine optional GST/PAN/HSN values as tax-ready metadata until Phase 3.
 
 ## Implementation Steps
 
@@ -54,7 +60,7 @@ Inventory remains out of scope; see the scope boundary in `docs/superpowers/spec
    - Add `packages/api/src/routers/items/index.ts`.
    - Mount routers in `packages/api/src/routers/index.ts`.
    - Use `organizationPermissionProcedure` with accounting access until narrower parties/items permissions exist.
-   - Map DB errors to typed API errors.
+   - Let query/database failures fail fast; do not map DB errors to typed API errors.
 
 5. Web UI
    - Add organization routes:

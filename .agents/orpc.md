@@ -54,11 +54,11 @@ export const exampleRouter = {
 
 Keep handlers direct.
 
-- Return DB calls directly when no branching, transport shaping, or expected error mapping is needed.
-- Use `await` when the handler must inspect the result, run a transaction, map output to transport-safe values, or translate a known domain error.
+- Return DB calls directly when no branching, transport shaping, or router-owned error branch is needed.
+- Use `await` when the handler must inspect the result, run a transaction, or map output to transport-safe values.
 - Do not wrap a DB call in a callback helper such as `catchXDbError(errors, () => ...)`.
-- Keep `.errors(...)` only for expected errors the client needs to branch on. Remove empty `.errors({})`.
-- Use local `try/catch` only when a trusted domain function throws a declared domain error that must become a typed oRPC error. Unknown errors must rethrow unchanged.
+- Keep `.errors(...)` only for router-owned failures the client needs to branch on, such as explicit auth/product-state decisions. Remove empty `.errors({})`.
+- Do not catch DB/query errors to convert them into transport errors. Let query/domain/database failures fail loud. See [ADR-0011](../docs/decisions/0011-fail-fast-query-errors.md).
 
 Direct read:
 
@@ -71,42 +71,34 @@ Direct read:
 )
 ```
 
-Expected domain error:
+Router-owned expected error:
 
 ```ts
 .errors(exampleErrors)
-.handler(async ({ context, errors, input }) => {
-  try {
-    return await createExample(context.db, {
-      ...input,
-      organizationId: context.organizationId
-    });
-  } catch (error) {
-    throwExampleDbError(errors, error);
+.handler(({ context, errors }) => {
+  if (!context.organization.canCreateExample) {
+    throw errors.EXAMPLE_DISABLED();
   }
+
+  return createExample(context.db, {
+    organizationId: context.organizationId
+  });
 })
-
-function throwExampleDbError(errors: ExampleErrorFactories, error: unknown): never {
-  if (error instanceof ExampleDbError) {
-    throw errors[error.code]({ data: { code: error.code } });
-  }
-
-  throw error;
-}
 ```
 
 ## Errors
 
-Prefer type-safe oRPC errors with `.errors(...)` on the procedure base.
+Use type-safe oRPC errors with `.errors(...)` only when the router owns an expected client-branching failure.
 
 - Define expected errors up front.
 - Use `errors.MY_ERROR()` in handlers.
 - Use `data` schemas only for fields the client truly needs, and never include sensitive information.
 - Reserve thrown unknown errors for truly unexpected cases.
 - Do not leak sensitive information through error data or messages.
-- `ORPCError` is still valid when you need interoperability, but prefer `.errors(...)` so the client can infer and narrow error types.
-- Do not add shared action-wrapper helpers for one router. Domain error mappers belong in the router that uses them unless multiple routers genuinely share the same policy.
-- Do not catch errors just to normalize, log, or "be safe." Let unexpected failures fail loud.
+- `ORPCError` is still valid when you need interoperability, but prefer `.errors(...)` for router-owned branchable failures.
+- Do not add shared action-wrapper helpers or DB error mappers.
+- Do not catch errors just to normalize, log, convert, or "be safe." Let unexpected failures fail loud.
+- Reason: duplicate error conversion hides root causes, expands client contracts before product policy exists, and adds extra work on normal app paths.
 
 Example:
 
@@ -262,13 +254,13 @@ export type EditProfileMutationResult = Awaited<ReturnType<typeof client.profile
 
 ## Practical Rules
 
-- Prefer explicit `input` and `output` schemas on every procedure.
-- Prefer typed oRPC errors over ad hoc string matching.
-- Prefer `.errors(...)` plus `errors.MY_ERROR(...)` over raw `new ORPCError(...)` unless interoperability or framework glue makes the raw form clearer.
-- Prefer direct handler returns; add `async`/`await` only for branching, transactions, output mapping, or declared domain error mapping.
-- Prefer fail-fast handlers. Use local `throwXDbError(errors, error)` mappers only for declared domain errors; never add `catchXDbError(errors, () => action())` wrappers.
-- Prefer `isDefinedError(error)` plus `error.code`/`error.data` for client-side branching.
-- Prefer sparse, request-scoped wide events over ad hoc per-step logs.
-- Prefer shared error handling over log-and-rethrow patterns in handlers.
-- Prefer [API fetching patterns](./api-fetching-patterns.md) for query hooks,
+- Define explicit `input` and `output` schemas on every procedure.
+- Use typed oRPC errors over ad hoc string matching for router-owned branchable failures.
+- Use `.errors(...)` plus `errors.MY_ERROR(...)` over raw `new ORPCError(...)` for those router-owned failures unless interoperability or framework glue makes the raw form clearer.
+- Return directly from handlers; add `async`/`await` only for branching, transactions, or output mapping.
+- Keep handlers fail-fast. Never add `throwXDbError(errors, error)` or `catchXDbError(errors, () => action())` wrappers around query calls.
+- Branch on `isDefinedError(error)` plus `error.code`/`error.data` client-side.
+- Keep request logs sparse and wide instead of adding ad hoc per-step logs.
+- Rely on shared error handling instead of log-and-rethrow patterns in handlers.
+- Follow [API fetching patterns](./api-fetching-patterns.md) for query hooks,
   mutation hooks, preloading, and cache invalidation.

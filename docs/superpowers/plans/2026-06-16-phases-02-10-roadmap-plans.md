@@ -2,7 +2,12 @@
 
 Date: 2026-06-16
 
-Updated: 2026-06-26.
+Updated: 2026-06-29.
+
+Source-document update: [ADR-0012](../../decisions/0012-replace-source-document-with-journal-source-metadata.md)
+supersedes this roadmap's `source_document` references. Current phases should
+use typed document tables, `journal_entry_id` ledger links, and journal source
+metadata instead.
 
 Source spec: `docs/superpowers/specs/2026-06-16-ai-native-accounting-foundation-design.md`
 
@@ -17,7 +22,8 @@ All later phases build on:
 - `organization_setting`.
 - `ledger_account`.
 - `number_sequence`.
-- `source_document`.
+- journal source metadata on `journal_entry` plus typed documents'
+  `journal_entry_id` links.
 - `journal_entry`.
 - `journal_line`.
 - `audit_event`.
@@ -30,15 +36,15 @@ Do not reintroduce `business_profile`, `account_group`, simple `journal`, `inter
 
 ```mermaid
 flowchart TD
-  Foundation["Phase 0-1 foundation<br/>tenant, audit, outbox, journal"] --> OwnerDocs["Phase 2 owner documents"]
-  OwnerDocs --> GST["Phase 3 GST"]
-  OwnerDocs --> Bank["Phase 4 bank"]
+  Foundation["Phase 0-1 foundation<br/>tenant, audit, outbox, journal"] --> Documents["Phase 2 documents"]
+  Documents --> GST["Phase 3 GST"]
+  Documents --> Bank["Phase 4 bank"]
   GST --> Bank
   Bank --> AI["Phase 5 AI"]
   AI --> Integrations["Phase 6 API/integrations"]
-  OwnerDocs --> Service["Phase 7 service SMB"]
+  Documents --> Service["Phase 7 service SMB"]
   Foundation --> Accountant["Phase 8 accountant mode"]
-  OwnerDocs --> Trade["Phase 9 trade/inventory"]
+  Documents --> Trade["Phase 9 trade/inventory"]
   GST --> TaxEngine["Phase 10 country tax engine"]
 ```
 
@@ -63,6 +69,12 @@ sequenceDiagram
 
 ## Phase 02: Owner Workflow MVP
 
+2026-06-28 execution note: split this broad phase into Phase 02 parties/items
+foundation plus [Phase 02.5 Document Spine](2026-06-28-phase-02-5-document-spine-plan.md).
+Phase 02.5 now owns invoice, purchase bill/expense, settlement, allocation, and
+lifecycle baseline work. PDF rendering and email/share links remain later
+follow-up work.
+
 **Goal:** Let non-technical owners create invoices, record expenses, record payments, and see a simple business dashboard.
 
 **Prerequisites:**
@@ -81,25 +93,23 @@ sequenceDiagram
 - `sales_invoice_line`.
 - `purchase_bill` or `expense`.
 - `purchase_bill_line` or `expense_line`.
-- `receipt`.
-- `payment`.
-- `receipt_allocation`.
-- `payment_allocation`.
-- document attachments.
-- PDF rendering.
-- email/share link.
+- `settlement` for money received and money paid.
+- `allocation`.
+- document attachments, PDF rendering, and email/share links as follow-up work
+  after the document spine is stable.
 
 **Data model additions:**
 
 - `party`: customers/vendors using owner-facing labels in UI.
 - `item`: goods/services catalog.
-- document subtype tables link to `source_document`.
+- document subtype tables link to `journal_entry_id`; journal entries carry
+  source trace metadata.
 - posted documents link to the created `journal_entry`.
-- payments allocate against invoices/bills through settlement/allocation tables.
+- settlements allocate against invoices/bills through allocation tables.
 
 **UX rule:** UI says customer, vendor, invoice, expense, money received, money paid. It does not require debit/credit knowledge.
 
-**Accounting rule:** Every posted invoice, expense, receipt, and payment creates a balanced `journal_entry` through the existing posting service.
+**Accounting rule:** Every posted invoice, expense, and settlement creates a balanced `journal_entry` through the existing posting service.
 
 **Exit criteria:**
 
@@ -107,7 +117,7 @@ sequenceDiagram
 - Owner can create item/service.
 - Draft document does not affect books.
 - Posted document creates balanced journal entry.
-- Owner can download/share invoice PDF.
+- Sales, purchase, and settlement document spine stores enough render-ready data for later PDF/share work.
 - Owner can record money received/paid.
 - Dashboard shows receivables, payables, cash/bank, sales, and expenses.
 
@@ -117,9 +127,9 @@ sequenceDiagram
 
 **Prerequisites:**
 
-- Phase 2 document posting stable.
+- Phase 2.5 document posting stable.
 - Parties and items exist.
-- Source documents and posted entries are reliable.
+- Typed documents, `journal_entry_id` links, and posted entries are reliable.
 
 **Core modules:**
 
@@ -138,7 +148,7 @@ sequenceDiagram
 **Data model additions:**
 
 - `tax_code` and `tax_code_component`.
-- GST details on source/document subtype tables.
+- GST details on typed document subtype tables.
 - line-level tax summaries.
 - credit/debit note subtype tables or document type extension.
 - GST return snapshot tables only when reports need immutable exports.
@@ -222,7 +232,7 @@ sequenceDiagram
 - Receipt image can produce draft expense.
 - Bank transaction can produce suggested match.
 - Owner can ask simple report questions.
-- AI answer links source documents.
+- AI answers link typed documents and their journal entries.
 - Rejected suggestions are stored for learning signals.
 - No AI path writes posted entries directly.
 

@@ -2,6 +2,17 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+> **2026-06-28 gate:** Phase 02.5 Document Spine is the required
+> starting point for this plan. GST work must attach to posted documents
+> from [Phase 02.5](2026-06-28-phase-02-5-document-spine-plan.md), not to
+> draft UI state. Existing GST/PAN/HSN values before this phase are tax-ready
+> metadata only; see
+> `docs/decisions/0006-quarantine-tax-ready-metadata-until-gst-core.md`.
+
+> **2026-06-29 source-document update:** [ADR-0012](../../decisions/0012-replace-source-document-with-journal-source-metadata.md)
+> supersedes this plan's `source_document` references. GST should attach to
+> typed document rows and follow `journal_entry_id` for ledger authority.
+
 **Goal:** Add India GST-aware invoicing, expense tax capture, tax reports, credit/debit notes, and sandbox-ready compliance integration boundaries.
 
 **Architecture:** GST rules live in `packages/india-tax` as deterministic functions. Document services call tax calculation before posting journals. GST reports are built from posted documents and journal lines, not from drafts. External government/GSP APIs are isolated behind adapters and disabled by default.
@@ -14,7 +25,7 @@
 
 ```mermaid
 flowchart TD
-  Documents["Phase 2 documents"] --> TaxCalc["packages/india-tax<br/>deterministic GST rules"]
+  Documents["Phase 2.5 posted documents"] --> TaxCalc["packages/india-tax<br/>deterministic GST rules"]
   TaxCalc --> TaxLines["gst_line_tax"]
   TaxCalc --> Details["gst_document_detail"]
   Documents --> Ledger["journal posting service"]
@@ -45,7 +56,7 @@ sequenceDiagram
 Before executing this plan, reconcile it with `docs/superpowers/plans/2026-06-17-accounting-foundation-schema-revision-plan.md`.
 
 - This phase creates `tax_code` and `tax_code_component`.
-- GST document details attach to Phase 2 document subtype rows and `source_document`.
+- GST document details attach to Phase 2 typed document rows.
 - GST posting creates `journal_entry` rows through the Phase 1 posting service; corrections use reversals and new postings.
 - Write `audit_event`. Add `outbox_event` only when GST exports, integrations, or async jobs require durable delivery.
 - Store ordinary money as `*_minor bigint`; rates and quantities remain numeric.

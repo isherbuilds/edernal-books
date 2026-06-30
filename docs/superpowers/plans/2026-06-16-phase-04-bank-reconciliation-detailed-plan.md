@@ -8,6 +8,10 @@
 
 **Tech Stack:** TanStack Start, React Hook Form, PostgreSQL, Drizzle, Hono, oRPC, Zod, core accounting, CSV parser, spreadsheet parser.
 
+> **2026-06-29 source-document update:** [ADR-0012](../../decisions/0012-replace-source-document-with-journal-source-metadata.md)
+> supersedes this plan's `source_document` references. Reconciliation should
+> link typed documents, payments/allocations, and `journal_entry_id`.
+
 ---
 
 ## Architecture Flow
@@ -45,7 +49,8 @@ sequenceDiagram
 
 Before executing this plan, reconcile it with `docs/superpowers/plans/2026-06-17-accounting-foundation-schema-revision-plan.md`.
 
-- Bank imports and matches link to existing `source_document`, `journal_entry`, payments, and allocations.
+- Bank imports and matches link to existing typed documents, `journal_entry`,
+  payments, and allocations.
 - Approved matches post or link through existing posting services.
 - Write `audit_event`. Add `outbox_event` only when imports, integrations, or async matching jobs require durable delivery.
 - Store money as `*_minor bigint`.

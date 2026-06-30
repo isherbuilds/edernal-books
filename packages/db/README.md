@@ -11,10 +11,14 @@ modules.
 - Run production migrations safely through `migrateDatabase()`.
 - Check database readiness for health endpoints.
 - Keep tenant-owned app tables scoped by `organization_id`.
-- Own reusable query modules for membership and settings.
+- Own reusable query modules for membership, settings, accounting, parties,
+  and items. Document query modules are planned with Phase 2.5 and are not
+  present on this branch yet.
 
-Does not own transport response shape, route handlers, React UI, auth cookies,
-or Better Auth membership checks.
+Does not own transport response shape, route handlers, oRPC error contracts,
+React UI, auth cookies, or Better Auth membership checks. Query/domain/cursor
+and database failures fail fast; see
+[ADR-0011](../../docs/decisions/0011-fail-fast-query-errors.md).
 
 ## Architecture
 
@@ -66,6 +70,10 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for current and planned schema shape.
 | `src/utils/id.ts`                      | app-owned UUIDv7 id generation                                         |
 | `drizzle.config.ts`                    | Drizzle Kit config                                                     |
 | `docker-compose.dev.yaml`              | Local PostgreSQL                                                       |
+
+Phase 2.5 is expected to add typed document schema and query modules. Until
+those files exist, references to `src/schema/documents.ts` or
+`src/queries/documents-query/*` are planning targets, not current entrypoints.
 
 ## Development Commands
 

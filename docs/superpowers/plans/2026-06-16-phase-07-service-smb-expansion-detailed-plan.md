@@ -4,7 +4,7 @@
 
 **Goal:** Add service-business workflows: quotes, recurring invoices, retainers, lightweight projects, timesheets, payment links, and client statements.
 
-**Architecture:** Service features extend Phase 2 documents rather than introducing a separate project-management system. Quotes and recurring rules create draft invoices. Retainers post liability entries and later apply against invoices. Projects and timesheets provide invoice context but do not become full task management.
+**Architecture:** Service features extend Phase 2.5 documents rather than introducing a separate project-management system. Quotes and recurring rules create draft invoices. Retainers post liability entries and later apply against invoices. Projects and timesheets provide invoice context but do not become full task management.
 
 **Tech Stack:** TanStack Start, React Hook Form, Hono, oRPC, OpenAPI contracts, PostgreSQL, Drizzle, background jobs, core accounting.
 

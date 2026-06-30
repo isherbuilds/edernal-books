@@ -63,6 +63,13 @@ decisions exist.
 - [ADR-0003: Organization Context And Permission Cache Pattern](decisions/0003-organization-context-and-permission-cache-pattern.md)
 - [ADR-0004: Web App Midday-Style Structure](decisions/0004-web-app-midday-style-structure.md)
 - [ADR-0005: TanStack Start Hybrid SSR Performance Architecture](decisions/0005-tanstack-start-hybrid-ssr-performance.md)
+- [ADR-0006: Quarantine Tax-Ready Metadata Until GST Core](decisions/0006-quarantine-tax-ready-metadata-until-gst-core.md)
+- [ADR-0007: Use Settlement for Receipts and Payments](decisions/0007-use-settlement-for-receipts-and-payments.md)
+- [ADR-0008: Document Lifecycle](decisions/0008-document-lifecycle.md)
+- [ADR-0009: Use Typed Document Tables](decisions/0009-use-typed-document-tables.md)
+- [ADR-0010: Allocate Document Numbers On Post](decisions/0010-allocate-document-numbers-on-post.md)
+- [ADR-0011: Fail Fast On Query And Database Errors](decisions/0011-fail-fast-query-errors.md)
+- [ADR-0012: Replace source_document with journal source metadata](decisions/0012-replace-source-document-with-journal-source-metadata.md)
 
 Add a new ADR when a decision changes package boundaries, persistence shape,
 auth strategy, public APIs, runtime deployment, accounting invariants, or any
@@ -79,6 +86,7 @@ Core documents:
 - [Plan set index](superpowers/plans/2026-06-16-plan-set-index.md)
 - [Phase 0 platform foundation](superpowers/plans/2026-06-16-phase-00-platform-foundation-implementation-plan.md)
 - [Phase 1 accounting kernel](superpowers/plans/2026-06-16-phase-01-accounting-kernel-implementation-plan.md)
+- [Phase 2.5 document spine](superpowers/plans/2026-06-28-phase-02-5-document-spine-plan.md)
 - [Phases 02-10 roadmap](superpowers/plans/2026-06-16-phases-02-10-roadmap-plans.md)
 - [Schema revision source of truth](superpowers/plans/2026-06-17-accounting-foundation-schema-revision-plan.md)
 

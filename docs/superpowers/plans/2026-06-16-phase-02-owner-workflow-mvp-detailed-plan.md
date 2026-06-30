@@ -2,15 +2,26 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+> **2026-06-28 update:** Treat this file as the broad historical Phase 02
+> target, not the next execution plan. Use
+> [Phase 02.5 Document Spine](2026-06-28-phase-02-5-document-spine-plan.md)
+> for the invoice/bill/settlement lifecycle baseline. Phase 02.5 intentionally
+> excludes PDF/share/email delivery, AI assistant, bank reconciliation, GST
+> behavior, recurring workflows, and inventory.
+
+> **2026-06-29 source-document update:** [ADR-0012](../../decisions/0012-replace-source-document-with-journal-source-metadata.md)
+> supersedes this historical plan's `source_document` references. Use typed
+> document tables, `journal_entry_id`, and journal source metadata.
+
 **Goal:** Build owner-facing customers, vendors, items, invoices, expenses, payments, PDFs, delivery logs, and dashboard workflows on top of the Phase 1 accounting kernel.
 
 **Architecture:** UI speaks owner language while backend posts deterministic accounting journals through the existing journal posting service. Document services create drafts, post documents, allocate payments, write audit events, and preserve source links from documents to journals. Public external API remains disabled in this phase, but oRPC contracts are shaped so Phase 6 can expose stable OpenAPI endpoints without rewriting business logic. Do not emit outbox events until a durable async consumer exists.
 
 **Tech Stack:** TanStack Start, React Hook Form, Zod, Hono, oRPC, PostgreSQL, Drizzle, core accounting, object storage, PDF renderer, email provider abstraction.
 
-**Current readiness:** Phase 0 and Phase 1 are complete on `main`. Before
-implementation, rerun the local DB integration gate with Postgres available and
-refresh this plan through a Phase 2 design review.
+**Current readiness:** Phase 0, Phase 1, Phase 2 parties/items foundation, and
+Phase 2.5 document spine are implemented locally. Use the Phase 2.5 plan
+and latest verification commands before extending this broad historical scope.
 
 ---
 
@@ -20,7 +31,7 @@ refresh this plan through a Phase 2 design review.
 flowchart TD
   Owner["Owner UI"] --> Docs["Document services<br/>invoice, expense, payment"]
   Docs --> Parties["party + item"]
-  Docs --> Source["source_document"]
+  Docs --> Source["journal source metadata"]
   Docs --> Ledger["journal posting service"]
   Ledger --> Batch["journal_entry + journal_line"]
   Docs --> Delivery["PDF + document_delivery"]
@@ -28,7 +39,7 @@ flowchart TD
   Docs --> Idem["operation-local command keys"]
 ```
 
-Owner document posting:
+Sales, purchase, and settlement document posting:
 
 ```mermaid
 sequenceDiagram
@@ -51,7 +62,8 @@ sequenceDiagram
 Before executing this plan, reconcile it with `docs/superpowers/plans/2026-06-17-accounting-foundation-schema-revision-plan.md`.
 
 - Use existing `number_sequence`; do not create `document_sequence`.
-- Posted documents link to `source_document` and the resulting `journal_entry`.
+- Posted documents link to `journal_entry_id`; journal entries carry source
+  metadata.
 - Write `audit_event`, not `audit_log`.
 - Start `outbox_event` writes only when an async consumer, integration, webhook, AI indexer, or public API delivery workflow exists.
 - Use operation-local idempotency at posting boundaries.
@@ -107,7 +119,6 @@ Constraints:
 - `status`: `DRAFT`, `POSTED`, `VOID`, `PAID`, `PARTIALLY_PAID`
 - `currency_code`
 - `subtotal_amount`
-- `discount_amount`
 - `tax_amount`
 - `total_amount`
 - `amount_paid`
@@ -141,11 +152,15 @@ Constraints:
 - `quantity`
 - `unit`
 - `unit_price`
-- `discount_amount`
 - `line_subtotal_amount`
 - `line_tax_amount`
 - `line_total_amount`
 - `sales_account_id`
+
+Phase 2.5 note: no discount columns or controls in the document editor.
+Owners edit line rate directly. Discount percent, discount amount, discount
+account, and discount-after-tax behavior belong with Phase 3 GST/tax core so
+taxable base, tax breakup, and journal postings share one contract.
 
 ### `expense`
 

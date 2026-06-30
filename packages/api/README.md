@@ -1,7 +1,7 @@
 # @tsu-stack/api
 
 Transport contract package. It owns oRPC routers, procedure factories, Hono
-context creation, typed errors, and the isomorphic TanStack Start oRPC client.
+context creation, declared transport errors, and the isomorphic TanStack Start oRPC client.
 
 It should orchestrate transport behavior and call package-owned domain/database
 logic. It should not become a dumping ground for persistence or UI code.
@@ -23,6 +23,9 @@ flowchart TD
   Server --> Router["routers/index.ts"]
   Router --> Health["routers/health"]
   Router --> Organizations["routers/organizations"]
+  Router --> SalesDocuments["routers/sales-documents"]
+  Router --> PurchaseDocuments["routers/purchase-documents"]
+  Router --> Settlements["routers/settlements"]
   Router --> Private["routers/private"]
   Organizations --> Auth["@tsu-stack/auth"]
   Private --> Auth
@@ -32,6 +35,12 @@ flowchart TD
   Health --> DB["@tsu-stack/db"]
   Organizations --> OrgCore["@tsu-stack/core/organizations"]
   Organizations --> OrgQueries["@tsu-stack/db/queries"]
+  SalesDocuments --> DocumentCore["@tsu-stack/core/documents"]
+  PurchaseDocuments --> DocumentCore
+  Settlements --> DocumentCore
+  SalesDocuments --> DocumentQueries["@tsu-stack/db/queries"]
+  PurchaseDocuments --> DocumentQueries
+  Settlements --> DocumentQueries
   Web["apps/web"] --> Client["client/tanstack-start/orpc.ts"]
   Client --> Router
   Client --> RPCLink["browser RPCLink"]
@@ -61,6 +70,9 @@ packages/api/src/
     health/
     organizations/
     private/
+    purchase-documents/
+    sales-documents/
+    settlements/
 ```
 
 Router rules:
@@ -72,6 +84,8 @@ Router rules:
 - Use `organizationProcedure(schema)` when a route needs caller-provided
   `orgSlug` verified against membership.
 - Use `@tsu-stack/core` schemas for cross-package contracts.
+- Sales, purchase, and settlement routes expose app-internal create/update draft,
+  get/list, post, and void procedures; they are not Phase 6 public API contracts.
 - Promote DB-heavy reusable logic into `packages/db/src/queries` when it appears.
 
 ## Procedure Flow

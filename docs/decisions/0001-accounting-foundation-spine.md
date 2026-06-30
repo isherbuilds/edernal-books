@@ -4,6 +4,10 @@
 
 Accepted
 
+Superseded in part by [ADR-0012](0012-replace-source-document-with-journal-source-metadata.md):
+the `source_document` backbone is removed. `journal_entry` source columns plus
+typed documents' `journal_entry_id` links replace it.
+
 ## Date
 
 2026-06-17
@@ -29,12 +33,17 @@ Adopt the durable accounting spine:
   foreign keys store `organization_id` as text and do not cast to UUID.
 - Phase 0 owns `organization_setting`, `currency`, `audit_event`, and
   `outbox_event`.
-- Phase 1 owns `fiscal_year`, `accounting_period`, `ledger_account`, `number_sequence`, minimal `source_document`, `journal_entry`, and `journal_line`.
+- Phase 1 owned `fiscal_year`, `accounting_period`, `ledger_account`,
+  `number_sequence`, minimal `source_document`, `journal_entry`, and
+  `journal_line`; ADR-0012 supersedes `source_document` with journal source
+  metadata.
 - `organization_setting` stays narrow. PAN, GSTIN, registered addresses, branch locations, invoice profile details, and tax registration data are added with the later workflows that consume them.
 - `requestId` is tracing only. Duplicate protection for money-moving commands
   uses operation-local command keys, provider ids, natural keys, or
   domain-owned unique constraints.
-- `source_document` is a traceability shell, not a generic idempotency authority.
+- `source_document` was a traceability shell, not a generic idempotency
+  authority; ADR-0012 replaces it with `journal_entry.source_type`,
+  `source_record_id`, and `source_number`.
 - Phase 1 journal lines store base debit/credit minor units only. Currency remains an organization accounting setting and is not copied into every line or accepted from manual journal commands.
 - Accounting foundation settings that define currency and fiscal boundaries become locked once fiscal-year setup exists; enforce this in the settings write path during Phase 1.
 - Later phases must use `number_sequence`, `journal_entry`, `audit_event`,
@@ -53,7 +62,7 @@ Rejected. Competing source-of-truth documents would cause implementation drift. 
 
 ### Ship parties and tax codes in Phase 1
 
-Rejected for now. Parties and taxes are important, but Phase 1 should prove the ledger kernel. Adding nullable party and tax placeholders before owner documents and GST workflows exist weakens schema clarity.
+Rejected for now. Parties and taxes are important, but Phase 1 should prove the ledger kernel. Adding nullable party and tax placeholders before documents and GST workflows exist weakens schema clarity.
 
 ## Consequences
 

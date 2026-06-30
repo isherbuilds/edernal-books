@@ -141,23 +141,30 @@ export const CursorPaginatedOutputSchema = z.object({
 
 Database pattern:
 
+> Future Phase 2.5 typed-table pseudocode. On this branch, `salesDocument`
+> does not exist yet; current source-backed journal code still uses
+> `sourceDocument`. After [ADR-0012](decisions/0012-replace-source-document-with-journal-source-metadata.md)
+> and typed document tables land, list
+> business documents from their owning typed tables and use `journal_entry_id`
+> for posted/voided ledger authority.
+
 ```ts
+// Future Phase 2.5 typed-table pseudocode.
 const limit = clampCursorLimit(input);
 const cursor = input.cursor ? decodeDateUuidCursor(input.cursor) : null;
 
 const rows = await db
   .select(invoiceListColumns)
-  .from(sourceDocument)
+  .from(salesDocument)
   .where(
     and(
-      eq(sourceDocument.organizationId, orgId),
-      eq(sourceDocument.type, "sales_invoice"),
+      eq(salesDocument.organizationId, orgId),
       cursor
-        ? sql`(${sourceDocument.postingDate}, ${sourceDocument.id}) > (${cursor.date}::date, ${cursor.id}::uuid)`
+        ? sql`(${salesDocument.invoiceDate}, ${salesDocument.id}) > (${cursor.date}::date, ${cursor.id}::uuid)`
         : undefined
     )
   )
-  .orderBy(asc(sourceDocument.postingDate), asc(sourceDocument.id))
+  .orderBy(asc(salesDocument.invoiceDate), asc(salesDocument.id))
   .limit(limit + 1);
 
 const page = rows.slice(0, limit);
@@ -166,7 +173,7 @@ const last = page.at(-1);
 return {
   invoices: page,
   nextCursor:
-    rows.length > limit && last ? encodeCursor([toDateOnly(last.postingDate), last.id]) : null
+    rows.length > limit && last ? encodeCursor([toDateOnly(last.invoiceDate), last.id]) : null
 };
 ```
 

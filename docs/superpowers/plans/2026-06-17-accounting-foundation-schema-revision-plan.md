@@ -4,10 +4,15 @@ Date: 2026-06-17
 
 Status: Accepted source of truth for foundation schema and plan vocabulary.
 
-Updated: 2026-06-19. Phase 0 foundation schema is implemented in the worktree:
+Updated: 2026-06-29. Phase 0 foundation schema is implemented in the worktree:
 Better Auth organization tables, `organization_setting`, `currency`,
 `exchange_rate`, `audit_event`, and `outbox_event`. App-owned UUID primary keys use UUID-v7
 runtime defaults; Better Auth-owned IDs stay generated text IDs.
+
+Source-document update: [ADR-0012](../../decisions/0012-replace-source-document-with-journal-source-metadata.md)
+supersedes this plan's `source_document` table. Current schema uses
+`journal_entry` source metadata as trace/cache and typed documents'
+`journal_entry_id` links as posted/voided ledger authority.
 
 Reference only: `/Users/docbook/edernal-company/temp-edernal-books`.
 
@@ -20,7 +25,8 @@ Use the stronger accounting spine found in the reference repo without copying it
 The right direction is:
 
 - Keep the product sequence already planned: platform, ledger kernel, owner workflows, GST, bank, AI, integrations.
-- Adopt durable foundation names: `organization_setting`, `ledger_account`, `journal_entry`, `source_document`, `number_sequence`, `audit_event`, and `outbox_event`.
+- Adopt durable foundation names: `organization_setting`, `ledger_account`,
+  `journal_entry`, `number_sequence`, `audit_event`, and `outbox_event`.
 - Keep Phase 0/1 small. Do not add tables or fields until a phase has a service that writes and reads them.
 
 ## Foundation Data Map
@@ -83,17 +89,13 @@ erDiagram
     text entity_type
     bigint next_number
   }
-  source_document {
-    uuid id PK
-    text organization_id
-    text type
-    text document_number
-  }
   journal_entry {
     uuid id PK
     text organization_id
     uuid accounting_period_id FK
-    uuid source_document_id FK
+    text source_type
+    uuid source_record_id
+    text source_number
     text operation_key
     text entry_number
   }
@@ -107,7 +109,6 @@ erDiagram
   }
   fiscal_year ||--o{ accounting_period : contains
   accounting_period ||--o{ journal_entry : controls
-  source_document ||--o{ journal_entry : traces
   journal_entry ||--o{ journal_line : contains
   ledger_account ||--o{ journal_line : classifies
   currency ||--o{ exchange_rate : base
@@ -208,7 +209,9 @@ Rules:
 - Posting commands carry an operation key and enforce uniqueness in the domain table, for example `(organization_id, operation_key)` on `journal_entry`.
 - Phase 1 posting writes journal rows and an audit row in the same database transaction. It stores a narrow request hash on `journal_entry` to reject same-key payload mismatches, but does not write outbox rows. It may take a narrow transaction advisory lock on `(organization_id, operation_key)` before number allocation so concurrent duplicate retries do not consume voucher numbers.
 - External provider flows may use provider request ids or provider object ids as the operation-local key when those ids represent the same business operation.
-- `source_document` does not get an `idempotency_key` column.
+- The superseded `source_document` design did not get an `idempotency_key`
+  column; ADR-0012 keeps duplicate protection on owning operations and journal
+  constraints instead.
 - A central replay store can be reconsidered in Phase 6 only if public API clients need terminal response replay across unrelated endpoint types.
 
 Why:
@@ -275,7 +278,7 @@ Add:
 - `accounting_period`.
 - `ledger_account`.
 - `number_sequence`.
-- minimal `source_document`.
+- historical minimal `source_document` until ADR-0012 replacement.
 - `journal_entry`.
 - `journal_line`.
 
@@ -304,18 +307,26 @@ Add:
 
 - `party`.
 - `item`.
-- owner documents: invoice, expense/bill, receipt, payment.
-- document subtype tables that link to `source_document`.
-- subledger/settlement/allocation tables.
-- document attachments and delivery logs.
+- document foundation starts with Phase 2.5.
+
+### Phase 2.5: Document Spine
+
+Add:
+
+- documents: sales invoice, purchase bill/expense, settlement.
+- document subtype tables with `journal_entry_id` links.
+- allocation tables.
 
 Use existing foundation:
 
-- `number_sequence` allocates document numbers.
+- `number_sequence` allocates official document numbers during posting; owner
+  document drafts use non-official draft references.
 - posted documents create `journal_entry` rows.
 - document services write `audit_event`.
 - document services start `outbox_event` writes only when an async consumer or integration requires them.
 - posting replay uses operation-local command keys.
+- document attachments, PDF/share/email delivery logs, and public delivery
+  workflows are follow-up slices after the posted document spine is stable.
 
 ### Phase 3: India GST Core
 
@@ -329,7 +340,8 @@ Add:
 
 Why tax starts here:
 
-- Phase 2 can create tax-ready document shapes, but GST correctness needs state, registration, HSN/SAC, place-of-supply, and component split rules.
+- Phase 2.5 can preserve tax-ready metadata, but GST correctness needs state,
+  registration, HSN/SAC, place-of-supply, and component split rules.
 - Keeping tax out of Phase 1 prevents a pretend tax foundation with no owner workflow consumer.
 
 ### Later Phases
@@ -423,19 +435,24 @@ Why:
 - Parent and child accounts must share the same accounting category.
 - Accounts Receivable and Accounts Payable are control-style system accounts, but Phase 1 enforces that through `allow_manual_posting = false` instead of a separate control-account flag.
 
-### `source_document`
+### `source_document` (superseded by ADR-0012)
 
-Phase 1 anchor fields:
+Current schema does not keep this table. `journal_entry.source_type`,
+`source_record_id`, and `source_number` carry source trace/cache metadata.
+Typed document tables link to ledger authority through `journal_entry_id`.
+
+Historical Phase 1 anchor fields were:
 
 - `id`.
 - `organization_id`.
 - `type`.
-- nullable `document_number`.
+- nullable `document_number`; Phase 2.5 documents populate it only after
+  posting succeeds.
 - `created_at`.
 
-- Do not add raw idempotency keys to `source_document`; posting replay belongs
-  to the posting command or external provider boundary that owns the duplicate
-  risk.
+- Historical rule: do not add raw idempotency keys to `source_document`;
+  posting replay belongs to the posting command or external provider boundary
+  that owns the duplicate risk.
 - document status/lifecycle until Phase 2.
 - document dates, totals, currency, and exchange rates until Phase 2.
 - `party_id` until Phase 2.
@@ -452,7 +469,7 @@ Keep in Phase 1:
 - entry number.
 - posting date.
 - accounting period link.
-- source document link.
+- journal source metadata.
 - operation key.
 - reversal link.
 - posted metadata.
@@ -463,7 +480,9 @@ Database invariants:
 - `journal_entry` has unique `(organization_id, id)` and unique `(organization_id, operation_key)`.
 - `journal_line` references `journal_entry` through `(organization_id, journal_entry_id)`.
 - `journal_line` references `ledger_account` through `(organization_id, account_id)`.
-- `journal_entry.accounting_period_id`, `source_document_id`, and `reversal_of_entry_id` are tenant-scoped composite references.
+- `journal_entry.accounting_period_id` and `reversal_of_entry_id` are
+  tenant-scoped composite references. Journal source metadata is not a foreign
+  key.
 - Posted entries and lines are written only by posting/reversal services in Phase 1; composite foreign keys, checks, and unique constraints guard table shape. Add PostgreSQL immutability triggers only when another writer path exists.
 - Posting validates at least two lines, no negative/zero lines, one side per line, and balanced base debit/credit totals.
 - `number_sequence` allocation uses atomic `UPDATE ... RETURNING` or an explicit row lock inside the posting transaction.
@@ -487,7 +506,7 @@ Use these replacements everywhere in docs and implementation:
 - `audit_log` -> `audit_event`.
 - `idempotency_key` table -> operation-local command key.
 - `number_sequence` -> `number_sequence`.
-- `journal_entry_id` -> `journal_entry_id` or `source_document_id`, depending on direction.
+- `journal_entry_id` remains the ledger link for typed documents.
 
 ## Repo Fit
 
@@ -510,7 +529,7 @@ The other agent's June 17 direction makes sense at the accounting-spine level:
 
 - stronger `ledger_account`;
 - `journal_entry` as posting unit;
-- `source_document` as traceability backbone;
+- journal source metadata as trace/cache;
 - audit from day one, with operation-local idempotency at posting boundaries;
 - tenant isolation from day one.
 
@@ -521,7 +540,7 @@ Changes needed before using it:
 - move `party` from Phase 1 to Phase 2;
 - move `tax_code`/`tax_code_component` from Phase 1 to Phase 3;
 - slim `organization_setting`;
-- slim Phase 1 `source_document`;
+- remove Phase 1 `source_document` per ADR-0012;
 - remove `party_id`, `tax_code_id`, and dimensions from Phase 1 journal lines;
 - keep Phase 1 journal lines base-amount-only with no per-line currency column;
 - keep request hashing local to `journal_entry` and remove central idempotency ledgers from Phase 1 posting;
@@ -543,7 +562,7 @@ Changes needed before using it:
 - [x] Phase 1 uses `ledger_account`.
 - [x] Phase 1 uses `journal_entry`.
 - [x] Phase 1 includes `accounting_period`.
-- [x] Phase 1 includes minimal `source_document`.
+- [x] Phase 1 included minimal `source_document`; ADR-0012 removes it.
 - [x] Phase 1 excludes `party`.
 - [x] Phase 1 excludes `tax_code` and `tax_code_component`.
 - [x] Phase 1 journal lines store base debit/credit amounts only; no per-line currency code.

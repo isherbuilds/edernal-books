@@ -66,17 +66,17 @@ flowchart LR
 
 ## Runtime Boundaries
 
-| Boundary          | Owns                                                                    | Does not own                                                          |
-| ----------------- | ----------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| `apps/web`        | Routes, route-level data loading, page composition, app wrappers        | DB queries, Hono middleware, reusable domain contracts                |
-| `apps/server`     | Process startup, Hono app, CORS, auth mount, docs mount, request logger | Domain business logic, reusable DB queries                            |
-| `packages/api`    | oRPC routers, context, procedure factories, typed transport errors      | React UI, process startup, schema migrations                          |
-| `packages/auth`   | Better Auth config, auth client/hooks/query helpers                     | App-specific accounting authorization rules beyond shared permissions |
-| `packages/core`   | Pure contracts, constants, formatters, shared Zod schemas               | DB, env, logger, React, Hono, oRPC                                    |
-| `packages/db`     | Drizzle schema, migrations, DB client, query helpers                    | UI, transport response shape, auth cookies                            |
-| `packages/env`    | Runtime env validation                                                  | Business logic and feature flags without code consumers               |
-| `packages/logger` | Client/server/request logging facade                                    | Analytics product logic or arbitrary console logging                  |
-| `packages/ui`     | App-agnostic components/styles/hooks                                    | Router, locale, auth, env, analytics                                  |
+| Boundary          | Owns                                                                      | Does not own                                                          |
+| ----------------- | ------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `apps/web`        | Routes, route-level data loading, page composition, app wrappers          | DB queries, Hono middleware, reusable domain contracts                |
+| `apps/server`     | Process startup, Hono app, CORS, auth mount, docs mount, request logger   | Domain business logic, reusable DB queries                            |
+| `packages/api`    | oRPC routers, context, procedure factories, router-owned transport errors | React UI, process startup, schema migrations, DB error conversion     |
+| `packages/auth`   | Better Auth config, auth client/hooks/query helpers                       | App-specific accounting authorization rules beyond shared permissions |
+| `packages/core`   | Pure contracts, constants, formatters, shared Zod schemas                 | DB, env, logger, React, Hono, oRPC                                    |
+| `packages/db`     | Drizzle schema, migrations, DB client, query helpers                      | UI, transport response shape, auth cookies, oRPC error contracts      |
+| `packages/env`    | Runtime env validation                                                    | Business logic and feature flags without code consumers               |
+| `packages/logger` | Client/server/request logging facade                                      | Analytics product logic or arbitrary console logging                  |
+| `packages/ui`     | App-agnostic components/styles/hooks                                      | Router, locale, auth, env, analytics                                  |
 
 ## Server Request Flow
 
@@ -145,10 +145,12 @@ sequenceDiagram
 ```
 
 `requestId` is observability only. It identifies one HTTP attempt in logs and
-audit metadata; it is not a duplicate-prevention key. Accounting commands that
-can create money-moving records must use operation-local idempotency, such as a
-posted entry command key, source document natural key, provider request id, or a
-domain-owned unique constraint.
+audit metadata; it is not a duplicate-prevention key. Current internal
+accounting commands use direct database transactions plus domain constraints.
+Existing document post and void commands lock rows and reject stale
+statuses. Create-and-post does not replay retried requests in this phase.
+External provider calls may use provider idempotency keys when the provider owns
+duplicate creation semantics.
 
 ## Web Rendering Flow
 
@@ -229,7 +231,6 @@ flowchart TD
   API --> AccountingRules["packages/core/src/accounting<br/>pure accounting rules"]
   DBTX --> Audit["audit_event"]
   DBTX --> Outbox["outbox_event"]
-  DBTX --> OperationKey["operation-local idempotency key"]
   DBTX --> Ledger["ledger_account<br/>journal_entry<br/>journal_line"]
   Ledger --> Reports["trial balance<br/>general ledger"]
 ```
@@ -245,8 +246,7 @@ Accounting invariants:
   canonical `organizationId` for tenant data access.
 - Sensitive mutations write `audit_event`.
 - Async side effects start from `outbox_event`.
-- Accounting commands use operation-local idempotency; `requestId` stays a log
-  correlation id.
+- `requestId` stays a log correlation id, not a replay key.
 
 The source of truth is
 [AI-native accounting foundation design](superpowers/specs/2026-06-16-ai-native-accounting-foundation-design.md).
@@ -254,10 +254,18 @@ The source of truth is
 ## Database Model Today
 
 Current schema includes Better Auth identity/organization tables, Phase 0
-app-owned platform tables, the Phase 1 ledger kernel, and the Phase 2 owner
-workflow foundation tables (`party`, `item`). This diagram shows the platform
-foundation subset; ledger and owner workflow tables are tracked in the schema
-revision plan:
+app-owned platform tables, the Phase 1 ledger kernel, the Phase 2 owner record
+foundation tables (`party`, `item`), and the historical Phase 1
+`source_document` table. This diagram shows the platform foundation subset;
+ledger and owner records are tracked in the schema revision and package
+architecture docs.
+
+[Phase 2.5 document spine](superpowers/plans/2026-06-28-phase-02-5-document-spine-plan.md)
+is the planned bridge before Phase 3 GST semantics. It adds typed posted
+invoices, purchase bills/expenses, settlements, allocations, journal-entry
+links, audit rows, journal source metadata, and number-sequence-backed document
+numbers. On this branch those typed document tables, document routers, and
+`@tsu-stack/core/documents` contracts are not present yet.
 
 ```mermaid
 erDiagram
@@ -383,12 +391,10 @@ Local migration status: the fresh baseline migration is generated, but applying
 it locally requires Docker/Postgres to be running on the configured
 `DATABASE_URL`.
 
-Current idempotency decision: do not add a generic central
-`idempotency_ledger` table in Phase 0. Natural upserts such as organization
-settings use their natural key. Future accounting posting commands should carry
-a domain command key and enforce it inside the posting/source-document tables.
-A central replay store can be reconsidered for Phase 6 public APIs if external
-clients need response replay across heterogeneous endpoints.
+Current idempotency policy is owned by
+[Tenant Mutation Flow](#tenant-mutation-flow): `requestId` is tracing only,
+internal writes use operation-local or natural keys, and a central replay store
+waits until a public API needs heterogeneous response replay.
 
 ## Public API Strategy
 

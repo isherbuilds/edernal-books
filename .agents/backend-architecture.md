@@ -6,7 +6,7 @@ This repo uses Hono + oRPC + Better Auth + Drizzle. Copy production composition 
 
 Related docs:
 
-- [oRPC patterns](./orpc.md) for procedure factories, routers, typed errors, and request-scoped logging.
+- [oRPC patterns](./orpc.md) for procedure factories, routers, declared transport errors, fail-fast query errors, and request-scoped logging.
 - [Core package patterns](./core.md) for shared schemas, enums, defaults, and formatters.
 - [Auth patterns](./auth.md) for Better Auth, protected route bootstrap, and organization state.
 - [Logging](./logging.md) only when changing durable logs.
@@ -68,7 +68,7 @@ Use oRPC for internal app APIs.
 
 - Add procedures under `packages/api/src/routers/<slice>/index.ts`.
 - Use `publicProcedure` and `protectedProcedure` from `packages/api/src/lib/procedures/factory.ts`.
-- Define explicit input, output, and typed errors.
+- Define explicit input and output. Define typed transport errors only for router-owned failures that clients must branch on.
 - Keep TanStack Query wrappers in `apps/web/src/hooks`; do not add frontend
   `api/` folders.
 
