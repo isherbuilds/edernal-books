@@ -33,8 +33,6 @@ function RouteComponent() {
     return <AccountingLockedState />;
   }
 
-  const goToDocument = (documentId: string) => documentNavigation.purchasePayment(documentId);
-
   return (
     <PageLayout>
       <PageHeader
@@ -44,8 +42,8 @@ function RouteComponent() {
       <SettlementForm
         direction="paid"
         document={null}
-        onPosted={goToDocument}
-        onSaved={goToDocument}
+        onPosted={documentNavigation.purchasePayment}
+        onSaved={documentNavigation.purchasePayment}
         orgSlug={orgSlug}
       />
     </PageLayout>

@@ -9,30 +9,84 @@ catalogs:
     '@babel/core':
       specifier: 8.0.1
       version: 8.0.1
+    '@base-ui/react':
+      specifier: 1.6.0
+      version: 1.6.0
+    '@better-auth/drizzle-adapter':
+      specifier: https://pkg.pr.new/@better-auth/drizzle-adapter@652115b
+      version: 1.7.0-beta.9
     '@bprogress/react':
       specifier: 1.2.7
       version: 1.2.7
+    '@commitlint/cli':
+      specifier: 21.1.0
+      version: 21.1.0
+    '@commitlint/config-conventional':
+      specifier: 21.1.0
+      version: 21.1.0
+    '@dotenvx/dotenvx':
+      specifier: 1.75.1
+      version: 1.75.1
+    '@fontsource-variable/inter':
+      specifier: 5.2.8
+      version: 5.2.8
+    '@hono/node-server':
+      specifier: 2.0.6
+      version: 2.0.6
     '@hookform/resolvers':
       specifier: 5.4.0
       version: 5.4.0
+    '@inlang/cli':
+      specifier: 3.1.14
+      version: 3.1.14
+    '@inlang/paraglide-js':
+      specifier: 2.20.1
+      version: 2.20.1
     '@lonik/oh-image':
       specifier: 3.3.0
       version: 3.3.0
     '@mdx-js/rollup':
       specifier: 3.1.1
       version: 3.1.1
+    '@orpc/client':
+      specifier: 1.14.6
+      version: 1.14.6
+    '@orpc/json-schema':
+      specifier: 1.14.6
+      version: 1.14.6
+    '@orpc/openapi':
+      specifier: 1.14.6
+      version: 1.14.6
+    '@orpc/server':
+      specifier: 1.14.6
+      version: 1.14.6
+    '@orpc/tanstack-query':
+      specifier: 1.14.6
+      version: 1.14.6
+    '@orpc/zod':
+      specifier: 1.14.6
+      version: 1.14.6
     '@paper-design/shaders-react':
       specifier: 0.0.76
       version: 0.0.76
     '@rolldown/plugin-babel':
       specifier: 0.2.3
       version: 0.2.3
+    '@t3-oss/env-core':
+      specifier: 0.13.11
+      version: 0.13.11
     '@tailwindcss/vite':
       specifier: 4.3.1
       version: 4.3.1
     '@tanstack/devtools-vite':
       specifier: 0.8.0
       version: 0.8.0
+    '@tanstack/eslint-plugin-query':
+      specifier: 5.101.1
+      version: 5.101.1
+    '@tanstack/eslint-plugin-router':
+      specifier: 1.162.0
+      version: 1.162.0
     '@tanstack/react-query':
       specifier: 5.101.1
       version: 5.101.1
@@ -63,15 +117,45 @@ catalogs:
     '@types/react-dom':
       specifier: 19.2.3
       version: 19.2.3
+    '@typescript/native-preview':
+      specifier: 7.0.0-dev.20260623.1
+      version: 7.0.0-dev.20260623.1
     '@vitejs/plugin-react':
       specifier: 6.0.3
       version: 6.0.3
     babel-plugin-react-compiler:
       specifier: 1.0.0
       version: 1.0.0
+    better-auth:
+      specifier: 1.6.20
+      version: 1.6.20
+    class-variance-authority:
+      specifier: 0.7.1
+      version: 0.7.1
+    cnfast:
+      specifier: 0.0.8
+      version: 0.0.8
     cross-env:
       specifier: 10.1.0
       version: 10.1.0
+    defu:
+      specifier: 6.1.7
+      version: 6.1.7
+    drizzle-kit:
+      specifier: 1.0.0-rc.4-ca0f029
+      version: 1.0.0-rc.4-ca0f029
+    eslint-plugin-react-hooks:
+      specifier: 7.1.1
+      version: 7.1.1
+    evlog:
+      specifier: 2.19.2
+      version: 2.19.2
+    hono:
+      specifier: 4.12.27
+      version: 4.12.27
+    knip:
+      specifier: 6.18.0
+      version: 6.18.0
     lucide-react:
       specifier: 1.21.0
       version: 1.21.0
@@ -81,6 +165,9 @@ catalogs:
     nitro:
       specifier: 3.0.260610-beta
       version: 3.0.260610-beta
+    postgres:
+      specifier: 3.4.9
+      version: 3.4.9
     react:
       specifier: 19.2.7
       version: 19.2.7
@@ -99,12 +186,30 @@ catalogs:
     sonner:
       specifier: 2.0.7
       version: 2.0.7
+    std-env:
+      specifier: 4.1.0
+      version: 4.1.0
     tailwindcss:
       specifier: 4.3.1
       version: 4.3.1
+    tsx:
+      specifier: 4.22.4
+      version: 4.22.4
+    tw-animate-css:
+      specifier: 1.4.0
+      version: 1.4.0
     typescript:
       specifier: 6.0.3
       version: 6.0.3
+    uuid:
+      specifier: 14.0.1
+      version: 14.0.1
+    vaul:
+      specifier: ^1.1.2
+      version: 1.1.2
+    vite-plus:
+      specifier: latest
+      version: 0.2.1
     zod:
       specifier: 4.4.3
       version: 4.4.3
@@ -208,6 +313,9 @@ importers:
       '@bprogress/react':
         specifier: 'catalog:'
         version: 1.2.7(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      '@fontsource-variable/inter':
+        specifier: 'catalog:'
+        version: 5.2.8
       '@hookform/resolvers':
         specifier: 'catalog:'
         version: 5.4.0(react-hook-form@7.80.0(react@19.2.7))
@@ -1379,6 +1487,9 @@ packages:
 
   '@floating-ui/utils@0.2.11':
     resolution: {integrity: sha512-RiB/yIh78pcIxl6lLMG0CgBXAZ2Y0eVHqMPYugu+9U0AeT6YBeiJpf7lbdJNIugFP5SIjwNRgo4DhR1Qxi26Gg==}
+
+  '@fontsource-variable/inter@5.2.8':
+    resolution: {integrity: sha512-kOfP2D+ykbcX/P3IFnokOhVRNoTozo5/JxhAIVYLpea/UBmCQ/YWPBfWIDuBImXX/15KH+eKh4xpEUyS2sQQGQ==}
 
   '@hono/node-server@2.0.6':
     resolution: {integrity: sha512-7DeRlKG57JDBNZ5Qj2jwVdgwQy4b0tLubRLl3zCf91/rCf9i7p1V5FtW/yWibm1uUHE493ts9ZXH/7g/LQWl+g==}
@@ -6536,6 +6647,8 @@ snapshots:
       react-dom: 19.2.7(react@19.2.7)
 
   '@floating-ui/utils@0.2.11': {}
+
+  '@fontsource-variable/inter@5.2.8': {}
 
   '@hono/node-server@2.0.6(hono@4.12.27)':
     dependencies:

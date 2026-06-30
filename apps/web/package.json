@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@bprogress/react": "catalog:",
+    "@fontsource-variable/inter": "catalog:",
     "@hookform/resolvers": "catalog:",
     "@lonik/oh-image": "catalog:",
     "@paper-design/shaders-react": "catalog:",

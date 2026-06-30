@@ -30,8 +30,6 @@ function RouteComponent() {
     return <AccountingLockedState />;
   }
 
-  const goToDocument = (documentId: string) => documentNavigation.salesReceipt(documentId);
-
   return (
     <PageLayout>
       <PageHeader
@@ -41,8 +39,8 @@ function RouteComponent() {
       <SettlementForm
         direction="received"
         document={null}
-        onPosted={goToDocument}
-        onSaved={goToDocument}
+        onPosted={documentNavigation.salesReceipt}
+        onSaved={documentNavigation.salesReceipt}
         orgSlug={orgSlug}
       />
     </PageLayout>

@@ -207,16 +207,20 @@ export function OnboardingPage({ organizationName, orgSlug, stepKey, user }: Onb
             </div>
 
             <FormProvider {...form}>
-              <div className={onboardingStepPanelClassName}>
+              <form
+                action={() => {
+                  void submitCurrentStep();
+                }}
+                className={onboardingStepPanelClassName}
+              >
                 <StepContent step={currentStep} />
                 <OnboardingActions
                   canGoBack={!isFirstStep}
                   isSubmitting={isStepSubmitting}
                   onBack={goBack}
-                  onContinue={submitCurrentStep}
                   submitLabel={submitLabel}
                 />
-              </div>
+              </form>
             </FormProvider>
           </div>
         </div>
@@ -271,7 +275,6 @@ type OnboardingActionsProps = {
   canGoBack: boolean;
   isSubmitting: boolean;
   onBack: () => void;
-  onContinue: () => Promise<void>;
   submitLabel: string;
 };
 
@@ -279,7 +282,6 @@ function OnboardingActions({
   canGoBack,
   isSubmitting,
   onBack,
-  onContinue,
   submitLabel
 }: OnboardingActionsProps) {
   return (
@@ -289,13 +291,7 @@ function OnboardingActions({
         {m.onboarding_page__previous()}
       </Button>
 
-      <Button
-        disabled={isSubmitting}
-        onClick={() => {
-          void onContinue();
-        }}
-        type="button"
-      >
+      <Button disabled={isSubmitting} type="submit">
         {isSubmitting ? <Spinner data-icon="inline-start" /> : null}
         {submitLabel}
         {!isSubmitting ? <ArrowRightIcon aria-hidden="true" data-icon="inline-end" /> : null}

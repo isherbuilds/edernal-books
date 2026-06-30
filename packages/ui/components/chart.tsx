@@ -192,12 +192,13 @@ function ChartTooltipContent({
           }
 
           const key = String(nameKey ?? item.name ?? item.dataKey ?? "value");
+          const rowKey = `${key}-${index}`;
           const itemConfig = getPayloadConfigFromPayload(config, item, key);
           const indicatorColor = color ?? item.payload?.fill ?? item.color;
 
           items.push(
             <div
-              key={key}
+              key={rowKey}
               className={cn(
                 "flex w-full flex-wrap items-stretch gap-2 [&>svg]:h-2.5 [&>svg]:w-2.5 [&>svg]:text-muted-foreground",
                 indicator === "dot" && "items-center"

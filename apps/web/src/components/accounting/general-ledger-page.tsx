@@ -16,12 +16,9 @@ import { formatMinorUnits } from "@/utils/accounting-format";
 
 import { useChartAccountsQuery, useGeneralLedgerInfiniteQuery } from "@/hooks/use-accounting";
 
-import {
-  type DataColumn,
-  DataTable,
-  DataTableContainer,
-  DataTableLoadMore
-} from "@/components/data-table";
+import { type DataColumn, DataTable } from "@/components/data-table";
+import { DataTableContainer } from "@/components/data-table-container";
+import { DataTableLoadMore } from "@/components/data-table-load-more";
 import { EmptyState, PageHeader, PageLayout } from "@/components/page-layout";
 import { QueryState } from "@/components/query-state";
 import { getQueryState } from "@/components/query-state-model";

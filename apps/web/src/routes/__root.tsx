@@ -17,6 +17,8 @@ import { generateAppSeo } from "@/lib/seo";
 import { DefaultErrorPage } from "@/components/errors/default-error-page";
 import { ThemeProvider } from "@/components/theme-switcher";
 
+import { interFontFaceCss, interFontHref } from "@/styles/inter-font";
+
 import appCss from "@/styles/app.css?url";
 
 // Root route with shared context for the entire app, inject them in router.tsx
@@ -46,6 +48,13 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
           rel: "sitemap",
           type: "application/xml"
         },
+        {
+          rel: "preload",
+          as: "font",
+          type: "font/woff2",
+          href: interFontHref,
+          crossOrigin: "anonymous"
+        },
         { href: appCss, rel: "stylesheet" }
       ],
       meta: [...(rootSeo.meta ?? [])]
@@ -68,6 +77,7 @@ function RootDocumentInner({ children }: { children: ReactNode }) {
     <html suppressHydrationWarning lang={locale}>
       <head>
         <HeadContent />
+        <style>{interFontFaceCss}</style>
       </head>
       <body>
         {/* We place the progress provider here otherwise we will get "Cannot render a <style> outside the main document" error */}

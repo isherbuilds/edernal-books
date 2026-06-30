@@ -30,8 +30,6 @@ function RouteComponent() {
     return <AccountingLockedState />;
   }
 
-  const goToDocument = (documentId: string) => documentNavigation.purchaseBill(documentId);
-
   return (
     <PageLayout>
       <PageHeader
@@ -40,8 +38,8 @@ function RouteComponent() {
       />
       <BillEditor
         document={null}
-        onPosted={goToDocument}
-        onSaved={goToDocument}
+        onPosted={documentNavigation.purchaseBill}
+        onSaved={documentNavigation.purchaseBill}
         orgSlug={orgSlug}
       />
     </PageLayout>

@@ -10,7 +10,8 @@ import { TableCell, TableRow } from "@tsu-stack/ui/components/table";
 
 import { formatMinorUnits, getTodayDateString } from "@/utils/accounting-format";
 
-import { type DataColumn, DataTable, DataTableContainer } from "@/components/data-table";
+import { type DataColumn, DataTable } from "@/components/data-table";
+import { DataTableContainer } from "@/components/data-table-container";
 import { EmptyState, PageHeader, PageLayout } from "@/components/page-layout";
 import { QueryState } from "@/components/query-state";
 import { getQueryState } from "@/components/query-state-model";

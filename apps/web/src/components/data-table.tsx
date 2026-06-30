@@ -104,6 +104,3 @@ export function DataTable<T>({
     </Table>
   );
 }
-
-export { DataTableContainer } from "@/components/data-table-container";
-export { DataTableLoadMore } from "@/components/data-table-load-more";

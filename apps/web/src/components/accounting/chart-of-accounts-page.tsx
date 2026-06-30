@@ -4,7 +4,8 @@ import { Badge } from "@tsu-stack/ui/components/badge";
 
 import { useChartAccountsQuery } from "@/hooks/use-accounting";
 
-import { type DataColumn, DataTable, DataTableContainer } from "@/components/data-table";
+import { type DataColumn, DataTable } from "@/components/data-table";
+import { DataTableContainer } from "@/components/data-table-container";
 import { EmptyState, PageHeader, PageLayout } from "@/components/page-layout";
 import { QueryState } from "@/components/query-state";
 import { getQueryState } from "@/components/query-state-model";
@@ -77,6 +78,7 @@ export function ChartOfAccountsPage({ orgSlug }: ChartOfAccountsPageProps) {
         errorFallback="Accounting read failed."
         errorTitle="Could not load accounts"
         state={getQueryState({
+          dataPresent: accountsQuery.data !== undefined,
           empty: accounts.length === 0,
           error: accountsQuery.error,
           errored: accountsQuery.isError,

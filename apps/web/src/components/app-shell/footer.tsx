@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+
 import { m } from "@tsu-stack/i18n/messages";
 import { type LinkProps } from "@tsu-stack/i18n/tanstack-start/components/link";
 import { Link } from "@tsu-stack/i18n/tanstack-start/components/link";
@@ -33,8 +35,6 @@ const socialLinks: (FooterLink & { icon: React.ReactNode })[] = [
   }
 ];
 
-const copyrightYear = new Date().getFullYear();
-
 export function Footer({
   props,
   className
@@ -42,6 +42,8 @@ export function Footer({
   props?: React.ComponentProps<"footer">;
   className?: string;
 }) {
+  const copyrightYear = useCurrentYear();
+
   return (
     <footer className={cn("border-t", className)} {...props}>
       <div className="container mx-auto flex flex-col gap-6 px-4 py-6">
@@ -123,6 +125,22 @@ export function Footer({
       </div>
     </footer>
   );
+}
+
+function useCurrentYear() {
+  const [year, setYear] = useState(() => new Date().getFullYear());
+
+  useEffect(() => {
+    const now = new Date();
+    const nextYear = new Date(now.getFullYear() + 1, 0, 1);
+    const timeout = window.setTimeout(() => {
+      setYear(new Date().getFullYear());
+    }, nextYear.getTime() - now.getTime());
+
+    return () => window.clearTimeout(timeout);
+  }, []);
+
+  return year;
 }
 
 function XIcon(props: React.ComponentProps<"svg">) {

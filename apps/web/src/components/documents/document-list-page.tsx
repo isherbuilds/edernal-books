@@ -6,12 +6,9 @@ import { formatMinorUnits } from "@/utils/accounting-format";
 
 import { documentStatusLabel } from "@/hooks/use-documents";
 
-import {
-  type DataColumn,
-  DataTable,
-  DataTableContainer,
-  DataTableLoadMore
-} from "@/components/data-table";
+import { type DataColumn, DataTable } from "@/components/data-table";
+import { DataTableContainer } from "@/components/data-table-container";
+import { DataTableLoadMore } from "@/components/data-table-load-more";
 import { EmptyState, PageHeader, PageLayout } from "@/components/page-layout";
 import { QueryState } from "@/components/query-state";
 import { type QueryRenderState } from "@/components/query-state-model";

@@ -5,12 +5,9 @@ import { m } from "@tsu-stack/i18n/messages";
 
 import { formatMinorUnits } from "@/utils/accounting-format";
 
-import {
-  type DataColumn,
-  DataTable,
-  DataTableContainer,
-  DataTableLoadMore
-} from "@/components/data-table";
+import { type DataColumn, DataTable } from "@/components/data-table";
+import { DataTableContainer } from "@/components/data-table-container";
+import { DataTableLoadMore } from "@/components/data-table-load-more";
 import { EmptyState, NoResults } from "@/components/page-layout";
 import { QueryState } from "@/components/query-state";
 import { type QueryRenderState } from "@/components/query-state-model";

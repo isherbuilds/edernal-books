@@ -10,12 +10,9 @@ import { m } from "@tsu-stack/i18n/messages";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { usePartiesQuery, usePartyQuery, useSetPartyActiveMutation } from "@/hooks/use-records";
 
-import {
-  type DataColumn,
-  DataTable,
-  DataTableContainer,
-  DataTableLoadMore
-} from "@/components/data-table";
+import { type DataColumn, DataTable } from "@/components/data-table";
+import { DataTableContainer } from "@/components/data-table-container";
+import { DataTableLoadMore } from "@/components/data-table-load-more";
 import { EmptyState, NoResults } from "@/components/page-layout";
 import { QueryState } from "@/components/query-state";
 import { getQueryState } from "@/components/query-state-model";
