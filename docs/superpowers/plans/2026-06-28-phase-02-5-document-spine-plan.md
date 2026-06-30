@@ -462,7 +462,7 @@ Acceptance criteria:
 
 Verification:
 
-- `rtk rg -n "Phase 2.5|Document Spine|Settlement|Tax-Ready Metadata|Tripay" docs CONTEXT.md`
+- `rtk rg -n "Phase 2\\.5|Document Spine|Settlement|Tax-Ready Metadata|Tripay" docs CONTEXT.md`
 - `rtk vp check`
 
 ## Phase 2.5 Exit Criteria

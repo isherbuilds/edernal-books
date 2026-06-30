@@ -98,6 +98,11 @@ numbers and official document numbers.
   `source_document`.
 - Sales, purchase, and settlement tables keep `journal_entry_id` as the
   posted/voided ledger link.
+- Migration must backfill journal source metadata from existing
+  `source_document` rows before dropping `source_document` or its foreign keys.
+- Existing `source_document` data remains authoritative until that migration
+  has copied each referenced type, id, and number into the owning
+  `journal_entry`.
 - Manual journal public DTOs do not expose journal source metadata.
 - Query surfaces do not gain source-type filters. Lists and detail pages use
   typed document tables or journal/report queries directly.

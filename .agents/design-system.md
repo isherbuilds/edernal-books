@@ -133,8 +133,8 @@ References (Midday, for composition only): `apps/dashboard/src/components/invoic
   never stored in form state. Rate stays directly editable; discount fields wait for GST/tax
   accounting so totals, tax base, and journal postings are designed together.
 - **Draft saving.** Explicit **Save draft** (create on first save, then update) → **Post**.
-  New-document Post uses an atomic create-and-post command with a client-stable document ID and
-  operation-local idempotency key. "Changed vs baseline" is a UI optimization, never the
+  New-document Post uses an atomic create-and-post command with a server-generated document ID and
+  client-stable operation/idempotency key. "Changed vs baseline" is a UI optimization, never the
   write-dedupe (CLAUDE.md replay rule). Debounced autosave is an optional later enhancement under
   the same key rule, not a default.
 - **Posted = no editor.** Posted documents are immutable: render read-only, no edit affordance,

@@ -255,19 +255,17 @@ The source of truth is
 
 Current schema includes Better Auth identity/organization tables, Phase 0
 app-owned platform tables, the Phase 1 ledger kernel, the Phase 2 owner record
-foundation tables (`party`, `item`), and the
-[Phase 2.5 document spine](superpowers/plans/2026-06-28-phase-02-5-document-spine-plan.md).
-This diagram shows the platform foundation subset; ledger, owner records, and
-documents are tracked in the schema revision and package architecture
-docs.
+foundation tables (`party`, `item`), and the historical Phase 1
+`source_document` table. This diagram shows the platform foundation subset;
+ledger and owner records are tracked in the schema revision and package
+architecture docs.
 
-Phase 2.5 adds typed posted invoices, purchase bills/expenses, settlements,
-allocations, journal-entry links, audit rows, journal source metadata, and
-number-sequence-backed document numbers before Phase 3 GST semantics. Drafts
-carry non-official references; official document numbers are allocated only
-inside the post transaction. Draft and create-and-post document ids are
-server-generated. Settlement allocations allow one row per target document in a
-settlement and reject duplicate targets instead of aggregating them.
+[Phase 2.5 document spine](superpowers/plans/2026-06-28-phase-02-5-document-spine-plan.md)
+is the planned bridge before Phase 3 GST semantics. It adds typed posted
+invoices, purchase bills/expenses, settlements, allocations, journal-entry
+links, audit rows, journal source metadata, and number-sequence-backed document
+numbers. On this branch those typed document tables, document routers, and
+`@tsu-stack/core/documents` contracts are not present yet.
 
 ```mermaid
 erDiagram
@@ -393,14 +391,10 @@ Local migration status: the fresh baseline migration is generated, but applying
 it locally requires Docker/Postgres to be running on the configured
 `DATABASE_URL`.
 
-Current idempotency decision: do not add a generic central
-`idempotency_ledger` table in Phase 0. `requestId` is tracing only. Natural
-upserts such as organization settings use their natural key. Business-document
-post/void commands lock the existing document row and reject stale statuses.
-Create-and-post does not replay retried requests in this phase. External
-provider calls may use provider idempotency keys when the provider owns
-duplicate-creation semantics. Reconsider a central replay store only when Phase
-6 public APIs need heterogeneous response replay.
+Current idempotency policy is owned by
+[Tenant Mutation Flow](#tenant-mutation-flow): `requestId` is tracing only,
+internal writes use operation-local or natural keys, and a central replay store
+waits until a public API needs heterogeneous response replay.
 
 ## Public API Strategy
 

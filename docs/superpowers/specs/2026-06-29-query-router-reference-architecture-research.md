@@ -2,35 +2,41 @@
 
 ## Status
 
-Research complete. Alternative B implemented.
+Research complete. Alternative B is the recommended Phase 2.5 implementation
+shape. On this branch, the document contracts, document query modules, document
+schema, and document routers described below are planning targets, not current
+files.
 
 ## Date
 
 2026-06-29
 
-## Implementation
+## Implementation Target
 
-Alternative B landed on 2026-06-29: create-and-post ids are server-generated,
-duplicate settlement allocation targets fail validation and DB guards, partial
-unique allocation target indexes are generated, allocation target validation
-and locks are batched by kind, and document detail reads fetch child rows in
-parallel with the parent lookup.
+Alternative B should land with server-generated create-and-post ids, duplicate
+settlement allocation targets rejected by validation and DB guards, partial
+unique allocation target indexes, allocation target validation and locks batched
+by kind, and document detail reads that avoid unnecessary sequential child
+queries.
 
 ## Scope
 
-- Current code: `packages/db/src/queries`, focused on `packages/db/src/queries/documents-query`.
-- Current API: `packages/api/src/routers`, focused on `sales-documents`,
-  `purchase-documents`, and `settlements`.
+- Planned code: `packages/db/src/queries`, with document-specific modules under
+  a future `packages/db/src/queries/documents-query`.
+- Planned API: `packages/api/src/routers`, with future `sales-documents`,
+  `purchase-documents`, and `settlements` routers.
 - References:
-  - `midday-ai/midday` at `51587319f26a0ffaa9dfccab1920373cb65689b7` in `/tmp/midday-current`.
-  - `frappe/erpnext` at `1a66fe9` in `/tmp/frappe-erpnext-current`.
-  - Previous local architecture at `/Users/docbook/edernal-company/temp-edernal-books`.
+  - `midday-ai/midday` at `51587319f26a0ffaa9dfccab1920373cb65689b7`.
+  - `frappe/erpnext` at `1a66fe9`.
+  - Previous local architecture snapshot from the Edernal Books codebase.
 
 ## Orchestration Notes
 
-- Codex 5.5 high worker `ref-midday-query` completed. Report: `/tmp/ref-midday-query-report.md`.
-- Codex 5.5 high worker `ref-erpnext-accounting` completed. Report: `/tmp/ref-erpnext-accounting-report.md`.
-- Codex 5.5 high worker `ref-local-temp` stalled without artifact. Coordinator replaced it with direct focused comparison against `/Users/docbook/edernal-company/temp-edernal-books`.
+- Codex 5.5 high worker `ref-midday-query` completed.
+- Codex 5.5 high worker `ref-erpnext-accounting` completed.
+- Codex 5.5 high worker `ref-local-temp` stalled without artifact. Coordinator
+  replaced it with direct focused comparison against the previous local
+  architecture snapshot.
 
 ## Decision Summary
 
@@ -44,7 +50,7 @@ Keep current repo direction:
 - Router-owned typed errors only for client-branchable failures.
 - Query, database, and unknown failures fail fast per ADR-0011.
 
-Change current document internals:
+Design the Phase 2.5 document internals to:
 
 - Stop accepting `documentId` from create-and-post inputs. Generate document id server-side inside transaction.
 - Reject duplicate settlement allocation targets instead of aggregating silently.
@@ -65,33 +71,37 @@ Do not copy:
 
 ### API Router Shape
 
-The split API routers (`sales-documents`, `purchase-documents`, `settlements`)
-are the correct shape.
+The current branch does not yet contain split document routers. When Phase 2.5
+adds `sales-documents`, `purchase-documents`, and `settlements`, that split is
+the correct shape.
 
-- Router validates contract.
+- Router validates the contract.
 - Permission middleware derives `organizationId`.
-- Handler passes `context.db`, `context.organizationId`, and `context.authSession.user.id` directly to DB query.
-- No broad router `try/catch` or query error conversion found.
+- Handler passes `context.db`, `context.organizationId`, and
+  `context.authSession.user.id` directly to DB query.
+- No broad router `try/catch` or query error conversion belongs in these
+  routers.
 
-Keep this. Do not add service layer just because temp repo had one.
+Keep this shape when the routers are added. Do not add a service layer just
+because the prior local architecture had one.
 
 ### Client-Controlled Create-And-Post Ids
 
-Current public schemas accept `documentId` for create-and-post:
+Future public schemas must not accept `documentId` for create-and-post:
 
-- `CreateAndPostSalesDocumentInputSchema` at `packages/core/src/documents/index.ts:169`.
-- `CreateAndPostPurchaseDocumentInputSchema` at `packages/core/src/documents/index.ts:223`.
-- `CreateAndPostSettlementInputSchema` at `packages/core/src/documents/index.ts:285`.
+- `CreateAndPostSalesDocumentInputSchema`.
+- `CreateAndPostPurchaseDocumentInputSchema`.
+- `CreateAndPostSettlementInputSchema`.
 
-Draft creation already generates ids server-side:
+Draft creation should generate ids server-side:
 
-- Sales draft uses `createUuidV7()` at `packages/db/src/queries/documents-query/drafts.ts:58`.
-- Settlement draft uses `createUuidV7()` at `packages/db/src/queries/documents-query/drafts.ts:350`.
+- Sales draft uses `createUuidV7()`.
+- Settlement draft uses `createUuidV7()`.
 
-Create-and-post currently reuses client id:
+Create-and-post must not reuse a client id:
 
-- Sales create-and-post inserts with `input.documentId` at `packages/db/src/queries/documents-query/drafts.ts:67`.
-- Settlement create-and-post inserts with `input.documentId` at `packages/db/src/queries/documents-query/drafts.ts:358`.
+- Sales create-and-post allocates the id inside the transaction.
+- Settlement create-and-post allocates the id inside the transaction.
 
 Risk:
 
@@ -108,15 +118,15 @@ Required change:
 
 ### Settlement Allocation Duplicates
 
-Current draft validation aggregates duplicate target allocations:
+Draft validation should reject duplicate target allocations:
 
-- `assertAllocationTargetsBelongToParty` builds `allocationsByTarget` at `packages/db/src/queries/documents-query/allocations.ts:181`.
-- Existing duplicate target increments amount at `packages/db/src/queries/documents-query/allocations.ts:198`.
+- `assertAllocationTargetsBelongToParty` should detect repeated target ids.
+- A repeated target must fail validation instead of incrementing the amount.
 
-Current schema has no uniqueness for one settlement allocation per target:
+The planned schema needs uniqueness for one settlement allocation per target:
 
-- `settlementAllocation` indexes at `packages/db/src/schema/documents.ts:493`.
-- Only org/id unique and lookup indexes exist at `packages/db/src/schema/documents.ts:508`.
+- `settlementAllocation` needs partial unique indexes per target kind.
+- Generic org/id lookup indexes are not enough to enforce this invariant.
 
 Risk:
 
@@ -133,17 +143,16 @@ Required change:
 
 ### Allocation Validation And Application Query Count
 
-Current allocation application loops per allocation:
+Allocation application should avoid one read per allocation:
 
-- Ordered allocation loop at `packages/db/src/queries/documents-query/allocations.ts:42`.
-- Sales target select-for-update and update at `packages/db/src/queries/documents-query/allocations.ts:81`.
-- Purchase target select-for-update and update at `packages/db/src/queries/documents-query/allocations.ts:129`.
+- Keep deterministic target ordering.
+- Load sales targets in one batch.
+- Load purchase targets in one batch.
 
-Current draft validation loops per unique target:
+Draft validation should also batch by unique target:
 
-- Loop starts at `packages/db/src/queries/documents-query/allocations.ts:209`.
-- Sales target read at `packages/db/src/queries/documents-query/allocations.ts:232`.
-- Purchase target read at `packages/db/src/queries/documents-query/allocations.ts:261`.
+- Split allocations by target kind.
+- Read each kind with one `inArray` query.
 
 Risk:
 
@@ -161,11 +170,11 @@ Required change:
 
 ### Detail Reads
 
-Current detail read fetches parent then child lines/allocations sequentially:
+Detail reads should avoid unnecessary sequential parent/child work:
 
-- Sales: parent then lines at `packages/db/src/queries/documents-query/read-model.ts:28`.
-- Purchase: parent then lines at `packages/db/src/queries/documents-query/read-model.ts:42`.
-- Settlement: parent then allocations at `packages/db/src/queries/documents-query/read-model.ts:56`.
+- Sales: parent and lines.
+- Purchase: parent and lines.
+- Settlement: parent and allocations.
 
 Required change:
 

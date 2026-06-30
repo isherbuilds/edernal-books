@@ -167,7 +167,7 @@ Start with:
 
 - [AI-native accounting foundation design](docs/superpowers/specs/2026-06-16-ai-native-accounting-foundation-design.md)
 - [Accounting plan set index](docs/superpowers/plans/2026-06-16-plan-set-index.md)
-- [Phase 2.5 document spine](docs/superpowers/plans/2026-06-28-phase-02-5-business-document-spine-plan.md)
+- [Phase 2.5 document spine](docs/superpowers/plans/2026-06-28-phase-02-5-document-spine-plan.md)
 - [Accounting foundation schema revision](docs/superpowers/plans/2026-06-17-accounting-foundation-schema-revision-plan.md)
 - [ADR-0001: Accounting Foundation Spine](docs/decisions/0001-accounting-foundation-spine.md)
 

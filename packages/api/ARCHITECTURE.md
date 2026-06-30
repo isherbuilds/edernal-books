@@ -10,25 +10,26 @@ router-owned transport errors, OpenAPI metadata, and orchestration.
 flowchart TD
   AppRouter["appRouter"] --> Health["healthRouter"]
   AppRouter --> Organizations["organizationsRouter"]
-  AppRouter --> SalesDocuments["salesDocumentsRouter"]
-  AppRouter --> PurchaseDocuments["purchaseDocumentsRouter"]
-  AppRouter --> Settlements["settlementsRouter"]
+  AppRouter --> Accounting["accountingRouter"]
+  AppRouter --> Items["itemsRouter"]
+  AppRouter --> Parties["partiesRouter"]
   AppRouter --> Private["privateRouter"]
   Health --> Public["publicProcedure"]
   Private --> Protected["protectedProcedure"]
   Organizations --> OrgProcedure["organizationProcedure(schema)"]
+  Accounting --> OrgProcedure
+  Items --> OrgProcedure
+  Parties --> OrgProcedure
   Protected --> AuthMiddleware["requireAuth middleware"]
   OrgProcedure --> Membership["auth + membership lookup"]
   Health --> HealthCore["@tsu-stack/core/health schemas"]
   Health --> DBReady["@tsu-stack/db checkIsDbReady"]
   Organizations --> OrgCore["@tsu-stack/core/organizations"]
   Organizations --> OrgQueries["@tsu-stack/db/queries"]
-  SalesDocuments --> DocumentCore["@tsu-stack/core/documents"]
-  PurchaseDocuments --> DocumentCore
-  Settlements --> DocumentCore
-  SalesDocuments --> DocumentQueries["@tsu-stack/db/queries"]
-  PurchaseDocuments --> DocumentQueries
-  Settlements --> DocumentQueries
+  Accounting --> AccountingCore["@tsu-stack/core/accounting"]
+  Accounting --> DBQueries["@tsu-stack/db/queries"]
+  Items --> ItemCore["@tsu-stack/core/items"]
+  Parties --> PartyCore["@tsu-stack/core/parties"]
 ```
 
 ## Procedure Factories
@@ -85,10 +86,12 @@ specific command input that needs duplicate protection, not in global context.
 - settings writes use owner-only permission checks and write audit rows in the
   same DB transaction as the settings change.
 
-## Document Routers
+## Planned Document Routers
 
 `routers/sales-documents`, `routers/purchase-documents`, and `routers/settlements`
-are the Phase 2.5 tenant-scoped accounting examples:
+are planned Phase 2.5 tenant-scoped accounting examples. They are not present
+on this branch yet; the current app router contains `accounting`, `health`,
+`items`, `organizations`, `parties`, and `private`.
 
 - input/output schemas live in `@tsu-stack/core/documents`;
 - membership and accounting permission checks happen through

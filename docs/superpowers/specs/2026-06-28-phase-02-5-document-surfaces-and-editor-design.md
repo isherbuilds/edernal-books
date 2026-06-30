@@ -49,7 +49,7 @@ This slice only makes the data contract and editor shape ready for that work.
 Frappe-style two-group navigation. Settlements split by direction: receipts are sales-side
 money-in, payments are purchase-side money-out.
 
-```
+```text
 Sales      (group, index → redirect to sales/invoices)
   Invoices   sales/invoices            sales_document
   Receipts   sales/receipts            settlement_document, direction = received
@@ -110,8 +110,7 @@ calculation and persisted tax fields.
 **Save flow:** explicit **Save draft** (create on first save, then update) → **Post**. No
 autosave this slice (avoids autosave/idempotency complexity); autosave is documented as a later
 enhancement in `.agents/design-system.md`. New-document **Post** uses one atomic create-and-post
-command with a client-stable document ID and operation key, so retry cannot create a second posted
-document.
+command with a server-generated document ID and client-stable operation/idempotency key.
 
 ### Settlement forms (receipts / payments)
 

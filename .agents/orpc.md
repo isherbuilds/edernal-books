@@ -254,13 +254,13 @@ export type EditProfileMutationResult = Awaited<ReturnType<typeof client.profile
 
 ## Practical Rules
 
-- Prefer explicit `input` and `output` schemas on every procedure.
-- Prefer typed oRPC errors over ad hoc string matching for router-owned branchable failures.
-- Prefer `.errors(...)` plus `errors.MY_ERROR(...)` over raw `new ORPCError(...)` for those router-owned failures unless interoperability or framework glue makes the raw form clearer.
-- Prefer direct handler returns; add `async`/`await` only for branching, transactions, or output mapping.
-- Prefer fail-fast handlers. Never add `throwXDbError(errors, error)` or `catchXDbError(errors, () => action())` wrappers around query calls.
-- Prefer `isDefinedError(error)` plus `error.code`/`error.data` for client-side branching.
-- Prefer sparse, request-scoped wide events over ad hoc per-step logs.
-- Prefer shared error handling over log-and-rethrow patterns in handlers.
-- Prefer [API fetching patterns](./api-fetching-patterns.md) for query hooks,
+- Define explicit `input` and `output` schemas on every procedure.
+- Use typed oRPC errors over ad hoc string matching for router-owned branchable failures.
+- Use `.errors(...)` plus `errors.MY_ERROR(...)` over raw `new ORPCError(...)` for those router-owned failures unless interoperability or framework glue makes the raw form clearer.
+- Return directly from handlers; add `async`/`await` only for branching, transactions, or output mapping.
+- Keep handlers fail-fast. Never add `throwXDbError(errors, error)` or `catchXDbError(errors, () => action())` wrappers around query calls.
+- Branch on `isDefinedError(error)` plus `error.code`/`error.data` client-side.
+- Keep request logs sparse and wide instead of adding ad hoc per-step logs.
+- Rely on shared error handling instead of log-and-rethrow patterns in handlers.
+- Follow [API fetching patterns](./api-fetching-patterns.md) for query hooks,
   mutation hooks, preloading, and cache invalidation.

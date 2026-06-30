@@ -141,12 +141,14 @@ export const CursorPaginatedOutputSchema = z.object({
 
 Database pattern:
 
-> Source-document query examples are superseded by
-> [ADR-0012](decisions/0012-replace-source-document-with-journal-source-metadata.md).
-> List business documents from their typed document tables; use
-> `journal_entry_id` for posted/voided ledger authority.
+> Future Phase 2.5 typed-table pseudocode. On this branch, `salesDocument`
+> does not exist yet; current source-backed journal code still uses
+> `sourceDocument`. After ADR-0012 and typed document tables land, list
+> business documents from their owning typed tables and use `journal_entry_id`
+> for posted/voided ledger authority.
 
 ```ts
+// Future Phase 2.5 typed-table pseudocode.
 const limit = clampCursorLimit(input);
 const cursor = input.cursor ? decodeDateUuidCursor(input.cursor) : null;
 

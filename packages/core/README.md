@@ -7,11 +7,12 @@ types, and pure helpers consumed by more than one package.
 
 - Export cross-package contracts such as health schemas and asset helpers.
 - Export Phase 2 owner-record contracts for parties and items.
-- Export Phase 2.5 document contracts for invoices, purchase documents,
-  settlements, document lifecycle, and posting/void commands.
 - Keep domain defaults, enum options, formatters, and validators in one place
   when more than one package consumes them.
 - Stay free of runtime dependencies: no DB, env, logger, React, Hono, or oRPC.
+- Planned Phase 2.5 document contracts for invoices, purchase documents,
+  settlements, document lifecycle, and posting/void commands are not present on
+  this branch yet.
 
 ## Architecture
 
@@ -19,9 +20,9 @@ types, and pure helpers consumed by more than one package.
 flowchart LR
   Core["@tsu-stack/core"] --> Assets["assets helpers"]
   Core --> Health["health contracts"]
-  Core --> Parties["party contracts"]
   Core --> Items["item contracts"]
-  Core --> Documents["document contracts"]
+  Core --> Organizations["organization contracts"]
+  Core --> Parties["party contracts"]
   API["@tsu-stack/api"] --> Core
   Web["apps/web"] --> Core
   DB["@tsu-stack/db"] -. "must not import core if it creates cycles" .-> Core
@@ -34,10 +35,9 @@ flowchart LR
 | `@tsu-stack/core`               | Barrel for current shared domains                                                     |
 | `@tsu-stack/core/assets`        | Public asset URL helpers                                                              |
 | `@tsu-stack/core/health`        | Health check schemas, types, constants, utilities                                     |
+| `@tsu-stack/core/items`         | Item schemas, enums, DTOs, and input contracts                                        |
 | `@tsu-stack/core/organizations` | Organization settings schemas, defaults, and types                                    |
 | `@tsu-stack/core/parties`       | Party schemas, enums, DTOs, and input contracts                                       |
-| `@tsu-stack/core/items`         | Item schemas, enums, DTOs, and input contracts                                        |
-| `@tsu-stack/core/documents`     | Sales, purchase, and settlement document schemas, lifecycle enums, DTOs, and commands |
 
 ## Local Structure
 
@@ -45,10 +45,9 @@ flowchart LR
 | ------------------- | --------------------------------------------------------------------- |
 | `src/assets`        | Pure public asset helpers                                             |
 | `src/health`        | Health response schemas/types/utilities                               |
-| `src/parties`       | Party shared schemas and contracts                                    |
 | `src/items`         | Item shared schemas and contracts                                     |
-| `src/documents`     | Sales, purchase, and settlement document shared schemas and contracts |
 | `src/organizations` | Organization shared schemas and defaults                              |
+| `src/parties`       | Party shared schemas and contracts                                    |
 | `src/index.ts`      | Small package barrel                                                  |
 
 ## Development Commands

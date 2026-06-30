@@ -36,15 +36,16 @@ Decision record: `docs/decisions/0001-accounting-foundation-spine.md`
 
 1. Phase 0: Platform Foundation.
 2. Phase 1: Accounting Kernel.
-3. Phase 2: Owner Workflow MVP.
-4. Phase 3: India GST Core.
-5. Phase 4: Bank and Reconciliation.
-6. Phase 5: AI Assistant.
-7. Phase 6: Platform API and Integrations.
-8. Phase 7: Service SMB Expansion.
-9. Phase 8: Accountant Mode.
-10. Phase 9: Trade, Inventory, Import, Export.
-11. Phase 10: Country-Agnostic Tax Engine.
+3. Phase 2: Owner Foundation.
+4. Phase 2.5: Document Spine.
+5. Phase 3: India GST Core.
+6. Phase 4: Bank and Reconciliation.
+7. Phase 5: AI Assistant.
+8. Phase 6: Platform API and Integrations.
+9. Phase 7: Service SMB Expansion.
+10. Phase 8: Accountant Mode.
+11. Phase 9: Trade, Inventory, Import, Export.
+12. Phase 10: Country-Agnostic Tax Engine.
 
 ## Current Progress
 
