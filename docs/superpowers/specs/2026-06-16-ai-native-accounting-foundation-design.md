@@ -2,7 +2,8 @@
 
 Date: 2026-06-16
 
-Updated: 2026-06-17 to align with `docs/superpowers/plans/2026-06-17-accounting-foundation-schema-revision-plan.md`.
+Updated: 2026-06-29 to align source traceability with
+`docs/decisions/0012-replace-source-document-with-journal-source-metadata.md`.
 
 Glossary: `docs/superpowers/plans/2026-06-16-plan-set-index.md` defines overloaded terms such as tenant scope, snapshot, `outbox_event`, and operation-local idempotency.
 
@@ -29,12 +30,12 @@ Owner-facing workflows should speak in business terms:
 
 The system core must always maintain double-entry accounting:
 
-- Every posted business document creates balanced journal entries and lines.
+- Every posted document creates balanced journal entries and lines.
 - Posted entries are immutable.
 - Corrections happen through reversals and new postings.
 - Manual journal entry posting exists only as an advanced/accountant workflow.
 
-AI, external APIs, MCP, webhooks, and marketplace integrations are not Phase 0-1 features. The foundation should still be integration-ready through stable service boundaries, audit events, operation-local idempotency, permissions, and source-document traceability. Outbox producers start when a durable async consumer exists.
+AI, external APIs, MCP, webhooks, and marketplace integrations are not Phase 0-1 features. The foundation should still be integration-ready through stable service boundaries, audit events, operation-local idempotency, permissions, and journal source traceability. Outbox producers start when a durable async consumer exists.
 
 ## Stack Decision
 
@@ -109,7 +110,7 @@ Phase dependencies:
 ```mermaid
 flowchart LR
   P0["Phase 0<br/>Platform"] --> P1["Phase 1<br/>Ledger kernel"]
-  P1 --> P2["Phase 2<br/>Owner documents"]
+  P1 --> P2["Phase 2<br/>Sales, purchase, and settlement documents"]
   P2 --> P3["Phase 3<br/>India GST"]
   P2 --> P4["Phase 4<br/>Bank reconciliation"]
   P3 --> P4
@@ -201,7 +202,8 @@ Acceptance criteria:
 - Monthly accounting periods.
 - `ledger_account` chart of accounts.
 - `number_sequence`.
-- minimal `source_document`.
+- historical minimal `source_document`; ADR-0012 replaces it with journal
+  source metadata.
 - `journal_entry`.
 - `journal_line`.
 - double-entry validation.
@@ -227,7 +229,7 @@ Out of scope:
 
 ### Phase 2: Owner Workflow MVP
 
-Add customer/vendor parties, items, invoices, expenses/bills, receipts, payments, allocations, PDFs/share links, and a basic owner dashboard. Users should not need to understand debit and credit in normal workflows. Posted business documents are immutable for accounting-impacting fields; corrections use credit/debit notes, reversals, voids, or replacement documents. Final invoice numbers are assigned only when issued/posted, and issued invoices are retained even when voided so later invoice numbers do not shift.
+Add customer/vendor parties, items, invoices, expenses/bills, receipts, payments, allocations, PDFs/share links, and a basic owner dashboard. Users should not need to understand debit and credit in normal workflows. Posted documents are immutable for accounting-impacting fields; corrections use credit/debit notes, reversals, voids, or replacement documents. Final invoice numbers are assigned only when issued/posted, and issued invoices are retained even when voided so later invoice numbers do not shift.
 
 ### Phase 3: India GST Core
 
@@ -335,11 +337,10 @@ Idempotency:
 
 - organization-scoped sequence allocation for entry/document numbers.
 
-`source_document`:
+`source_document` (superseded by ADR-0012):
 
-- minimal traceability shell;
-- nullable document number;
-- no party/tax/lifecycle/date/amount/currency/outstanding fields until owner documents exist.
+- removed table; `journal_entry.source_type`, `source_record_id`, and
+  `source_number` now carry trace/cache metadata.
 
 `journal_entry`:
 
@@ -363,7 +364,7 @@ Build now:
 - operation-local idempotency for money-moving commands;
 - permission model;
 - Zod contracts;
-- source-document links from postings;
+- journal source metadata from postings;
 - clean error codes;
 - Tenant-scoped query helpers.
 
@@ -388,7 +389,8 @@ Non-negotiable rules:
 - Entry lines belong to the same organization as the entry.
 - Accounts belong to the same organization as the entry line.
 - Accounting period controls posting dates and locks.
-- Every system-generated posting references a source document once source documents exist.
+- Every system-generated posting carries journal source metadata once typed
+  documents exist.
 - Money uses minor units, never JavaScript float.
 - Every sensitive mutation writes `audit_event`.
 - Posting operations support idempotency.

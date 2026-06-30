@@ -33,9 +33,9 @@ When a feature introduces shared contracts that should drive both API and fronte
 ## Step 3: API Contract
 
 - Add or extend the router in `packages/api`.
-- Follow [oRPC patterns](./orpc.md) for procedure factories, explicit `input` and `output` schemas, and typed errors.
-- Prefer type-safe errors with `.errors(...)` and `errors.MY_ERROR(...)` for expected failure cases the client needs to handle.
-- Keep route handlers direct: return simple DB calls directly. Use local `try/catch` only when a declared DB domain error must become a typed oRPC error; rethrow unknown errors unchanged. Do not add `catchXDbError(errors, () => ...)` action-wrapper helpers.
+- Follow [oRPC patterns](./orpc.md) for procedure factories, explicit `input` and `output` schemas, declared transport errors, and fail-fast query errors.
+- Prefer type-safe errors with `.errors(...)` and `errors.MY_ERROR(...)` only for router-owned expected failures the client must branch on.
+- Keep route handlers direct: return simple DB calls directly. Do not catch DB/query errors to convert them into transport errors, and do not add `catchXDbError(errors, () => ...)` action-wrapper helpers.
 
 ## Step 4: Web Data Layer
 

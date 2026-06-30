@@ -12,6 +12,11 @@ Phase 2 should now move from ledger primitives into owner-facing workflow founda
 
 Local database integration verification is still a required Phase 2 gate before schema work starts. The latest local run failed because Postgres was not accepting connections on `127.0.0.1:5432` / `::1:5432`, not because of an assertion failure.
 
+2026-06-28 update: implementation has optional GST/PAN/HSN-style fields. Per
+`docs/decisions/0006-quarantine-tax-ready-metadata-until-gst-core.md`, treat
+these as tax-ready metadata only. Phase 2 and Phase 2.5 must not validate GST
+law, calculate tax, post tax lines, or claim GST compliance.
+
 ## Decision
 
 Start Phase 2 with parties and item/service catalog foundation.
@@ -33,7 +38,8 @@ Reference review supports one extra modeling split: item `kind` and item `usage`
 - No invoice creation, posting, numbering, PDF, payment, or GST workflow.
 - No expense bill posting.
 - No inventory ledger, warehouse model, stock valuation, or quantity-on-hand reporting.
-- No GSTIN, PAN, e-invoicing, e-way bill, TDS, or tax calculation.
+- No GSTIN, PAN, HSN/SAC semantics, e-invoicing, e-way bill, TDS, or tax
+  calculation. Optional stored values are tax-ready metadata only until Phase 3.
 - No public import/export workflow.
 - No cross-organization shared contacts or global item catalog.
 
@@ -144,7 +150,7 @@ Add organization-scoped procedures for:
 - `items.update`
 - `items.setActive`
 
-Use existing organization-scoped API middleware and typed errors. Procedures must not accept an arbitrary organization id from untrusted input when the current route/session context already defines scope.
+Use existing organization-scoped API middleware. Procedures must not accept an arbitrary organization id from untrusted input when the current route/session context already defines scope. Query/database failures fail fast; do not add router-level DB error conversion.
 
 ## UI
 

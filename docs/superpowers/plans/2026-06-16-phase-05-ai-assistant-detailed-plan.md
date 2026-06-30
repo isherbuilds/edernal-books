@@ -8,6 +8,10 @@
 
 **Tech Stack:** TypeScript, Hono, oRPC, Zod, PostgreSQL, Drizzle, object storage, background jobs, chosen LLM provider abstraction, optional vector extension after proof.
 
+> **2026-06-29 source-document update:** [ADR-0012](../../decisions/0012-replace-source-document-with-journal-source-metadata.md)
+> supersedes this plan's `source_document` references. AI tools should read
+> typed documents, journal entries, reports, and journal source metadata.
+
 ---
 
 ## Architecture Flow
@@ -46,7 +50,8 @@ sequenceDiagram
 
 Before executing this plan, reconcile it with `docs/superpowers/plans/2026-06-17-accounting-foundation-schema-revision-plan.md`.
 
-- AI reads from deterministic services, `source_document`, `journal_entry`, reports, attachments, `audit_event`, and `outbox_event`.
+- AI reads from deterministic services, typed documents, `journal_entry`,
+  reports, attachments, `audit_event`, and `outbox_event`.
 - AI may create drafts or suggestions only; it must not write posted entries directly.
 - AI-generated suggestions require human approval before posting.
 - Shared AI-safe contracts belong in `packages/core`; provider adapters and suggestion services belong in `packages/api`.
@@ -306,7 +311,7 @@ Tool permission classes:
 - [ ] AI suggestions require human accept/reject.
 - [ ] Evidence is stored for every suggestion.
 - [ ] Confidence is stored for every suggestion.
-- [ ] Source documents are linked in answers.
+- [ ] Typed documents and journal entries are linked in answers.
 - [ ] Prompt versions are stored.
 - [ ] Redaction exists for sensitive identifiers.
 - [ ] oRPC contracts pass tests.

@@ -56,7 +56,8 @@ Before executing this plan, reconcile it with `docs/superpowers/plans/2026-06-17
   still use their operation-local keys.
 - Webhook delivery is fed from `outbox_event`.
 - API keys are Better Auth-owned machine credentials unless a separate decision creates an app-owned credential model.
-- External references map external IDs to existing domain rows; they do not replace source documents or journal entries.
+- External references map external IDs to existing domain rows; they do not
+  replace typed documents, journal source metadata, or journal entries.
 - Shared public API contracts belong in `packages/core`; route handlers and integration services belong in `packages/api`.
 
 ## API Design Rules

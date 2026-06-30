@@ -151,8 +151,9 @@ The accounting roadmap is staged so correctness lands before breadth.
 ```mermaid
 flowchart TD
   P0["Phase 0<br/>Platform foundation"] --> P1["Phase 1<br/>Accounting kernel"]
-  P1 --> P2["Phase 2<br/>Owner workflows"]
-  P2 --> P3["Phase 3<br/>India GST"]
+  P1 --> P2["Phase 2<br/>Owner records"]
+  P2 --> P25["Phase 2.5<br/>Business document spine"]
+  P25 --> P3["Phase 3<br/>India GST"]
   P3 --> P4["Phase 4<br/>Bank reconciliation"]
   P4 --> P5["Phase 5<br/>AI assistant"]
   P5 --> P6["Phase 6<br/>Public API + integrations"]
@@ -166,6 +167,7 @@ Start with:
 
 - [AI-native accounting foundation design](docs/superpowers/specs/2026-06-16-ai-native-accounting-foundation-design.md)
 - [Accounting plan set index](docs/superpowers/plans/2026-06-16-plan-set-index.md)
+- [Phase 2.5 document spine](docs/superpowers/plans/2026-06-28-phase-02-5-business-document-spine-plan.md)
 - [Accounting foundation schema revision](docs/superpowers/plans/2026-06-17-accounting-foundation-schema-revision-plan.md)
 - [ADR-0001: Accounting Foundation Spine](docs/decisions/0001-accounting-foundation-spine.md)
 

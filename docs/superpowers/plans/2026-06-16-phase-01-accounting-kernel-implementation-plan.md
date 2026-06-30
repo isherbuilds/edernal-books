@@ -4,9 +4,13 @@
 
 > **Schema source of truth:** Follow `docs/superpowers/plans/2026-06-17-accounting-foundation-schema-revision-plan.md`.
 
+> **2026-06-29 source-document update:** [ADR-0012](../../decisions/0012-replace-source-document-with-journal-source-metadata.md)
+> supersedes this historical plan's `source_document` table. Current schema uses
+> journal source metadata and typed documents' `journal_entry_id` links.
+
 **Goal:** Build the smallest durable double-entry kernel before owner workflow UI: fiscal years, accounting periods, hierarchical ledger accounts, journal entry numbers, source-document anchors, immutable posted journal entries/lines, reversals, trial balance, and general ledger.
 
-**Architecture:** Pure accounting rules and shared API contracts live in `packages/core/src/accounting`. Database tables live in `packages/db` and are tenant-scoped through explicit `organizationId` predicates and composite foreign keys. API services post through `journal_entry` and `journal_line`; owner document workflows arrive in Phase 2.
+**Architecture:** Pure accounting rules and shared API contracts live in `packages/core/src/accounting`. Database tables live in `packages/db` and are tenant-scoped through explicit `organizationId` predicates and composite foreign keys. API services post through `journal_entry` and `journal_line`; document workflows arrive in Phase 2.
 
 **Tech Stack:** TypeScript, Vitest, Drizzle, PostgreSQL, Zod, TanStack Start, Hono, oRPC, Vite Plus.
 
@@ -676,7 +680,7 @@ rtk git commit -m "feat: add accounting reports and kernel ui"
 
 ## Phase 1 Completion Gate
 
-Do not start owner documents until these remain true:
+Do not start documents until these remain true:
 
 - `ledger_account`, `number_sequence`, `source_document`, `journal_entry`, and `journal_line` tables exist.
 - `party` and `tax_code` tables do not exist yet.

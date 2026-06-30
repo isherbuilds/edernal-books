@@ -106,17 +106,22 @@ export const Route = createFileRoute("/{-$locale}/_app/$orgSlug/_shell/sales/inv
 
 Cursor query rule:
 
+> Superseded source-document example: after
+> [ADR-0012](0012-replace-source-document-with-journal-source-metadata.md),
+> list business documents from their typed document tables and use
+> `journal_entry_id` for posted/voided ledger authority.
+
 ```ts
 const rows = await db
   .select(invoiceListColumns)
-  .from(sourceDocument)
+  .from(salesDocument)
   .where(and(...conditions))
-  .orderBy(asc(sourceDocument.postingDate), asc(sourceDocument.id))
+  .orderBy(asc(salesDocument.invoiceDate), asc(salesDocument.id))
   .limit(limit + 1);
 
 const page = rows.slice(0, limit);
 const last = page.at(-1);
-const nextCursor = rows.length > limit && last ? encodeCursor([last.postingDate, last.id]) : null;
+const nextCursor = rows.length > limit && last ? encodeCursor([last.invoiceDate, last.id]) : null;
 ```
 
 ## Consequences

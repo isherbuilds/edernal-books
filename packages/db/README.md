@@ -11,10 +11,13 @@ modules.
 - Run production migrations safely through `migrateDatabase()`.
 - Check database readiness for health endpoints.
 - Keep tenant-owned app tables scoped by `organization_id`.
-- Own reusable query modules for membership and settings.
+- Own reusable query modules for membership, settings, accounting, parties,
+  items, and documents.
 
-Does not own transport response shape, route handlers, React UI, auth cookies,
-or Better Auth membership checks.
+Does not own transport response shape, route handlers, oRPC error contracts,
+React UI, auth cookies, or Better Auth membership checks. Query/domain/cursor
+and database failures fail fast; see
+[ADR-0011](../../docs/decisions/0011-fail-fast-query-errors.md).
 
 ## Architecture
 
@@ -54,11 +57,14 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for current and planned schema shape.
 | `src/queries/index.ts`                 | reusable query helper barrel                                           |
 | `src/queries/organizations.ts`         | organization membership checks                                         |
 | `src/queries/organization-settings.ts` | organization settings read/write helpers                               |
+| `src/queries/documents.ts`             | public document query barrel                                           |
+| `src/queries/documents-query/*`        | document register, draft, post, void, allocation query modules         |
 | `src/schema/auth.schema.ts`            | Better Auth user/session/account/organization/member/invitation tables |
 | `src/schema/organization.ts`           | `currency`, `exchange_rate`, and `organization_setting`                |
 | `src/seed.ts`                          | Supported reference-data seed entrypoint                               |
 | `src/schema/audit.ts`                  | `audit_event`                                                          |
 | `src/schema/outbox.ts`                 | `outbox_event`                                                         |
+| `src/schema/documents.ts`              | sales, purchase, settlement, line, and allocation tables               |
 | `src/schema/migration.ts`              | Active migration exports                                               |
 | `src/schema/index.ts`                  | Active schema exports                                                  |
 | `src/schema/relations.ts`              | Drizzle relation config                                                |

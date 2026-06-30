@@ -8,6 +8,11 @@
 
 **Tech Stack:** PostgreSQL, Drizzle, core accounting, inventory-core package, Hono, oRPC, OpenAPI snapshots, TanStack Start.
 
+> **2026-06-29 source-document update:** [ADR-0012](../../decisions/0012-replace-source-document-with-journal-source-metadata.md)
+> supersedes this plan's `source_document` references. Trade workflows should
+> link typed documents or movement rows to `journal_entry_id`; journal entries
+> carry source trace/cache metadata.
+
 ---
 
 ## Architecture Flow
@@ -16,7 +21,7 @@
 flowchart TD
   Orders["purchase_order / sales_order"] --> Movement["goods_receipt / delivery_note"]
   Movement --> Stock["stock_ledger_entry"]
-  Movement --> Source["source_document"]
+  Movement --> Source["journal source metadata"]
   Source --> Ledger["journal posting service"]
   Landed["landed_cost"] --> Stock
   FX["exchange_rate"] --> Ledger
@@ -29,13 +34,13 @@ Goods movement vs accounting movement:
 sequenceDiagram
   participant Ops as Inventory operation
   participant Stock as Stock ledger
-  participant Doc as Source document
+  participant Doc as Source metadata
   participant Ledger as Journal service
   participant DB as Tenant transaction
 
   Ops->>DB: Validate warehouse/item/quantity
   Ops->>Stock: Write stock movement
-  Ops->>Doc: Link business document
+  Ops->>Doc: Link document
   Ops->>Ledger: Post accounting impact when required
   Ops->>DB: Audit, optional outbox with durable consumer
 ```
@@ -46,7 +51,8 @@ Before executing this plan, reconcile it with `docs/superpowers/plans/2026-06-17
 
 - Stock ledger is separate from the accounting ledger but reconciles to `journal_entry`.
 - Foreign-currency documents still store money in minor units and use explicit exchange-rate numeric fields.
-- Trade documents attach to `source_document` where they create accounting impact.
+- Trade documents attach to `journal_entry_id` where they create accounting
+  impact; journal entries carry source metadata.
 - Write `audit_event`. Add `outbox_event` only when import/export jobs, integrations, or async inventory/accounting consumers require durable delivery.
 
 ## Schema Additions

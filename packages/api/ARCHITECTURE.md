@@ -2,7 +2,7 @@
 
 `packages/api` is the transport layer between runtime apps and domain packages.
 Its job is to make procedure behavior explicit: context, auth, input/output,
-errors, OpenAPI metadata, and orchestration.
+router-owned transport errors, OpenAPI metadata, and orchestration.
 
 ## Current Router Graph
 
@@ -10,6 +10,9 @@ errors, OpenAPI metadata, and orchestration.
 flowchart TD
   AppRouter["appRouter"] --> Health["healthRouter"]
   AppRouter --> Organizations["organizationsRouter"]
+  AppRouter --> SalesDocuments["salesDocumentsRouter"]
+  AppRouter --> PurchaseDocuments["purchaseDocumentsRouter"]
+  AppRouter --> Settlements["settlementsRouter"]
   AppRouter --> Private["privateRouter"]
   Health --> Public["publicProcedure"]
   Private --> Protected["protectedProcedure"]
@@ -20,6 +23,12 @@ flowchart TD
   Health --> DBReady["@tsu-stack/db checkIsDbReady"]
   Organizations --> OrgCore["@tsu-stack/core/organizations"]
   Organizations --> OrgQueries["@tsu-stack/db/queries"]
+  SalesDocuments --> DocumentCore["@tsu-stack/core/documents"]
+  PurchaseDocuments --> DocumentCore
+  Settlements --> DocumentCore
+  SalesDocuments --> DocumentQueries["@tsu-stack/db/queries"]
+  PurchaseDocuments --> DocumentQueries
+  Settlements --> DocumentQueries
 ```
 
 ## Procedure Factories
@@ -75,6 +84,32 @@ specific command input that needs duplicate protection, not in global context.
 - settings mutations return a tiny success envelope, not the full saved row;
 - settings writes use owner-only permission checks and write audit rows in the
   same DB transaction as the settings change.
+
+## Document Routers
+
+`routers/sales-documents`, `routers/purchase-documents`, and `routers/settlements`
+are the Phase 2.5 tenant-scoped accounting examples:
+
+- input/output schemas live in `@tsu-stack/core/documents`;
+- membership and accounting permission checks happen through
+  `organizationPermissionProcedure`;
+- persistence and posting behavior live in `@tsu-stack/db/queries`;
+- app procedures cover create/update draft, get/list, post, and void;
+- official numbers are never accepted from client input;
+- create-and-post inputs do not accept `documentId`; the DB transaction
+  generates the id and posts that same document. Existing-document commands
+  keep `documentId` because they target rows that already exist.
+
+## Error Policy
+
+Routers do not catch query/database errors to convert them into typed oRPC
+errors. Query, domain, cursor, and database failures fail fast so root causes
+stay visible and policy does not duplicate across `packages/db` and
+`packages/api`.
+
+Use `.errors(...)` only for router-owned expected failures that clients must
+branch on, such as health readiness or explicit product/auth state. See
+[ADR-0011](../../docs/decisions/0011-fail-fast-query-errors.md).
 
 ## Health Router
 
