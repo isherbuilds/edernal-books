@@ -2,10 +2,9 @@
 
 ## Status
 
-Research complete. Alternative B is the recommended Phase 2.5 implementation
-shape. On this branch, the document contracts, document query modules, document
-schema, and document routers described below are planning targets, not current
-files.
+Research complete. Alternative B was the recommended Phase 2.5 implementation
+shape and is now reflected in the current document contracts, document query
+modules, document schema, and document routers.
 
 ## Date
 
@@ -21,9 +20,9 @@ queries.
 
 ## Scope
 
-- Planned code: `packages/db/src/queries`, with document-specific modules under
-  a future `packages/db/src/queries/documents-query`.
-- Planned API: `packages/api/src/routers`, with future `sales-documents`,
+- Implemented code: `packages/db/src/queries`, with document-specific modules
+  under `packages/db/src/queries/documents-query`.
+- Implemented API: `packages/api/src/routers`, with `sales-documents`,
   `purchase-documents`, and `settlements` routers.
 - References:
   - `midday-ai/midday` at `51587319f26a0ffaa9dfccab1920373cb65689b7`.
@@ -71,9 +70,8 @@ Do not copy:
 
 ### API Router Shape
 
-The current branch does not yet contain split document routers. When Phase 2.5
-adds `sales-documents`, `purchase-documents`, and `settlements`, that split is
-the correct shape.
+The current branch contains split document routers: `sales-documents`,
+`purchase-documents`, and `settlements`.
 
 - Router validates the contract.
 - Permission middleware derives `organizationId`.
@@ -82,8 +80,8 @@ the correct shape.
 - No broad router `try/catch` or query error conversion belongs in these
   routers.
 
-Keep this shape when the routers are added. Do not add a service layer just
-because the prior local architecture had one.
+Keep this shape. Do not add a service layer just because the prior local
+architecture had one.
 
 ### Client-Controlled Create-And-Post Ids
 

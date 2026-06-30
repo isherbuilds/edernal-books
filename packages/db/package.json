@@ -18,6 +18,7 @@
     "db:dev:start": "docker compose -f docker-compose.dev.yaml up -d",
     "db:dev:stop": "docker compose -f docker-compose.dev.yaml stop",
     "db:seed": "vpx dotenvx run -f ../env/.env -- node --import tsx src/seed.ts",
+    "demo:seed": "vpx dotenvx run -f ../env/.env -- node --import tsx src/demo-seed.ts",
     "auth:generate": "vp run -w auth:generate",
     "test:unit": "vp test",
     "test:integration": "NODE_ENV=development DB_INTEGRATION_TESTS=1 vpx dotenvx run -f ../env/.env -- vp test run src/queries/accounting.integration.test.ts src/queries/parties-items.integration.test.ts src/queries/documents.integration.test.ts src/queries/documents-purchase-register.integration.test.ts"
@@ -25,6 +26,7 @@
   "dependencies": {
     "@tsu-stack/core": "workspace:*",
     "@tsu-stack/logger": "workspace:*",
+    "better-auth": "catalog:",
     "drizzle-orm": "catalog:",
     "postgres": "catalog:",
     "uuid": "catalog:"

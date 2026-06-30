@@ -7,9 +7,10 @@ query, migration, and database-client APIs while hiding transport/UI concerns.
 
 Current schema includes Better Auth identity/organization tables, Phase 0
 app-owned platform tables, the Phase 1 ledger kernel, Phase 2 parties/items
-foundation tables, and the historical Phase 1 `source_document` table. This
+foundation tables, and the Phase 2.5 document spine. ADR-0012 removed the
+historical `source_document` table in favor of journal source metadata. This
 diagram shows the platform foundation subset; the current ledger kernel,
-owner-record foundation, and planned document spine are below.
+owner-record foundation, and document spine are below.
 
 ```mermaid
 erDiagram
@@ -220,13 +221,13 @@ erDiagram
   }
 ```
 
-The planned document spine uses typed tables rather than a generic JSON document table:
+The document spine uses typed tables rather than a generic JSON document table:
 `sales_document`, `sales_document_line`, `purchase_document`,
 `purchase_document_line`, `settlement_document`, and
 `settlement_allocation`. Draft rows get `draft_reference` only. Posting
 allocates official `document_number` through `number_sequence`, creates
 balanced `journal_entry` rows, and writes audit in one transaction. ADR-0012
-plans nullable journal source metadata (`source_type`, `source_record_id`,
+uses nullable journal source metadata (`source_type`, `source_record_id`,
 `source_number`) as all-or-nothing trace/cache fields: manual journals keep all
 three null, while document postings set all three non-null. Void is terminal
 and creates a journal reversal. Posted/voided status transitions are guarded by
@@ -236,11 +237,11 @@ such as update, post, void, get, and detail navigation. Settlement allocations
 reject duplicate targets and enforce one allocation row per settlement/target
 document with partial unique indexes.
 
-When implemented, the API/DB layer should expose typed create-draft,
-update-draft, get, list, post, and void services through a small public barrel
-backed by split document query modules. The owner UI should provide draft
-editors, lists, detail pages, posting, voiding, and settlement allocations;
-PDF/share rendering remains a later UI slice.
+The API/DB layer exposes typed create-draft, update-draft, get, list, post, and
+void services through a small public barrel backed by split document query
+modules. The owner UI provides draft editors, lists, detail pages, posting,
+voiding, and settlement allocations; PDF/share rendering remains a later UI
+slice.
 
 ## Phase 1 Ledger Kernel
 

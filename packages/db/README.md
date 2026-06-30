@@ -1,7 +1,7 @@
 # @tsu-stack/db
 
 Drizzle/PostgreSQL package. It owns schema, relations, the database client,
-migrations, readiness checks, Phase 0 platform tables, and future reusable query
+migrations, readiness checks, Phase 0 platform tables, and reusable query
 modules.
 
 ## Responsibilities
@@ -12,8 +12,7 @@ modules.
 - Check database readiness for health endpoints.
 - Keep tenant-owned app tables scoped by `organization_id`.
 - Own reusable query modules for membership, settings, accounting, parties,
-  and items. Document query modules are planned with Phase 2.5 and are not
-  present on this branch yet.
+  items, and Phase 2.5 documents.
 
 Does not own transport response shape, route handlers, oRPC error contracts,
 React UI, auth cookies, or Better Auth membership checks. Query/domain/cursor
@@ -58,6 +57,8 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for current and planned schema shape.
 | `src/queries/index.ts`                 | reusable query helper barrel                                           |
 | `src/queries/organizations.ts`         | organization membership checks                                         |
 | `src/queries/organization-settings.ts` | organization settings read/write helpers                               |
+| `src/queries/documents.ts`             | document query helper barrel                                           |
+| `src/queries/documents-query/*`        | split document draft/post/list/detail/void helpers                     |
 | `src/schema/auth.schema.ts`            | Better Auth user/session/account/organization/member/invitation tables |
 | `src/schema/organization.ts`           | `currency`, `exchange_rate`, and `organization_setting`                |
 | `src/seed.ts`                          | Supported reference-data seed entrypoint                               |
@@ -66,14 +67,15 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for current and planned schema shape.
 | `src/schema/migration.ts`              | Active migration exports                                               |
 | `src/schema/index.ts`                  | Active schema exports                                                  |
 | `src/schema/relations.ts`              | Drizzle relation config                                                |
+| `src/schema/documents.ts`              | sales, purchase, settlement, and allocation tables                     |
 | `src/utils/health.ts`                  | readiness/health probes                                                |
 | `src/utils/id.ts`                      | app-owned UUIDv7 id generation                                         |
 | `drizzle.config.ts`                    | Drizzle Kit config                                                     |
 | `docker-compose.dev.yaml`              | Local PostgreSQL                                                       |
 
-Phase 2.5 is expected to add typed document schema and query modules. Until
-those files exist, references to `src/schema/documents.ts` or
-`src/queries/documents-query/*` are planning targets, not current entrypoints.
+Phase 2.5 typed document schema and query modules are current entrypoints.
+Document rows stay typed and relational; presentation/PDF snapshots remain later
+work.
 
 ## Development Commands
 

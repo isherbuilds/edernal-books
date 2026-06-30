@@ -86,12 +86,12 @@ specific command input that needs duplicate protection, not in global context.
 - settings writes use owner-only permission checks and write audit rows in the
   same DB transaction as the settings change.
 
-## Planned Document Routers
+## Document Routers
 
 `routers/sales-documents`, `routers/purchase-documents`, and `routers/settlements`
-are planned Phase 2.5 tenant-scoped accounting examples. They are not present
-on this branch yet; the current app router contains `accounting`, `health`,
-`items`, `organizations`, `parties`, and `private`.
+are Phase 2.5 tenant-scoped accounting routers mounted in the current app
+router with `accounting`, `health`, `items`, `organizations`, `parties`, and
+`private`.
 
 - input/output schemas live in `@tsu-stack/core/documents`;
 - membership and accounting permission checks happen through

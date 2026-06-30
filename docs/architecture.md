@@ -255,17 +255,18 @@ The source of truth is
 
 Current schema includes Better Auth identity/organization tables, Phase 0
 app-owned platform tables, the Phase 1 ledger kernel, the Phase 2 owner record
-foundation tables (`party`, `item`), and the historical Phase 1
-`source_document` table. This diagram shows the platform foundation subset;
-ledger and owner records are tracked in the schema revision and package
-architecture docs.
+foundation tables (`party`, `item`), and the Phase 2.5 document spine.
+ADR-0012 removed the historical Phase 1 `source_document` table in favor of
+journal source metadata. This diagram shows the platform foundation subset;
+ledger, owner records, and document records are tracked in the schema revision
+and package architecture docs.
 
 [Phase 2.5 document spine](superpowers/plans/2026-06-28-phase-02-5-document-spine-plan.md)
-is the planned bridge before Phase 3 GST semantics. It adds typed posted
+is the implemented bridge before Phase 3 GST semantics. It adds typed posted
 invoices, purchase bills/expenses, settlements, allocations, journal-entry
 links, audit rows, journal source metadata, and number-sequence-backed document
-numbers. On this branch those typed document tables, document routers, and
-`@tsu-stack/core/documents` contracts are not present yet.
+numbers. The current branch has typed document tables, document routers, and
+`@tsu-stack/core/documents` contracts.
 
 ```mermaid
 erDiagram
