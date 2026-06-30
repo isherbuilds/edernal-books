@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Controller, FormProvider } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -103,34 +103,34 @@ export function BillEditor({ document, onPosted, onSaved, orgSlug }: BillEditorP
     register
   } = form;
 
-  const vendorOptions = useMemo(() => {
-    const parties = partiesQuery.data?.pages.flatMap((page) => page.parties) ?? [];
-    return parties
-      .filter((party) => party.kind === "vendor" || party.kind === "both")
-      .map((party) => {
-        return { label: party.displayName, value: party.id };
-      });
-  }, [partiesQuery.data]);
+  const vendorOptions: Array<{ label: string; value: string }> = [];
+  for (const page of partiesQuery.data?.pages ?? []) {
+    for (const party of page.parties) {
+      if (party.kind === "vendor" || party.kind === "both") {
+        vendorOptions.push({ label: party.displayName, value: party.id });
+      }
+    }
+  }
 
-  const expenseAccountOptions = useMemo(() => {
-    const accounts = accountsQuery.data?.accounts ?? [];
-    return accounts
-      .filter(
-        (account) =>
-          account.accountCategory === "expense" &&
-          account.active &&
-          !account.isGroup &&
-          account.allowManualPosting
-      )
-      .map((account) => {
-        return { label: account.name, value: account.id };
-      });
-  }, [accountsQuery.data]);
+  const expenseAccountOptions = (accountsQuery.data?.accounts ?? []).reduce<
+    Array<{ label: string; value: string }>
+  >((options, account) => {
+    if (
+      account.accountCategory === "expense" &&
+      account.active &&
+      !account.isGroup &&
+      account.allowManualPosting
+    ) {
+      options.push({ label: account.name, value: account.id });
+    }
 
-  const itemOptions = useMemo<DocumentItemOption[]>(() => {
-    const items = itemsQuery.data?.pages.flatMap((page) => page.items) ?? [];
-    return items.map((item) => {
-      return {
+    return options;
+  }, []);
+
+  const itemOptions: DocumentItemOption[] = [];
+  for (const page of itemsQuery.data?.pages ?? []) {
+    for (const item of page.items) {
+      itemOptions.push({
         accountId: item.expenseAccountId,
         description: item.description ?? item.name,
         hsnCode: item.hsnCode,
@@ -138,9 +138,9 @@ export function BillEditor({ document, onPosted, onSaved, orgSlug }: BillEditorP
         rateMinor: item.purchaseRateMinor,
         unit: item.unit,
         value: item.id
-      };
-    });
-  }, [itemsQuery.data]);
+      });
+    }
+  }
 
   const documentId = document?.id ?? null;
 

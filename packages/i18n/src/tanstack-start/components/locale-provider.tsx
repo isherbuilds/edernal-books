@@ -55,14 +55,15 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
     },
     [router]
   );
+  const contextValue = React.useMemo(() => {
+    return { locale, switchLocale };
+  }, [locale, switchLocale]);
 
-  return (
-    <LocaleContext.Provider value={{ locale, switchLocale }}>{children}</LocaleContext.Provider>
-  );
+  return <LocaleContext.Provider value={contextValue}>{children}</LocaleContext.Provider>;
 }
 
 export function useLocale() {
-  const context = React.useContext(LocaleContext);
+  const context = React.use(LocaleContext);
 
   if (!context) {
     throw new Error("useLocale must be used within LocaleProvider");

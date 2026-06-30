@@ -31,9 +31,11 @@ import {
 } from "@/hooks/use-accounting";
 
 import { JournalEntryForm } from "@/components/accounting/journal-entry-form";
-import { type DataColumn, DataTable, DataTableContainer } from "@/components/data-table";
+import { type DataColumn, DataTable } from "@/components/data-table";
+import { DataTableContainer } from "@/components/data-table-container";
 import { EmptyState, PageHeader, PageLayout } from "@/components/page-layout";
 import { QueryState } from "@/components/query-state";
+import { getQueryState } from "@/components/query-state-model";
 
 type JournalEntriesPageProps = {
   orgSlug: string;
@@ -43,7 +45,12 @@ type JournalEntryMode = "manual" | "opening-balance";
 
 export function JournalEntriesPage({ orgSlug }: JournalEntriesPageProps) {
   const accountsQuery = useChartAccountsQuery(orgSlug);
-  const entriesQuery = useQuery(
+  const {
+    data: entriesData,
+    error: entriesError,
+    isError: isEntriesError,
+    isLoading: isEntriesLoading
+  } = useQuery(
     orpc.accounting.journalEntries.list.queryOptions({
       input: {
         orgSlug
@@ -58,8 +65,42 @@ export function JournalEntriesPage({ orgSlug }: JournalEntriesPageProps) {
   const [reversalReason, setReversalReason] = useState("");
 
   const accounts = accountsQuery.data?.accounts ?? [];
-  const entries = entriesQuery.data?.entries ?? [];
+  const entries = entriesData?.entries ?? [];
   const reversingEntry = entries.find((entry) => entry.id === reversingEntryId);
+
+  function submitReversal(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!reversingEntry) {
+      return;
+    }
+
+    const reason = reversalReason.trim();
+
+    if (!reason) {
+      setMessage("Enter a reversal reason.");
+      return;
+    }
+
+    reverseJournal.mutate(
+      {
+        description: reason,
+        journalEntryId: reversingEntry.id,
+        orgSlug,
+        postingDate: getTodayDateString()
+      },
+      {
+        onError: (error) => {
+          setMessage(error instanceof Error ? error.message : "Reversal failed.");
+        },
+        onSuccess: (result) => {
+          setMessage(`Reversal posted as ${result.entryNumber}.`);
+          setReversalReason("");
+          setReversingEntryId(null);
+        }
+      }
+    );
+  }
 
   const columns: DataColumn<(typeof entries)[number]>[] = [
     {
@@ -158,12 +199,14 @@ export function JournalEntriesPage({ orgSlug }: JournalEntriesPageProps) {
             title="No journal entries"
           />
         }
-        error={entriesQuery.error}
         errorFallback="Accounting request failed."
         errorTitle="Could not load journals"
-        isEmpty={entries.length === 0}
-        isError={entriesQuery.isError}
-        isLoading={entriesQuery.isLoading}
+        state={getQueryState({
+          empty: entries.length === 0,
+          error: entriesError,
+          errored: isEntriesError,
+          loading: isEntriesLoading
+        })}
       >
         <DataTableContainer>
           <DataTable
@@ -266,40 +309,6 @@ export function JournalEntriesPage({ orgSlug }: JournalEntriesPageProps) {
       </Sheet>
     </PageLayout>
   );
-
-  function submitReversal(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    if (!reversingEntry) {
-      return;
-    }
-
-    const reason = reversalReason.trim();
-
-    if (!reason) {
-      setMessage("Enter a reversal reason.");
-      return;
-    }
-
-    reverseJournal.mutate(
-      {
-        description: reason,
-        journalEntryId: reversingEntry.id,
-        orgSlug,
-        postingDate: getTodayDateString()
-      },
-      {
-        onError: (error) => {
-          setMessage(error instanceof Error ? error.message : "Reversal failed.");
-        },
-        onSuccess: (result) => {
-          setMessage(`Reversal posted as ${result.entryNumber}.`);
-          setReversalReason("");
-          setReversingEntryId(null);
-        }
-      }
-    );
-  }
 }
 
 function ErrorBlock({ error, title }: { error: unknown; title: string }) {

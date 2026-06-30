@@ -93,7 +93,7 @@ type DocumentEditorTotalProps = {
   totalMinor: string;
 };
 
-export function DocumentEditorTotal({ lineCount, totalMinor }: DocumentEditorTotalProps) {
+function DocumentEditorTotal({ lineCount, totalMinor }: DocumentEditorTotalProps) {
   return (
     <div className="flex items-baseline gap-2">
       <span className="text-xs text-muted-foreground">

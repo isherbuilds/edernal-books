@@ -23,6 +23,7 @@
     "db:generate": "vp run -w db generate",
     "db:migrate": "vp run -w db migrate",
     "db:seed": "vp run --filter @tsu-stack/db db:seed",
+    "demo:seed": "vp run --filter @tsu-stack/db demo:seed",
     "db:studio": "vp run -w db studio",
     "docker:up": "pnpm dotenvx run -f .env.docker docker -- compose up",
     "docker:up:build": "pnpm dotenvx run -f .env.docker docker -- compose up --build",

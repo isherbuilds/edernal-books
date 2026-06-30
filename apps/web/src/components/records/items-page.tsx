@@ -1,6 +1,5 @@
 import { getRouteApi } from "@tanstack/react-router";
-import { BoxesIcon } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import {
@@ -13,33 +12,24 @@ import {
 import { SEARCH_QUERY_MAX_LENGTH } from "@tsu-stack/core/text";
 import { m } from "@tsu-stack/i18n/messages";
 
-import { formatMinorUnits } from "@/utils/accounting-format";
-
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { useItemQuery, useItemsQuery, useSetItemActiveMutation } from "@/hooks/use-records";
 
-import {
-  type DataColumn,
-  DataTable,
-  DataTableContainer,
-  DataTableLoadMore
-} from "@/components/data-table";
-import { EmptyState, NoResults } from "@/components/page-layout";
 import { QueryState } from "@/components/query-state";
+import { getQueryState } from "@/components/query-state-model";
+import { ItemForm } from "@/components/records/item-form";
 import {
   ITEM_KIND_OPTIONS,
   ITEM_USAGE_OPTIONS,
-  ItemForm,
   itemKindLabel,
   itemUsageLabel
-} from "@/components/records/item-form";
+} from "@/components/records/item-form-options";
+import { ItemsRegister } from "@/components/records/items-register";
 import {
   type RecordFilterGroup,
-  RecordActiveBadge,
   RecordFilterMenu,
   RecordFilterPills,
   RecordPrimaryAction,
-  RecordRowActions,
   RecordSearchField,
   RecordSheet,
   RecordsPageLayout,
@@ -102,10 +92,10 @@ export function ItemsPage({ orgSlug }: ItemsPageProps) {
   });
   const itemQuery = useItemQuery({ id: search.id ?? "", orgSlug }, isEditing);
   const setItemActive = useSetItemActiveMutation();
-  const items = useMemo(
-    () => itemsQuery.data?.pages.flatMap((page) => page.items) ?? [],
-    [itemsQuery.data]
-  );
+  const items: Item[] = [];
+  for (const page of itemsQuery.data?.pages ?? []) {
+    items.push(...page.items);
+  }
 
   const hasFilters = Boolean(query.trim()) || Boolean(search.kind) || Boolean(search.usage);
 
@@ -164,80 +154,6 @@ export function ItemsPage({ orgSlug }: ItemsPageProps) {
     );
   };
 
-  const columns: DataColumn<Item>[] = [
-    {
-      cell: (item) => item.name,
-      cellClassName: "font-medium",
-      header: m.owner_records__items_column_name(),
-      id: "name"
-    },
-    {
-      cell: (item) => itemKindLabel(item.kind),
-      header: m.owner_records__items_column_kind(),
-      id: "kind"
-    },
-    {
-      cell: (item) => itemUsageLabel(item.usage),
-      header: m.owner_records__items_column_usage(),
-      id: "usage"
-    },
-    {
-      cell: (item) => item.unit ?? "-",
-      header: m.owner_records__items_column_unit(),
-      id: "unit"
-    },
-    {
-      cell: (item) => item.hsnCode ?? "-",
-      cellClassName: "tabular-nums",
-      header: m.owner_records__items_column_hsn(),
-      id: "hsnCode"
-    },
-    {
-      align: "right",
-      cell: (item) => (item.salesRateMinor != null ? formatMinorUnits(item.salesRateMinor) : "-"),
-      cellClassName: "font-amount tabular-nums",
-      header: m.owner_records__items_column_sales_rate(),
-      id: "salesRate"
-    },
-    {
-      align: "right",
-      cell: (item) =>
-        item.purchaseRateMinor != null ? formatMinorUnits(item.purchaseRateMinor) : "-",
-      cellClassName: "font-amount tabular-nums",
-      header: m.owner_records__items_column_purchase_rate(),
-      id: "purchaseRate"
-    },
-    {
-      cell: (item) => (
-        <RecordActiveBadge
-          activeLabel={m.owner_records__status_active()}
-          inactiveLabel={m.owner_records__status_inactive()}
-          isActive={item.isActive}
-        />
-      ),
-      header: m.owner_records__items_column_status(),
-      id: "status"
-    },
-    {
-      align: "right",
-      cell: (item) => (
-        <RecordRowActions
-          activateLabel={m.owner_records__activate()}
-          ariaLabel={m.owner_records__row_actions()}
-          deactivateLabel={m.owner_records__deactivate()}
-          editLabel={m.owner_records__edit()}
-          isActive={item.isActive}
-          onEdit={() => openEdit(item)}
-          onToggleActive={() => toggleItemActive(item)}
-        />
-      ),
-      header: null,
-      headClassName: "w-12",
-      id: "actions",
-      stopRowClick: true
-    }
-  ];
-
   return (
     <RecordsPageLayout
       description={m.owner_records__items_subtitle()}
@@ -270,55 +186,28 @@ export function ItemsPage({ orgSlug }: ItemsPageProps) {
         <RecordPrimaryAction label={m.owner_records__items_new()} onClick={openCreate} />
       </RecordsToolbar>
 
-      <QueryState
-        empty={
-          hasFilters ? (
-            <NoResults
-              actionLabel={m.owner_records__clear_filters()}
-              description={m.owner_records__no_results_description()}
-              onAction={clearFilters}
-              title={m.owner_records__no_results_title()}
-            />
-          ) : (
-            <EmptyState
-              actionLabel={m.owner_records__items_new()}
-              description={m.owner_records__items_empty_description()}
-              icon={<BoxesIcon className="size-5" />}
-              onAction={openCreate}
-              title={m.owner_records__items_empty_title()}
-            />
-          )
-        }
-        error={itemsQuery.error}
-        errorFallback={m.owner_records__items_error_fallback()}
-        errorTitle={m.owner_records__items_error_title()}
-        hasData={Boolean(itemsQuery.data)}
-        isEmpty={items.length === 0}
-        isError={itemsQuery.isError}
-        isLoading={itemsQuery.isLoading}
-      >
-        <DataTableContainer>
-          <DataTable
-            columns={columns}
-            getRowId={(item) => item.id}
-            minWidthClassName="min-w-[1000px]"
-            onRowClick={openEdit}
-            rows={items}
-          />
-          {itemsQuery.hasNextPage ? (
-            <div className="border-t">
-              <DataTableLoadMore
-                isFetchingNextPage={itemsQuery.isFetchingNextPage}
-                loadingLabel={m.owner_records__loading_more()}
-                loadLabel={m.owner_records__load_more()}
-                onLoadMore={() => {
-                  void itemsQuery.fetchNextPage();
-                }}
-              />
-            </div>
-          ) : null}
-        </DataTableContainer>
-      </QueryState>
+      <ItemsRegister
+        hasFilters={hasFilters}
+        items={items}
+        onClearFilters={clearFilters}
+        onCreate={openCreate}
+        onEdit={openEdit}
+        onLoadMore={() => {
+          void itemsQuery.fetchNextPage();
+        }}
+        onToggleActive={toggleItemActive}
+        pagination={{
+          hasNextPage: itemsQuery.hasNextPage,
+          loadingNextPage: itemsQuery.isFetchingNextPage
+        }}
+        queryState={getQueryState({
+          dataPresent: Boolean(itemsQuery.data),
+          empty: items.length === 0,
+          error: itemsQuery.error,
+          errored: itemsQuery.isError,
+          loading: itemsQuery.isLoading
+        })}
+      />
 
       <RecordSheet
         description={
@@ -339,12 +228,14 @@ export function ItemsPage({ orgSlug }: ItemsPageProps) {
         {isEditing ? (
           <QueryState
             empty={null}
-            error={itemQuery.error}
             errorFallback={m.owner_records__items_error_fallback()}
             errorTitle={m.owner_records__items_error_title()}
-            isEmpty={false}
-            isError={itemQuery.isError}
-            isLoading={itemQuery.isLoading}
+            state={getQueryState({
+              empty: false,
+              error: itemQuery.error,
+              errored: itemQuery.isError,
+              loading: itemQuery.isLoading
+            })}
           >
             {editingItem ? (
               <ItemForm

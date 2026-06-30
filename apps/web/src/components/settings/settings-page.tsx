@@ -51,9 +51,9 @@ export function SettingsPage({ orgSlug }: SettingsPageProps) {
           const Icon = card.icon;
           return (
             <Link
+              key={card.id}
               {...getOrgAppLink(orgSlug, card.to)}
               className="group flex flex-col gap-3 rounded-lg border bg-card p-4 transition-colors hover:border-border/80 hover:bg-muted/30"
-              key={card.id}
             >
               <div className="flex size-9 items-center justify-center rounded-md border bg-background text-muted-foreground transition-colors group-hover:text-foreground">
                 <Icon className="size-5" />

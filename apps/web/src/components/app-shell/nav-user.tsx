@@ -29,6 +29,14 @@ import {
 
 import { useSignOutAndResetSession } from "@/hooks/use-sign-out";
 
+async function signOutAndReport(signOutAndReset: () => Promise<void>) {
+  try {
+    await signOutAndReset();
+  } catch (error) {
+    toast.error(error instanceof Error ? error.message : m.app_shell__sign_out_failed());
+  }
+}
+
 export function NavUser() {
   const { user } = useAuthSuspense();
   const { isMobile } = useSidebar();
@@ -53,13 +61,8 @@ export function NavUser() {
 
     setIsSigningOut(true);
 
-    try {
-      await signOutAndReset();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : m.app_shell__sign_out_failed());
-    } finally {
-      setIsSigningOut(false);
-    }
+    await signOutAndReport(signOutAndReset);
+    setIsSigningOut(false);
   }
 
   return (

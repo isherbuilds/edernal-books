@@ -1,11 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { canAccessAccounting } from "@tsu-stack/auth/permissions";
-import { useNavigate } from "@tsu-stack/i18n/tanstack-start/hooks/use-navigate";
 import { Spinner } from "@tsu-stack/ui/components/spinner";
 
 import { generateAppSeo } from "@/lib/seo";
 
+import { useDocumentNavigation } from "@/hooks/use-document-navigation";
 import { useSalesDocumentQuery } from "@/hooks/use-documents";
 
 import { AccountingLockedState } from "@/components/accounting/accounting-locked-state";
@@ -32,7 +32,7 @@ export const Route = createFileRoute("/{-$locale}/_app/$orgSlug/_shell/sales/inv
 function RouteComponent() {
   const { organization } = Route.useRouteContext();
   const { documentId, orgSlug } = Route.useParams();
-  const navigate = useNavigate();
+  const documentNavigation = useDocumentNavigation(orgSlug);
   const query = useSalesDocumentQuery({ documentId, orgSlug }, true);
 
   if (!canAccessAccounting(organization.role)) {
@@ -57,8 +57,7 @@ function RouteComponent() {
     );
   }
 
-  const goToSelf = () =>
-    navigate({ params: { documentId, orgSlug }, to: "/$orgSlug/sales/invoices/$documentId" });
+  const goToSelf = () => documentNavigation.salesInvoice(documentId);
 
   if (detail.status === "draft") {
     return (

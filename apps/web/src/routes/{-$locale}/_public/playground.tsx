@@ -37,7 +37,7 @@ export const Route = createFileRoute("/{-$locale}/_public/playground")({
 
 function PlaygroundPage() {
   const isClient = useIsClient();
-  const healthCheck = useQuery({
+  const { data: healthData, isLoading: isHealthLoading } = useQuery({
     ...orpc.health.live.queryOptions(),
     enabled: isClient,
     retry: false
@@ -74,12 +74,12 @@ function PlaygroundPage() {
           <h3 className="mb-2 font-medium">{m.playground_page__api_status()}</h3>
           <div className="flex items-center gap-2">
             <div
-              className={`h-2 w-2 rounded-full ${isClient && healthCheck.data && !healthCheck.isLoading ? `bg-success` : `bg-destructive`}`}
+              className={`h-2 w-2 rounded-full ${isClient && healthData && !isHealthLoading ? `bg-success` : `bg-destructive`}`}
             />
             <span className="text-sm text-muted-foreground">
-              {!isClient || healthCheck.isLoading
+              {!isClient || isHealthLoading
                 ? m.playground_page__checking()
-                : healthCheck.data
+                : healthData
                   ? m.playground_page__connected()
                   : m.playground_page__disconnected()}
             </span>

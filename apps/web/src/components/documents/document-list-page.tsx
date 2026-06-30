@@ -6,28 +6,27 @@ import { formatMinorUnits } from "@/utils/accounting-format";
 
 import { documentStatusLabel } from "@/hooks/use-documents";
 
-import {
-  type DataColumn,
-  DataTable,
-  DataTableContainer,
-  DataTableLoadMore
-} from "@/components/data-table";
+import { type DataColumn, DataTable } from "@/components/data-table";
+import { DataTableContainer } from "@/components/data-table-container";
+import { DataTableLoadMore } from "@/components/data-table-load-more";
 import { EmptyState, PageHeader, PageLayout } from "@/components/page-layout";
 import { QueryState } from "@/components/query-state";
+import { type QueryRenderState } from "@/components/query-state-model";
 
 type DocumentListPageProps = {
+  amountMode: "total" | "outstanding";
   description: string;
   documents: ReadonlyArray<DocumentRegisterItem>;
   error?: unknown;
-  hasNextPage: boolean;
-  isError: boolean;
-  isFetchingNextPage: boolean;
-  isLoading: boolean;
   newLabel: string;
   onLoadMore: () => void;
   onNew: () => void;
+  pagination: {
+    hasNextPage: boolean;
+    loadingNextPage: boolean;
+  };
+  queryState: QueryRenderState;
   onRowClick: (document: DocumentRegisterItem) => void;
-  showOutstanding: boolean;
   title: string;
 };
 
@@ -43,18 +42,15 @@ function statusVariant(status: DocumentRegisterItem["status"]) {
 }
 
 export function DocumentListPage({
+  amountMode,
   description,
   documents,
-  error,
-  hasNextPage,
-  isError,
-  isFetchingNextPage,
-  isLoading,
   newLabel,
   onLoadMore,
   onNew,
+  pagination,
+  queryState,
   onRowClick,
-  showOutstanding,
   title
 }: DocumentListPageProps) {
   const columns: DataColumn<DocumentRegisterItem>[] = [
@@ -78,7 +74,7 @@ export function DocumentListPage({
       header: "Total",
       id: "total"
     },
-    ...(showOutstanding
+    ...(amountMode === "outstanding"
       ? [
           {
             align: "right",
@@ -122,12 +118,9 @@ export function DocumentListPage({
             title={`No ${title.toLowerCase()} yet`}
           />
         }
-        error={error}
         errorFallback="Could not load documents."
         errorTitle="Something went wrong"
-        isEmpty={documents.length === 0}
-        isError={isError}
-        isLoading={isLoading}
+        state={queryState}
       >
         <DataTableContainer>
           <DataTable
@@ -136,10 +129,10 @@ export function DocumentListPage({
             onRowClick={onRowClick}
             rows={documents}
           />
-          {hasNextPage ? (
+          {pagination.hasNextPage ? (
             <div className="border-t">
               <DataTableLoadMore
-                isFetchingNextPage={isFetchingNextPage}
+                isFetchingNextPage={pagination.loadingNextPage}
                 loadLabel="Load more"
                 loadingLabel="Loading…"
                 onLoadMore={onLoadMore}
