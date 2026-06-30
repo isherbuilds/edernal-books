@@ -143,7 +143,8 @@ Database pattern:
 
 > Future Phase 2.5 typed-table pseudocode. On this branch, `salesDocument`
 > does not exist yet; current source-backed journal code still uses
-> `sourceDocument`. After ADR-0012 and typed document tables land, list
+> `sourceDocument`. After [ADR-0012](decisions/0012-replace-source-document-with-journal-source-metadata.md)
+> and typed document tables land, list
 > business documents from their owning typed tables and use `journal_entry_id`
 > for posted/voided ledger authority.
 

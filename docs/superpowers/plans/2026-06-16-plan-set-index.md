@@ -21,6 +21,7 @@ Decision record: `docs/decisions/0001-accounting-foundation-spine.md`
 - `docs/superpowers/plans/2026-06-16-phase-00-platform-foundation-implementation-plan.md`
 - `docs/superpowers/plans/2026-06-16-phase-01-accounting-kernel-implementation-plan.md`
 - `docs/superpowers/plans/2026-06-16-phase-02-owner-workflow-mvp-detailed-plan.md`
+- `docs/superpowers/plans/2026-06-28-phase-02-5-document-spine-plan.md`
 - `docs/superpowers/plans/2026-06-16-phase-03-india-gst-core-detailed-plan.md`
 - `docs/superpowers/plans/2026-06-16-phase-04-bank-reconciliation-detailed-plan.md`
 - `docs/superpowers/plans/2026-06-16-phase-05-ai-assistant-detailed-plan.md`

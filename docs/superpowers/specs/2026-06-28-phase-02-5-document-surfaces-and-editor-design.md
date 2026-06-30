@@ -110,7 +110,8 @@ calculation and persisted tax fields.
 **Save flow:** explicit **Save draft** (create on first save, then update) → **Post**. No
 autosave this slice (avoids autosave/idempotency complexity); autosave is documented as a later
 enhancement in `.agents/design-system.md`. New-document **Post** uses one atomic create-and-post
-command with a server-generated document ID and client-stable operation/idempotency key.
+command with a server-generated document ID and no client-stable operation, idempotency, or replay
+key for create-and-post retries in this phase.
 
 ### Settlement forms (receipts / payments)
 

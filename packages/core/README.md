@@ -18,11 +18,14 @@ types, and pure helpers consumed by more than one package.
 
 ```mermaid
 flowchart LR
-  Core["@tsu-stack/core"] --> Assets["assets helpers"]
+  Core["@tsu-stack/core"] --> Accounting["accounting contracts"]
+  Core --> Assets["assets helpers"]
   Core --> Health["health contracts"]
   Core --> Items["item contracts"]
   Core --> Organizations["organization contracts"]
+  Core --> Pagination["pagination contracts"]
   Core --> Parties["party contracts"]
+  Core --> Text["text helpers"]
   API["@tsu-stack/api"] --> Core
   Web["apps/web"] --> Core
   DB["@tsu-stack/db"] -. "must not import core if it creates cycles" .-> Core
@@ -33,21 +36,27 @@ flowchart LR
 | Import                          | Purpose                                                                               |
 | ------------------------------- | ------------------------------------------------------------------------------------- |
 | `@tsu-stack/core`               | Barrel for current shared domains                                                     |
+| `@tsu-stack/core/accounting`    | Accounting schemas, defaults, report helpers, and journal validation                  |
 | `@tsu-stack/core/assets`        | Public asset URL helpers                                                              |
 | `@tsu-stack/core/health`        | Health check schemas, types, constants, utilities                                     |
 | `@tsu-stack/core/items`         | Item schemas, enums, DTOs, and input contracts                                        |
 | `@tsu-stack/core/organizations` | Organization settings schemas, defaults, and types                                    |
+| `@tsu-stack/core/pagination`    | Shared offset and cursor pagination schemas, constants, and helpers                   |
 | `@tsu-stack/core/parties`       | Party schemas, enums, DTOs, and input contracts                                       |
+| `@tsu-stack/core/text`          | Shared text normalization and search-query helpers                                    |
 
 ## Local Structure
 
 | Path                | Purpose                                                               |
 | ------------------- | --------------------------------------------------------------------- |
+| `src/accounting`    | Accounting shared schemas, defaults, and pure posting/report helpers  |
 | `src/assets`        | Pure public asset helpers                                             |
 | `src/health`        | Health response schemas/types/utilities                               |
 | `src/items`         | Item shared schemas and contracts                                     |
 | `src/organizations` | Organization shared schemas and defaults                              |
+| `src/pagination.ts` | Shared pagination schemas and helpers                                 |
 | `src/parties`       | Party shared schemas and contracts                                    |
+| `src/text`          | Shared text normalization and search helpers                          |
 | `src/index.ts`      | Small package barrel                                                  |
 
 ## Development Commands
