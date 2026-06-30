@@ -1,4 +1,4 @@
-import { Area, AreaChart, CartesianGrid, XAxis } from "recharts";
+import { lazy } from "react";
 
 import {
   ChartContainer,
@@ -17,6 +17,27 @@ type CashMovementChartProps = {
   config: ChartConfig;
   data: CashMovementChartDatum[];
 };
+
+const Area = lazy(() =>
+  import("recharts").then((module) => {
+    return { default: module.Area };
+  })
+);
+const AreaChart = lazy(() =>
+  import("recharts").then((module) => {
+    return { default: module.AreaChart };
+  })
+);
+const CartesianGrid = lazy(() =>
+  import("recharts").then((module) => {
+    return { default: module.CartesianGrid };
+  })
+);
+const XAxis = lazy(() =>
+  import("recharts").then((module) => {
+    return { default: module.XAxis };
+  })
+);
 
 export function CashMovementChart({ config, data }: CashMovementChartProps) {
   return (

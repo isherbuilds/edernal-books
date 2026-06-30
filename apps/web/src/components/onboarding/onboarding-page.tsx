@@ -25,10 +25,12 @@ import { useZodForm } from "@/hooks/use-zod-form";
 
 import {
   FeatureStepSummary,
-  getOnboardingStepDefinition,
-  OnboardingChecklist,
-  type OnboardingStepDefinition
+  OnboardingChecklist
 } from "@/components/onboarding/onboarding-step-definitions";
+import {
+  getOnboardingStepDefinition,
+  type OnboardingStepDefinition
+} from "@/components/onboarding/onboarding-step-model";
 
 type OnboardingUser = {
   email?: string | null;
@@ -46,7 +48,6 @@ const onboardingStepPanelClassName =
   "grid min-h-[18rem] grid-rows-[minmax(0,1fr)_auto] gap-5 sm:min-h-[19rem]";
 const onboardingFieldThemeClassName =
   "[&_[data-slot=field-label]]:text-white/80 [&_[data-slot=field-description]]:text-white/[0.45] [&_[data-slot=input]]:border-white/10 [&_[data-slot=input]]:bg-white/[0.03] [&_[data-slot=input]]:text-white [&_[data-slot=input]::placeholder]:text-white/25 [&_[data-slot=select-trigger]]:w-full [&_[data-slot=select-trigger]]:border-white/10 [&_[data-slot=select-trigger]]:bg-white/[0.03] [&_[data-slot=select-trigger]]:text-white [&_[data-slot=select-content]]:dark [&_[data-slot=select-content]]:border-white/10";
-const ONBOARDING_FORM_ID = "onboarding-current-step-form";
 
 export function OnboardingPage({ organizationName, orgSlug, stepKey, user }: OnboardingPageProps) {
   const navigate = useNavigate();
@@ -70,7 +71,6 @@ export function OnboardingPage({ organizationName, orgSlug, stepKey, user }: Onb
   });
   const isSaving = completeOnboardingMutation.isPending || form.formState.isSubmitting;
   const isStepSubmitting = isLastStep ? isSaving : form.formState.isValidating;
-  const submitFormId = currentStep.kind === "form" ? ONBOARDING_FORM_ID : undefined;
   const submitLabel = isLastStep
     ? isSaving
       ? m.onboarding_page__saving()
@@ -207,17 +207,20 @@ export function OnboardingPage({ organizationName, orgSlug, stepKey, user }: Onb
             </div>
 
             <FormProvider {...form}>
-              <div className={onboardingStepPanelClassName}>
-                <StepContent onSubmitCurrentStep={submitCurrentStep} step={currentStep} />
+              <form
+                action={() => {
+                  void submitCurrentStep();
+                }}
+                className={onboardingStepPanelClassName}
+              >
+                <StepContent step={currentStep} />
                 <OnboardingActions
                   canGoBack={!isFirstStep}
                   isSubmitting={isStepSubmitting}
                   onBack={goBack}
-                  onContinue={submitCurrentStep}
-                  submitFormId={submitFormId}
                   submitLabel={submitLabel}
                 />
-              </div>
+              </form>
             </FormProvider>
           </div>
         </div>
@@ -251,27 +254,17 @@ function getOnboardingDefaultValues(
 }
 
 type StepContentProps = {
-  onSubmitCurrentStep: () => Promise<void>;
   step: OnboardingStepDefinition;
 };
 
-function StepContent({ onSubmitCurrentStep, step }: StepContentProps) {
+function StepContent({ step }: StepContentProps) {
   if (step.kind === "form") {
     const FormFields = step.FormFields;
 
     return (
-      <form
-        className={onboardingFieldThemeClassName}
-        id={ONBOARDING_FORM_ID}
-        method="post"
-        noValidate
-        onSubmit={async (event) => {
-          event.preventDefault();
-          await onSubmitCurrentStep();
-        }}
-      >
+      <div className={onboardingFieldThemeClassName}>
         <FormFields />
-      </form>
+      </div>
     );
   }
 
@@ -282,8 +275,6 @@ type OnboardingActionsProps = {
   canGoBack: boolean;
   isSubmitting: boolean;
   onBack: () => void;
-  onContinue: () => Promise<void>;
-  submitFormId?: string;
   submitLabel: string;
 };
 
@@ -291,12 +282,8 @@ function OnboardingActions({
   canGoBack,
   isSubmitting,
   onBack,
-  onContinue,
-  submitFormId,
   submitLabel
 }: OnboardingActionsProps) {
-  const submitButtonType = submitFormId ? "submit" : "button";
-
   return (
     <div className="mt-auto flex items-center justify-between gap-3 pt-3">
       <Button disabled={!canGoBack} onClick={onBack} type="button" variant="secondary">
@@ -304,18 +291,7 @@ function OnboardingActions({
         {m.onboarding_page__previous()}
       </Button>
 
-      <Button
-        disabled={isSubmitting}
-        form={submitFormId}
-        onClick={
-          submitFormId
-            ? undefined
-            : () => {
-                void onContinue();
-              }
-        }
-        type={submitButtonType}
-      >
+      <Button disabled={isSubmitting} type="submit">
         {isSubmitting ? <Spinner data-icon="inline-start" /> : null}
         {submitLabel}
         {!isSubmitting ? <ArrowRightIcon aria-hidden="true" data-icon="inline-end" /> : null}

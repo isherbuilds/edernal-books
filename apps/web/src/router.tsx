@@ -7,7 +7,8 @@ import { LOG_SERVICES, initLog } from "@tsu-stack/logger/client";
 import { Spinner } from "@tsu-stack/ui/components/spinner";
 
 import { LoggerProvider } from "@/providers/logger-provider";
-import { QueryClientProvider, getQueryClient } from "@/providers/query-client-provider";
+import { getQueryClient } from "@/providers/query-client";
+import { QueryClientProvider } from "@/providers/query-client-provider";
 
 import { DefaultNotFoundPage } from "@/components/errors/default-not-found-page";
 

@@ -130,7 +130,7 @@ Component rules:
 - `defaultStructuralSharing: true` reduces unnecessary renders.
 - Browser logs are batched every 2 seconds or 25 events.
 - Root auth prefetch skips preload events to avoid session request spam.
-- Fonts are preloaded in `__root.tsx`; keep additional font work centralized.
+- Fonts are defined in `src/styles/fonts.css`; keep additional font work centralized there.
 
 ## Gotchas
 

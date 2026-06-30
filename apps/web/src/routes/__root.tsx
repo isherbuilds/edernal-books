@@ -1,4 +1,3 @@
-import interLatin from "@fontsource-variable/inter/files/inter-latin-wght-normal.woff2?url";
 import { type QueryClient } from "@tanstack/react-query";
 import { HeadContent, Scripts, createRootRouteWithContext } from "@tanstack/react-router";
 import { Fragment, type ReactNode } from "react";
@@ -17,6 +16,8 @@ import { generateAppSeo } from "@/lib/seo";
 
 import { DefaultErrorPage } from "@/components/errors/default-error-page";
 import { ThemeProvider } from "@/components/theme-switcher";
+
+import { interFontFaceCss, interFontHref } from "@/styles/inter-font";
 
 import appCss from "@/styles/app.css?url";
 
@@ -51,7 +52,7 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
           rel: "preload",
           as: "font",
           type: "font/woff2",
-          href: interLatin,
+          href: interFontHref,
           crossOrigin: "anonymous"
         },
         { href: appCss, rel: "stylesheet" }
@@ -75,8 +76,8 @@ function RootDocumentInner({ children }: { children: ReactNode }) {
   return (
     <html suppressHydrationWarning lang={locale}>
       <head>
-        <script crossOrigin="anonymous" src="//unpkg.com/react-scan/dist/auto.global.js"></script>
         <HeadContent />
+        <style>{interFontFaceCss}</style>
       </head>
       <body>
         {/* We place the progress provider here otherwise we will get "Cannot render a <style> outside the main document" error */}

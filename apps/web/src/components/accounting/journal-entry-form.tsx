@@ -1,5 +1,5 @@
 import { PlusIcon, Trash2Icon } from "lucide-react";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useReducer } from "react";
 
 import { type LedgerAccountListItem } from "@tsu-stack/core/accounting";
 import { Button } from "@tsu-stack/ui/components/button";
@@ -20,7 +20,7 @@ import { getTodayDateString, parseDecimalAmountToMinorUnits } from "@/utils/acco
 import {
   renderAccountComboboxOption,
   toAccountComboboxOption
-} from "@/components/accounting/account-search-select";
+} from "@/components/accounting/account-combobox-option";
 
 type JournalLineFormValue = {
   accountId: string;
@@ -50,17 +50,42 @@ type JournalEntrySubmitLine = {
   side: "credit" | "debit";
 };
 
+type JournalEntryFormState = {
+  confirmedDifferenceAccount: boolean;
+  description: string;
+  lines: JournalLineFormValue[];
+  message: string | null;
+  postingDate: string;
+};
+
+type JournalEntryFormAction =
+  | { type: "addLine"; line: JournalLineFormValue }
+  | { type: "descriptionChanged"; value: string }
+  | { differenceAccountId: string; enabled: boolean; type: "differenceAccountConfirmationChanged" }
+  | { id: string; type: "removeLine" }
+  | { type: "messageChanged"; value: string | null }
+  | { type: "postingDateChanged"; value: string }
+  | { index: number; patch: Partial<JournalLineFormValue>; type: "lineChanged" };
+
+type BuildJournalEntryLinesResult =
+  | {
+      lines: JournalEntrySubmitLine[];
+      ok: true;
+      totalCreditMinor: bigint;
+      totalDebitMinor: bigint;
+    }
+  | {
+      message: string;
+      ok: false;
+    };
+
 export function JournalEntryForm({ accounts, mode, onSubmit, pending }: JournalEntryFormProps) {
-  const [postingDate, setPostingDate] = useState(getTodayDateString());
-  const [description, setDescription] = useState(
-    mode === "opening-balance" ? "Opening balance journal" : ""
+  const [formState, dispatch] = useReducer(
+    journalEntryFormReducer,
+    mode,
+    createInitialJournalEntryFormState
   );
-  const [confirmedDifferenceAccount, setConfirmedDifferenceAccount] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-  const [lines, setLines] = useState<JournalLineFormValue[]>([
-    createLineFormValue(),
-    createLineFormValue()
-  ]);
+  const { confirmedDifferenceAccount, description, lines, message, postingDate } = formState;
   const differenceAccount = accounts.find(
     (account) => account.systemKey === "opening_balance_difference"
   );
@@ -79,83 +104,48 @@ export function JournalEntryForm({ accounts, mode, onSubmit, pending }: JournalE
 
   async function submitEntry(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setMessage(null);
+    dispatch({ type: "messageChanged", value: null });
 
     if (usesDifferenceAccount && !confirmedDifferenceAccount) {
-      setMessage("Confirm Opening Balance Difference use before posting.");
+      dispatch({
+        type: "messageChanged",
+        value: "Confirm Opening Balance Difference use before posting."
+      });
       return;
     }
 
-    const entryLines: JournalEntrySubmitLine[] = [];
-    let totalDebitMinor = 0n;
-    let totalCreditMinor = 0n;
+    const entryResult = buildJournalEntryLines(lines);
 
-    for (const [index, line] of lines.entries()) {
-      const lineNumber = index + 1;
-      const debitMinor = parseDecimalAmountToMinorUnits(line.debitAmount);
-      const creditMinor = parseDecimalAmountToMinorUnits(line.creditAmount);
-
-      if (!debitMinor.ok) {
-        setMessage(`Line ${lineNumber} debit: ${debitMinor.message}`);
-        return;
-      }
-
-      if (!creditMinor.ok) {
-        setMessage(`Line ${lineNumber} credit: ${creditMinor.message}`);
-        return;
-      }
-
-      if (!line.accountId) {
-        if (debitMinor.value || creditMinor.value) {
-          setMessage(`Line ${lineNumber}: select an account for the entered amount.`);
-          return;
-        }
-
-        continue;
-      }
-
-      if (debitMinor.value && creditMinor.value) {
-        setMessage("A line can have debit or credit, not both.");
-        return;
-      }
-
-      if (debitMinor.value) {
-        totalDebitMinor += BigInt(debitMinor.value);
-        entryLines.push({
-          accountId: line.accountId,
-          amountMinor: debitMinor.value,
-          description: line.description.trim() || undefined,
-          side: "debit"
-        });
-        continue;
-      }
-
-      if (creditMinor.value) {
-        totalCreditMinor += BigInt(creditMinor.value);
-        entryLines.push({
-          accountId: line.accountId,
-          amountMinor: creditMinor.value,
-          description: line.description.trim() || undefined,
-          side: "credit"
-        });
-      }
-    }
-
-    if (entryLines.length < 2) {
-      setMessage("Add at least two lines with accounts and amounts.");
+    if (!entryResult.ok) {
+      dispatch({ type: "messageChanged", value: entryResult.message });
       return;
     }
 
-    if (totalDebitMinor !== totalCreditMinor) {
-      setMessage("Total debit must equal total credit before posting.");
+    if (entryResult.lines.length < 2) {
+      dispatch({
+        type: "messageChanged",
+        value: "Add at least two lines with accounts and amounts."
+      });
+      return;
+    }
+
+    if (entryResult.totalDebitMinor !== entryResult.totalCreditMinor) {
+      dispatch({
+        type: "messageChanged",
+        value: "Total debit must equal total credit before posting."
+      });
       return;
     }
 
     await onSubmit({
       description: description.trim(),
-      lines: entryLines,
+      lines: entryResult.lines,
       postingDate
     });
+  }
+
+  function updateLine(index: number, patch: Partial<JournalLineFormValue>) {
+    dispatch({ index, patch, type: "lineChanged" });
   }
 
   return (
@@ -165,7 +155,9 @@ export function JournalEntryForm({ accounts, mode, onSubmit, pending }: JournalE
           <FieldLabel htmlFor={`${mode}-posting-date`}>Posting date</FieldLabel>
           <Input
             id={`${mode}-posting-date`}
-            onChange={(event) => setPostingDate(event.currentTarget.value)}
+            onChange={(event) =>
+              dispatch({ type: "postingDateChanged", value: event.currentTarget.value })
+            }
             required
             type="date"
             value={postingDate}
@@ -175,7 +167,9 @@ export function JournalEntryForm({ accounts, mode, onSubmit, pending }: JournalE
           <FieldLabel htmlFor={`${mode}-description`}>Description</FieldLabel>
           <Input
             id={`${mode}-description`}
-            onChange={(event) => setDescription(event.currentTarget.value)}
+            onChange={(event) =>
+              dispatch({ type: "descriptionChanged", value: event.currentTarget.value })
+            }
             placeholder="Journal description"
             value={description}
           />
@@ -232,7 +226,7 @@ export function JournalEntryForm({ accounts, mode, onSubmit, pending }: JournalE
               />
               <Button
                 disabled={lines.length <= 2}
-                onClick={() => setLines((current) => current.filter((item) => item.id !== line.id))}
+                onClick={() => dispatch({ id: line.id, type: "removeLine" })}
                 size="icon"
                 type="button"
                 variant="ghost"
@@ -250,16 +244,11 @@ export function JournalEntryForm({ accounts, mode, onSubmit, pending }: JournalE
           <Checkbox
             checked={confirmedDifferenceAccount}
             onCheckedChange={(checked) => {
-              const enabled = checked === true;
-              setConfirmedDifferenceAccount(enabled);
-
-              if (!enabled) {
-                setLines((current) =>
-                  current.map((line) =>
-                    line.accountId === differenceAccount.id ? { ...line, accountId: "" } : line
-                  )
-                );
-              }
+              dispatch({
+                differenceAccountId: differenceAccount.id,
+                enabled: checked === true,
+                type: "differenceAccountConfirmationChanged"
+              });
             }}
           />
           <FieldContent>
@@ -277,7 +266,7 @@ export function JournalEntryForm({ accounts, mode, onSubmit, pending }: JournalE
 
       <div className="flex flex-wrap items-center justify-between gap-2">
         <Button
-          onClick={() => setLines((current) => [...current, createLineFormValue()])}
+          onClick={() => dispatch({ line: createLineFormValue(), type: "addLine" })}
           type="button"
           variant="outline"
         >
@@ -290,12 +279,116 @@ export function JournalEntryForm({ accounts, mode, onSubmit, pending }: JournalE
       </div>
     </form>
   );
+}
 
-  function updateLine(index: number, patch: Partial<JournalLineFormValue>) {
-    setLines((current) =>
-      current.map((line, lineIndex) => (lineIndex === index ? { ...line, ...patch } : line))
-    );
+function createInitialJournalEntryFormState(
+  mode: JournalEntryFormProps["mode"]
+): JournalEntryFormState {
+  return {
+    confirmedDifferenceAccount: false,
+    description: mode === "opening-balance" ? "Opening balance journal" : "",
+    lines: [createLineFormValue(), createLineFormValue()],
+    message: null,
+    postingDate: getTodayDateString()
+  };
+}
+
+function journalEntryFormReducer(
+  state: JournalEntryFormState,
+  action: JournalEntryFormAction
+): JournalEntryFormState {
+  switch (action.type) {
+    case "addLine":
+      return { ...state, lines: [...state.lines, action.line] };
+    case "descriptionChanged":
+      return { ...state, description: action.value };
+    case "differenceAccountConfirmationChanged":
+      return {
+        ...state,
+        confirmedDifferenceAccount: action.enabled,
+        lines: action.enabled
+          ? state.lines
+          : state.lines.map((line) =>
+              line.accountId === action.differenceAccountId ? { ...line, accountId: "" } : line
+            )
+      };
+    case "lineChanged":
+      return {
+        ...state,
+        lines: state.lines.map((line, lineIndex) =>
+          lineIndex === action.index ? { ...line, ...action.patch } : line
+        )
+      };
+    case "messageChanged":
+      return { ...state, message: action.value };
+    case "postingDateChanged":
+      return { ...state, postingDate: action.value };
+    case "removeLine":
+      return { ...state, lines: state.lines.filter((line) => line.id !== action.id) };
   }
+}
+
+function buildJournalEntryLines(lines: JournalLineFormValue[]): BuildJournalEntryLinesResult {
+  const entryLines: JournalEntrySubmitLine[] = [];
+  let totalDebitMinor = 0n;
+  let totalCreditMinor = 0n;
+
+  for (const [index, line] of lines.entries()) {
+    const lineNumber = index + 1;
+    const debitMinor = parseDecimalAmountToMinorUnits(line.debitAmount);
+    const creditMinor = parseDecimalAmountToMinorUnits(line.creditAmount);
+
+    if (!debitMinor.ok) {
+      return { message: `Line ${lineNumber} debit: ${debitMinor.message}`, ok: false };
+    }
+
+    if (!creditMinor.ok) {
+      return { message: `Line ${lineNumber} credit: ${creditMinor.message}`, ok: false };
+    }
+
+    if (!line.accountId) {
+      if (debitMinor.value || creditMinor.value) {
+        return {
+          message: `Line ${lineNumber}: select an account for the entered amount.`,
+          ok: false
+        };
+      }
+
+      continue;
+    }
+
+    if (debitMinor.value && creditMinor.value) {
+      return { message: "A line can have debit or credit, not both.", ok: false };
+    }
+
+    if (debitMinor.value) {
+      totalDebitMinor += BigInt(debitMinor.value);
+      entryLines.push({
+        accountId: line.accountId,
+        amountMinor: debitMinor.value,
+        description: line.description.trim() || undefined,
+        side: "debit"
+      });
+      continue;
+    }
+
+    if (creditMinor.value) {
+      totalCreditMinor += BigInt(creditMinor.value);
+      entryLines.push({
+        accountId: line.accountId,
+        amountMinor: creditMinor.value,
+        description: line.description.trim() || undefined,
+        side: "credit"
+      });
+    }
+  }
+
+  return {
+    lines: entryLines,
+    ok: true,
+    totalCreditMinor,
+    totalDebitMinor
+  };
 }
 
 function createLineFormValue(): JournalLineFormValue {

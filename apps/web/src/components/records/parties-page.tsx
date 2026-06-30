@@ -1,6 +1,6 @@
 import { getRouteApi } from "@tanstack/react-router";
 import { UserRoundIcon } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { type Party, type PartyKind, PartyKindSchema } from "@tsu-stack/core/parties";
@@ -10,20 +10,18 @@ import { m } from "@tsu-stack/i18n/messages";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { usePartiesQuery, usePartyQuery, useSetPartyActiveMutation } from "@/hooks/use-records";
 
-import {
-  type DataColumn,
-  DataTable,
-  DataTableContainer,
-  DataTableLoadMore
-} from "@/components/data-table";
+import { type DataColumn, DataTable } from "@/components/data-table";
+import { DataTableContainer } from "@/components/data-table-container";
+import { DataTableLoadMore } from "@/components/data-table-load-more";
 import { EmptyState, NoResults } from "@/components/page-layout";
 import { QueryState } from "@/components/query-state";
+import { getQueryState } from "@/components/query-state-model";
+import { PartyForm } from "@/components/records/party-form";
 import {
   PARTY_KIND_OPTIONS,
-  PartyForm,
   gstRegistrationTypeLabel,
   partyKindLabel
-} from "@/components/records/party-form";
+} from "@/components/records/party-form-options";
 import {
   type RecordFilterGroup,
   RecordActiveBadge,
@@ -91,10 +89,10 @@ export function PartiesPage({ orgSlug }: PartiesPageProps) {
   });
   const partyQuery = usePartyQuery({ id: search.id ?? "", orgSlug }, isEditing);
   const setPartyActive = useSetPartyActiveMutation();
-  const parties = useMemo(
-    () => partiesQuery.data?.pages.flatMap((page) => page.parties) ?? [],
-    [partiesQuery.data]
-  );
+  const parties: Party[] = [];
+  for (const page of partiesQuery.data?.pages ?? []) {
+    parties.push(...page.parties);
+  }
 
   const hasFilters = Boolean(query.trim()) || Boolean(search.kind);
 
@@ -255,13 +253,15 @@ export function PartiesPage({ orgSlug }: PartiesPageProps) {
             />
           )
         }
-        error={partiesQuery.error}
         errorFallback={m.owner_records__parties_error_fallback()}
         errorTitle={m.owner_records__parties_error_title()}
-        hasData={Boolean(partiesQuery.data)}
-        isEmpty={parties.length === 0}
-        isError={partiesQuery.isError}
-        isLoading={partiesQuery.isLoading}
+        state={getQueryState({
+          dataPresent: Boolean(partiesQuery.data),
+          empty: parties.length === 0,
+          error: partiesQuery.error,
+          errored: partiesQuery.isError,
+          loading: partiesQuery.isLoading
+        })}
       >
         <DataTableContainer>
           <DataTable
@@ -307,12 +307,14 @@ export function PartiesPage({ orgSlug }: PartiesPageProps) {
         {isEditing ? (
           <QueryState
             empty={null}
-            error={partyQuery.error}
             errorFallback={m.owner_records__parties_error_fallback()}
             errorTitle={m.owner_records__parties_error_title()}
-            isEmpty={false}
-            isError={partyQuery.isError}
-            isLoading={partyQuery.isLoading}
+            state={getQueryState({
+              empty: false,
+              error: partyQuery.error,
+              errored: partyQuery.isError,
+              loading: partyQuery.isLoading
+            })}
           >
             {editingParty ? (
               <PartyForm

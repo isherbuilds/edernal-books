@@ -1,9 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { canAccessAccounting } from "@tsu-stack/auth/permissions";
-import { useNavigate } from "@tsu-stack/i18n/tanstack-start/hooks/use-navigate";
 
 import { generateAppSeo } from "@/lib/seo";
+
+import { useDocumentNavigation } from "@/hooks/use-document-navigation";
 
 import { AccountingLockedState } from "@/components/accounting/accounting-locked-state";
 import { SettlementForm } from "@/components/documents/settlement-form";
@@ -23,14 +24,11 @@ export const Route = createFileRoute("/{-$locale}/_app/$orgSlug/_shell/sales/rec
 function RouteComponent() {
   const { organization } = Route.useRouteContext();
   const { orgSlug } = Route.useParams();
-  const navigate = useNavigate();
+  const documentNavigation = useDocumentNavigation(orgSlug);
 
   if (!canAccessAccounting(organization.role)) {
     return <AccountingLockedState />;
   }
-
-  const goToDocument = (documentId: string) =>
-    navigate({ params: { documentId, orgSlug }, to: "/$orgSlug/sales/receipts/$documentId" });
 
   return (
     <PageLayout>
@@ -41,8 +39,8 @@ function RouteComponent() {
       <SettlementForm
         direction="received"
         document={null}
-        onPosted={goToDocument}
-        onSaved={goToDocument}
+        onPosted={documentNavigation.salesReceipt}
+        onSaved={documentNavigation.salesReceipt}
         orgSlug={orgSlug}
       />
     </PageLayout>

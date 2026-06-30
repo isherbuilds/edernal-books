@@ -1,5 +1,4 @@
-import { useMemo, useState } from "react";
-import { Controller } from "react-hook-form";
+import { useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -9,12 +8,8 @@ import {
   type SettlementDirection,
   type SettlementDocument
 } from "@tsu-stack/core/documents";
-import { Button } from "@tsu-stack/ui/components/button";
-import { Input } from "@tsu-stack/ui/components/input";
-import { Label } from "@tsu-stack/ui/components/label";
 
 import {
-  formatMinorUnits,
   getTodayDateString,
   minorUnitsToDecimalString,
   parseDecimalAmountToMinorUnits
@@ -31,12 +26,12 @@ import {
 import { usePartiesQuery } from "@/hooks/use-records";
 import { useZodForm } from "@/hooks/use-zod-form";
 
+import { SettlementFormBody } from "@/components/documents/settlement-form-body";
 import {
-  DocumentEditorCard,
-  DocumentEditorFooter,
-  DocumentEditorSection
-} from "@/components/documents/document-editor-frame";
-import { FormComboboxField, FormSelectField, FormTextField } from "@/components/form-fields";
+  type AllocationTargetInfo,
+  type SettlementFormOption,
+  type SettlementFormValues
+} from "@/components/documents/settlement-form-types";
 
 const PAYMENT_MODE_LABELS: Record<(typeof PAYMENT_MODES)[number], string> = {
   bank_transfer: "Bank transfer",
@@ -72,13 +67,41 @@ const SETTLEMENT_DIRECTION_POLICY: Record<
   }
 };
 
-type AllocationTargetInfo = {
-  documentKind: AllocationTarget["documentKind"];
-  documentDate?: string;
-  documentNumber?: string;
-  outstandingMinor?: string;
-  unavailable?: boolean;
+type AllocationPayloadItem = {
+  amountMinor: string;
+  targetDocumentId: string;
+  targetDocumentKind: AllocationTarget["documentKind"];
 };
+
+function sumAvailableAllocationsMinor(
+  allocations: Record<string, string>,
+  allocationTargetsById: Map<string, AllocationTargetInfo>
+) {
+  let sum = 0n;
+
+  for (const [targetId, amount] of Object.entries(allocations)) {
+    if (allocationTargetsById.get(targetId)?.unavailable) {
+      continue;
+    }
+
+    const parsed = parseDecimalAmountToMinorUnits(amount);
+    if (parsed.ok && parsed.value !== null) {
+      sum += BigInt(parsed.value);
+    }
+  }
+
+  return sum;
+}
+
+function sumAllocationPayloadMinor(allocationPayload: AllocationPayloadItem[]) {
+  let sum = 0n;
+
+  for (const allocation of allocationPayload) {
+    sum += BigInt(allocation.amountMinor);
+  }
+
+  return sum;
+}
 
 const settlementFormSchema = z.object({
   amount: z.string().refine((value) => {
@@ -92,8 +115,6 @@ const settlementFormSchema = z.object({
   reference: z.string(),
   settlementDate: z.string().min(1, "Pick a date")
 });
-
-type SettlementFormValues = z.infer<typeof settlementFormSchema>;
 
 type SettlementFormProps = {
   direction: SettlementDirection;
@@ -173,35 +194,31 @@ export function SettlementForm({
     toAllocationState(document)
   );
 
-  const partyOptions = useMemo(() => {
-    const parties = partiesQuery.data?.pages.flatMap((page) => page.parties) ?? [];
-    const matchesDirection =
-      direction === "received"
-        ? (kind: string) => kind === "customer" || kind === "both"
-        : (kind: string) => kind === "vendor" || kind === "both";
+  const partyOptions: SettlementFormOption[] = [];
+  const matchesDirection =
+    direction === "received"
+      ? (kind: string) => kind === "customer" || kind === "both"
+      : (kind: string) => kind === "vendor" || kind === "both";
+  for (const page of partiesQuery.data?.pages ?? []) {
+    for (const party of page.parties) {
+      if (matchesDirection(party.kind)) {
+        partyOptions.push({ label: party.displayName, value: party.id });
+      }
+    }
+  }
 
-    return parties
-      .filter((party) => matchesDirection(party.kind))
-      .map((party) => {
-        return { label: party.displayName, value: party.id };
-      });
-  }, [direction, partiesQuery.data]);
-
-  const cashAccountOptions = useMemo(() => {
-    const accounts = accountsQuery.data?.accounts ?? [];
-    return accounts
-      .filter(
-        (account) =>
-          account.accountCategory === "asset" &&
-          (account.accountType === "cash" || account.accountType === "bank") &&
-          account.active &&
-          !account.isGroup &&
-          account.allowManualPosting
-      )
-      .map((account) => {
-        return { label: account.name, value: account.id };
-      });
-  }, [accountsQuery.data]);
+  const cashAccountOptions: SettlementFormOption[] = [];
+  for (const account of accountsQuery.data?.accounts ?? []) {
+    if (
+      account.accountCategory === "asset" &&
+      (account.accountType === "cash" || account.accountType === "bank") &&
+      account.active &&
+      !account.isGroup &&
+      account.allowManualPosting
+    ) {
+      cashAccountOptions.push({ label: account.name, value: account.id });
+    }
+  }
 
   const amount = watch("amount");
   const partyId = watch("partyId");
@@ -210,61 +227,37 @@ export function SettlementForm({
     { direction, orgSlug, partyId },
     partyId !== ""
   );
-  const targets = useMemo(
-    () => allocationTargetsQuery.data?.pages.flatMap((page) => page.targets) ?? [],
-    [allocationTargetsQuery.data]
-  );
-  const displayedTargets = useMemo(() => {
-    const entries = new Map<string, AllocationTargetInfo>();
+  const targets: AllocationTarget[] = [];
+  for (const page of allocationTargetsQuery.data?.pages ?? []) {
+    targets.push(...page.targets);
+  }
+  const displayedTargetEntries = new Map<string, AllocationTargetInfo>();
 
-    for (const allocation of document?.allocations ?? []) {
-      entries.set(allocation.targetDocumentId, {
-        documentKind: allocation.targetDocumentKind,
-        documentNumber: allocation.targetDocumentNumber ?? undefined,
-        unavailable: true
-      });
-    }
-
-    for (const target of targets) {
-      entries.set(target.id, {
-        documentKind: target.documentKind,
-        documentDate: target.documentDate,
-        documentNumber: target.documentNumber,
-        outstandingMinor: target.outstandingMinor,
-        unavailable: false
-      });
-    }
-
-    return Array.from(entries, ([id, target]) => {
-      return { id, ...target };
+  for (const allocation of document?.allocations ?? []) {
+    displayedTargetEntries.set(allocation.targetDocumentId, {
+      documentKind: allocation.targetDocumentKind,
+      documentNumber: allocation.targetDocumentNumber ?? undefined,
+      unavailable: true
     });
-  }, [document?.allocations, targets]);
-  const allocationTargetsById = useMemo(
-    () => new Map(displayedTargets.map((target) => [target.id, target])),
-    [displayedTargets]
-  );
+  }
 
-  const amountMinor = useMemo(() => {
-    const parsed = parseDecimalAmountToMinorUnits(amount);
-    return parsed.ok ? parsed.value : null;
-  }, [amount]);
+  for (const target of targets) {
+    displayedTargetEntries.set(target.id, {
+      documentKind: target.documentKind,
+      documentDate: target.documentDate,
+      documentNumber: target.documentNumber,
+      outstandingMinor: target.outstandingMinor,
+      unavailable: false
+    });
+  }
 
-  const allocatedMinor = useMemo(() => {
-    let sum = 0n;
-
-    for (const [targetId, amount] of Object.entries(allocations)) {
-      if (allocationTargetsById.get(targetId)?.unavailable) {
-        continue;
-      }
-
-      const parsed = parseDecimalAmountToMinorUnits(amount);
-      if (parsed.ok && parsed.value !== null) {
-        sum += BigInt(parsed.value);
-      }
-    }
-
-    return sum;
-  }, [allocationTargetsById, allocations]);
+  const displayedTargets = Array.from(displayedTargetEntries, ([id, target]) => {
+    return { id, ...target };
+  });
+  const allocationTargetsById = new Map(displayedTargets.map((target) => [target.id, target]));
+  const parsedAmount = parseDecimalAmountToMinorUnits(amount);
+  const amountMinor = parsedAmount.ok ? parsedAmount.value : null;
+  const allocatedMinor = sumAvailableAllocationsMinor(allocations, allocationTargetsById);
 
   const setAllocation = (targetId: string, value: string) => {
     setAllocations((current) => {
@@ -282,11 +275,7 @@ export function SettlementForm({
     }
     const settlementAmountMinor = BigInt(parsedAmount.value);
 
-    const allocationPayload: Array<{
-      amountMinor: string;
-      targetDocumentId: string;
-      targetDocumentKind: (typeof targets)[number]["documentKind"];
-    }> = [];
+    const allocationPayload: AllocationPayloadItem[] = [];
 
     for (const [targetId, allocationAmount] of Object.entries(allocations)) {
       const parsedAllocation = parseDecimalAmountToMinorUnits(allocationAmount);
@@ -322,10 +311,7 @@ export function SettlementForm({
       });
     }
 
-    const allocatedTotal = allocationPayload.reduce(
-      (sum, allocation) => sum + BigInt(allocation.amountMinor),
-      0n
-    );
+    const allocatedTotal = sumAllocationPayloadMinor(allocationPayload);
     if (allocatedTotal !== settlementAmountMinor) {
       toast.error("Allocated amount must equal the settlement amount");
       return null;
@@ -400,179 +386,39 @@ export function SettlementForm({
   const showAllocationPanel = partyId !== "" && displayedTargets.length > 0;
 
   return (
-    <DocumentEditorCard noValidate onSubmit={onSaveDraft}>
-      <DocumentEditorSection title="Details">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Controller
-            control={control}
-            name="partyId"
-            render={({ field, fieldState }) => (
-              <FormComboboxField
-                error={fieldState.error}
-                inputValue={partySearch}
-                items={partyOptions}
-                label={partyLabel}
-                loading={partiesQuery.isFetching}
-                manualFiltering
-                name={field.name}
-                onInputValueChange={setPartySearch}
-                onValueChange={(value) => {
-                  const nextPartyId = value ?? "";
-                  if (nextPartyId !== field.value) {
-                    setAllocations({});
-                  }
-                  field.onChange(nextPartyId);
-                }}
-                placeholder={partyPlaceholder}
-                value={field.value === "" ? null : field.value}
-              />
-            )}
-          />
-          <FormTextField
-            error={errors.settlementDate}
-            label="Date"
-            type="date"
-            {...register("settlementDate")}
-          />
-          <FormTextField
-            error={errors.amount}
-            inputMode="decimal"
-            label="Amount"
-            placeholder="0.00"
-            {...register("amount")}
-          />
-          <Controller
-            control={control}
-            name="cashAccountId"
-            render={({ field, fieldState }) => (
-              <FormSelectField
-                error={fieldState.error}
-                label="Cash / bank account"
-                name={field.name}
-                onBlur={field.onBlur}
-                onValueChange={(value) => field.onChange(value ?? "")}
-                options={cashAccountOptions}
-                value={field.value}
-              />
-            )}
-          />
-          <Controller
-            control={control}
-            name="paymentMode"
-            render={({ field, fieldState }) => (
-              <FormSelectField
-                error={fieldState.error}
-                label="Payment mode"
-                name={field.name}
-                onBlur={field.onBlur}
-                onValueChange={(value) => field.onChange(value ?? "")}
-                options={paymentModeOptions}
-                value={field.value}
-              />
-            )}
-          />
-        </div>
-      </DocumentEditorSection>
-
-      {showAllocationPanel ? (
-        <DocumentEditorSection
-          action={
-            <span className="text-xs text-muted-foreground">
-              Allocated {formatMinorUnits(allocatedMinor.toString())} of{" "}
-              {formatMinorUnits((amountMinor ?? "0").toString())}
-            </span>
-          }
-          title="Allocate to outstanding documents"
-        >
-          <div className="-mx-4 flex flex-col divide-y border-t sm:-mx-5">
-            {displayedTargets.map((target) => {
-              const parsedAllocation = parseDecimalAmountToMinorUnits(allocations[target.id] ?? "");
-              const exceedsOutstanding =
-                !target.unavailable &&
-                target.outstandingMinor !== undefined &&
-                parsedAllocation.ok &&
-                parsedAllocation.value !== null &&
-                BigInt(parsedAllocation.value) > BigInt(target.outstandingMinor);
-
-              return (
-                <div
-                  className="grid items-center gap-3 px-4 py-3 sm:grid-cols-[1fr_auto] sm:px-5"
-                  key={target.id}
-                >
-                  <div className="flex flex-col">
-                    <span className="text-sm font-medium">
-                      {target.documentNumber ?? "Existing allocation"}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {target.unavailable
-                        ? "No longer open"
-                        : `${target.documentDate} · Outstanding ${formatMinorUnits(
-                            target.outstandingMinor ?? "0"
-                          )}`}
-                    </span>
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <Label className="sr-only" htmlFor={`allocation-${target.id}`}>
-                      Allocation for {target.documentNumber}
-                    </Label>
-                    <Input
-                      aria-invalid={exceedsOutstanding ? true : undefined}
-                      className="sm:w-40"
-                      id={`allocation-${target.id}`}
-                      inputMode="decimal"
-                      onChange={(event) => setAllocation(target.id, event.target.value)}
-                      placeholder="0.00"
-                      value={allocations[target.id] ?? ""}
-                    />
-                    {exceedsOutstanding ? (
-                      <span className="text-xs text-destructive">Exceeds outstanding</span>
-                    ) : null}
-                    {target.unavailable ? (
-                      <span className="text-xs text-destructive">Clear this allocation</span>
-                    ) : null}
-                  </div>
-                </div>
-              );
-            })}
-            {allocationTargetsQuery.hasNextPage ? (
-              <div className="px-4 py-3 sm:px-5">
-                <Button
-                  disabled={allocationTargetsQuery.isFetchingNextPage}
-                  onClick={() => allocationTargetsQuery.fetchNextPage()}
-                  size="sm"
-                  type="button"
-                  variant="outline"
-                >
-                  {allocationTargetsQuery.isFetchingNextPage ? "Loading..." : "Load more"}
-                </Button>
-              </div>
-            ) : null}
-          </div>
-        </DocumentEditorSection>
-      ) : null}
-
-      <DocumentEditorSection title="Reference & notes">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <FormTextField error={errors.reference} label="Reference" {...register("reference")} />
-          <FormTextField error={errors.notes} label="Notes" {...register("notes")} />
-        </div>
-      </DocumentEditorSection>
-
-      <DocumentEditorFooter
-        isPosting={createAndPost.isPending || updateAndPost.isPending}
-        isSavingDraft={createDraft.isPending || updateDraft.isPending}
-        onPost={onPost}
-        onSaveDraft={onSaveDraft}
-        postLabel={postLabel}
-        summary={
-          <div className="flex items-baseline gap-2">
-            <span className="text-xs text-muted-foreground">Amount</span>
-            <span className="font-amount text-lg tabular-nums">
-              {formatMinorUnits((amountMinor ?? "0").toString())}
-            </span>
-          </div>
+    <SettlementFormBody
+      allocatedMinor={allocatedMinor}
+      allocationPagination={{
+        hasNextPage: allocationTargetsQuery.hasNextPage,
+        loadingNextPage: allocationTargetsQuery.isFetchingNextPage,
+        onLoadMore: () => {
+          void allocationTargetsQuery.fetchNextPage();
         }
-      />
-    </DocumentEditorCard>
+      }}
+      allocations={allocations}
+      amountMinor={amountMinor}
+      cashAccountOptions={cashAccountOptions}
+      control={control}
+      displayedTargets={displayedTargets}
+      errors={errors}
+      onAllocationChange={setAllocation}
+      onPartyChanged={() => setAllocations({})}
+      onPost={onPost}
+      onSaveDraft={onSaveDraft}
+      partyLabel={partyLabel}
+      partyLoading={partiesQuery.isFetching}
+      partyOptions={partyOptions}
+      partyPlaceholder={partyPlaceholder}
+      partySearch={partySearch}
+      paymentModeOptions={paymentModeOptions}
+      postLabel={postLabel}
+      register={register}
+      setPartySearch={setPartySearch}
+      showAllocationPanel={showAllocationPanel}
+      saving={{
+        posting: createAndPost.isPending || updateAndPost.isPending,
+        savingDraft: createDraft.isPending || updateDraft.isPending
+      }}
+    />
   );
 }

@@ -60,7 +60,7 @@ export function DocumentDetail({ detail, onVoided, orgSlug }: DocumentDetailProp
   const voidDocument = useVoidDocumentMutation(orgSlug);
   const [isVoiding, setIsVoiding] = useState(false);
   const [reason, setReason] = useState("");
-  const [voidDate, setVoidDate] = useState(getTodayDateString());
+  const [voidDate, setVoidDate] = useState(() => getTodayDateString());
 
   const partyName = documentPartyName(detail);
   const title = documentTitle(detail);

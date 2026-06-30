@@ -12,16 +12,17 @@ const PROGRESS_DELAY_MS = 175;
 function ProgressBarSubscriber() {
   const router = useRouter();
   const { start, stop } = useProgress();
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isNavigatingRef = useRef(false);
 
   useEffect(() => {
+    let timeout: NodeJS.Timeout | null = null;
+
     const clearAndStop = () => {
       isNavigatingRef.current = false;
 
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-        timeoutRef.current = null;
+      if (timeout) {
+        clearTimeout(timeout);
+        timeout = null;
       }
 
       stop();
@@ -33,15 +34,15 @@ function ProgressBarSubscriber() {
       isNavigatingRef.current = true;
 
       // Clear any existing timeout
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
+      if (timeout) {
+        clearTimeout(timeout);
       }
 
-      timeoutRef.current = setTimeout(() => {
+      timeout = setTimeout(() => {
         if (isNavigatingRef.current && router.state.isLoading) {
           start();
         }
-        timeoutRef.current = null;
+        timeout = null;
       }, PROGRESS_DELAY_MS);
     });
 
@@ -50,8 +51,8 @@ function ProgressBarSubscriber() {
     return () => {
       unsubBeforeLoad();
       unsubResolved();
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
+      if (timeout) {
+        clearTimeout(timeout);
       }
       stop();
     };
