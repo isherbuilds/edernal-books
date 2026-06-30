@@ -13,11 +13,13 @@ import {
   uuid
 } from "drizzle-orm/pg-core";
 
+import { JOURNAL_SOURCE_TYPES } from "@tsu-stack/core/accounting";
+
 import { ledgerAccount } from "#@/schema/accounts";
 import { organization, user } from "#@/schema/auth.schema";
 import { accountingPeriod } from "#@/schema/periods";
-import { sourceDocument } from "#@/schema/source-documents";
 import { createUuidV7 } from "#@/utils/id";
+import { sqlInList } from "#@/utils/sql";
 
 export const journalEntry = pgTable(
   "journal_entry",
@@ -27,24 +29,20 @@ export const journalEntry = pgTable(
     description: text("description"),
     entryNumber: text("entry_number").notNull(),
     id: uuid("id").$defaultFn(createUuidV7).primaryKey(),
-    operationKey: text("operation_key").notNull(),
     organizationId: text("organization_id")
       .notNull()
       .references(() => organization.id, { onDelete: "cascade" }),
     postedAt: timestamp("posted_at").notNull(),
     postedBy: text("posted_by").references(() => user.id, { onDelete: "set null" }),
     postingDate: date("posting_date").notNull(),
-    requestHash: text("request_hash").notNull(),
     reversalOfEntryId: uuid("reversal_of_entry_id"),
-    sourceDocumentId: uuid("source_document_id"),
+    sourceNumber: text("source_number"),
+    sourceRecordId: uuid("source_record_id"),
+    sourceType: text("source_type", { enum: JOURNAL_SOURCE_TYPES }),
     totalMinor: pgBigint("total_minor", { mode: "bigint" }).notNull()
   },
   (table) => [
     uniqueIndex("journal_entry_organization_id_id_uidx").on(table.organizationId, table.id),
-    uniqueIndex("journal_entry_organization_id_operation_key_uidx").on(
-      table.organizationId,
-      table.operationKey
-    ),
     uniqueIndex("journal_entry_organization_id_entry_number_uidx").on(
       table.organizationId,
       table.entryNumber
@@ -52,17 +50,15 @@ export const journalEntry = pgTable(
     uniqueIndex("journal_entry_one_reversal_per_original_uidx")
       .on(table.organizationId, table.reversalOfEntryId)
       .where(sql`${table.reversalOfEntryId} IS NOT NULL`),
+    uniqueIndex("journal_entry_one_original_per_source_uidx")
+      .on(table.organizationId, table.sourceType, table.sourceRecordId)
+      .where(sql`${table.sourceRecordId} IS NOT NULL AND ${table.reversalOfEntryId} IS NULL`),
     index("journal_entry_posted_date_idx").on(table.organizationId, table.postingDate, table.id),
     index("journal_entry_organization_id_idx").on(table.organizationId),
     foreignKey({
       columns: [table.organizationId, table.accountingPeriodId],
       foreignColumns: [accountingPeriod.organizationId, accountingPeriod.id],
       name: "journal_entry_organization_id_accounting_period_id_fkey"
-    }).onDelete("restrict"),
-    foreignKey({
-      columns: [table.organizationId, table.sourceDocumentId],
-      foreignColumns: [sourceDocument.organizationId, sourceDocument.id],
-      name: "journal_entry_organization_id_source_document_id_fkey"
     }).onDelete("restrict"),
     foreignKey({
       columns: [table.organizationId, table.reversalOfEntryId],
@@ -73,6 +69,22 @@ export const journalEntry = pgTable(
       "journal_entry_reversal_not_self_ck",
       sql`${table.reversalOfEntryId} IS NULL OR ${table.reversalOfEntryId} <> ${table.id}`
     ),
+    check(
+      "journal_entry_source_all_or_none_ck",
+      sql`
+        (
+          ${table.sourceType} IS NULL
+          AND ${table.sourceRecordId} IS NULL
+          AND ${table.sourceNumber} IS NULL
+        )
+        OR (
+          ${table.sourceType} IS NOT NULL
+          AND ${table.sourceRecordId} IS NOT NULL
+          AND ${table.sourceNumber} IS NOT NULL
+        )
+      `
+    ),
+    check("journal_entry_source_type_ck", sqlInList(table.sourceType, JOURNAL_SOURCE_TYPES)),
     check("journal_entry_total_minor_ck", sql`${table.totalMinor} > 0`)
   ]
 );

@@ -1,6 +1,5 @@
 import { type ReactNode } from "react";
 
-import { m } from "@tsu-stack/i18n/messages";
 import { Separator } from "@tsu-stack/ui/components/separator";
 import { SidebarTrigger } from "@tsu-stack/ui/components/sidebar";
 
@@ -9,15 +8,18 @@ type SiteHeaderProps = {
 };
 
 export function SiteHeader({ title }: SiteHeaderProps) {
-  const resolvedTitle = title ?? m.navbar__dashboard();
-
   return (
-    <header className="flex h-(--header-height) shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)">
-      <div className="flex w-full items-center gap-1 px-4 lg:gap-2 lg:px-6">
-        <SidebarTrigger className="-ml-1" />
-        <Separator orientation="vertical" className="mx-2 h-4 data-vertical:self-auto" />
-        <h1 className="text-base font-medium">{resolvedTitle}</h1>
-      </div>
+    <header className="flex h-14 shrink-0 items-center gap-2 border-b bg-background px-4">
+      <SidebarTrigger className="-ml-1.5 text-muted-foreground" />
+      <Separator
+        className="mx-1 data-vertical:h-4 data-vertical:self-auto"
+        orientation="vertical"
+      />
+      {title ? (
+        <span className="truncate text-sm font-medium">{title}</span>
+      ) : (
+        <span className="truncate text-sm font-medium text-muted-foreground">Edernal Books</span>
+      )}
     </header>
   );
 }

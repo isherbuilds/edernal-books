@@ -5,11 +5,7 @@ import { CursorPaginationInputSchema, CursorPaginationOutputSchema } from "#@/pa
 import { nullableTextInput, SearchQuerySchema } from "#@/text/index";
 
 export const PARTY_KINDS = ["customer", "vendor", "both"] as const;
-export const PARTY_ERROR_CODES = [
-  "PARTY_CURSOR_INVALID",
-  "PARTY_DUPLICATE_NAME",
-  "PARTY_NOT_FOUND"
-] as const;
+export const PARTY_ERROR_CODES = ["PARTY_NOT_FOUND"] as const;
 
 export const PartyKindSchema = z.enum(PARTY_KINDS);
 export type PartyKind = z.infer<typeof PartyKindSchema>;

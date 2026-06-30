@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 
+import * as schema from "#@/schema/index";
 import {
   accountingPeriod,
   auditEvent,
@@ -11,8 +12,7 @@ import {
   ledgerAccount,
   numberSequence,
   organizationSetting,
-  outboxEvent,
-  sourceDocument
+  outboxEvent
 } from "#@/schema/index";
 
 describe("platform foundation schema", () => {
@@ -40,7 +40,6 @@ describe("platform foundation schema", () => {
     expect(accountingPeriod.organizationId).toBeDefined();
     expect(ledgerAccount.organizationId).toBeDefined();
     expect(numberSequence.organizationId).toBeDefined();
-    expect(sourceDocument.organizationId).toBeDefined();
     expect(journalEntry.organizationId).toBeDefined();
     expect(journalLine.organizationId).toBeDefined();
   });
@@ -60,18 +59,16 @@ describe("platform foundation schema", () => {
   it("uses posted journal entries without persisted status", () => {
     expect(journalEntry.postedAt).toBeDefined();
     expect(journalEntry.postedBy).toBeDefined();
-    expect(journalEntry.requestHash).toBeDefined();
+    expect("operationKey" in journalEntry).toBe(false);
+    expect("requestHash" in journalEntry).toBe(false);
     expect("status" in journalEntry).toBe(false);
   });
 
-  it("keeps source document as a slim anchor", () => {
-    expect(sourceDocument.documentNumber).toBeDefined();
-    expect(sourceDocument.type).toBeDefined();
-    expect("status" in sourceDocument).toBe(false);
-    expect("date" in sourceDocument).toBe(false);
-    expect("grandTotalMinor" in sourceDocument).toBe(false);
-    expect("currencyCode" in sourceDocument).toBe(false);
-    expect("exchangeRate" in sourceDocument).toBe(false);
+  it("stores journal source metadata without exporting a document anchor table", () => {
+    expect(schema).not.toHaveProperty("source" + "Document");
+    expect(journalEntry.sourceType).toBeDefined();
+    expect(journalEntry.sourceRecordId).toBeDefined();
+    expect(journalEntry.sourceNumber).toBeDefined();
   });
 
   it("keeps ledger account hierarchy without separate control/reconcilable/currency flags", () => {

@@ -50,8 +50,6 @@ CREATE TABLE "currency" (
 	"symbol" text NOT NULL
 );
 --> statement-breakpoint
-INSERT INTO "currency" ("code", "name", "symbol", "decimal_places", "active") VALUES ('INR', 'Indian Rupee', '₹', 2, true) ON CONFLICT ("code") DO NOTHING;
---> statement-breakpoint
 CREATE TABLE "exchange_rate" (
 	"base_currency_code" text,
 	"created_at" timestamp DEFAULT now() NOT NULL,
@@ -120,16 +118,29 @@ CREATE TABLE "journal_entry" (
 	"description" text,
 	"entry_number" text NOT NULL,
 	"id" uuid PRIMARY KEY,
-	"operation_key" text NOT NULL,
 	"organization_id" text NOT NULL,
 	"posted_at" timestamp NOT NULL,
 	"posted_by" text,
 	"posting_date" date NOT NULL,
-	"request_hash" text NOT NULL,
 	"reversal_of_entry_id" uuid,
-	"source_document_id" uuid,
+	"source_number" text,
+	"source_record_id" uuid,
+	"source_type" text,
 	"total_minor" bigint NOT NULL,
 	CONSTRAINT "journal_entry_reversal_not_self_ck" CHECK ("reversal_of_entry_id" IS NULL OR "reversal_of_entry_id" <> "id"),
+	CONSTRAINT "journal_entry_source_all_or_none_ck" CHECK (
+        (
+          "source_type" IS NULL
+          AND "source_record_id" IS NULL
+          AND "source_number" IS NULL
+        )
+        OR (
+          "source_type" IS NOT NULL
+          AND "source_record_id" IS NOT NULL
+          AND "source_number" IS NOT NULL
+        )
+      ),
+	CONSTRAINT "journal_entry_source_type_ck" CHECK ("source_type" IN ('sales_invoice', 'purchase_bill', 'expense', 'settlement_received', 'settlement_paid')),
 	CONSTRAINT "journal_entry_total_minor_ck" CHECK ("total_minor" > 0)
 );
 --> statement-breakpoint
@@ -269,6 +280,170 @@ CREATE TABLE "party" (
 	CONSTRAINT "party_normalized_name_not_blank_ck" CHECK (length(trim("normalized_name")) > 0)
 );
 --> statement-breakpoint
+CREATE TABLE "purchase_document" (
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"document_number" text,
+	"draft_reference" text NOT NULL,
+	"id" uuid PRIMARY KEY,
+	"journal_entry_id" uuid,
+	"organization_id" text NOT NULL,
+	"posted_at" timestamp,
+	"posted_by_user_id" text,
+	"status" text DEFAULT 'draft' NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL,
+	"void_reason" text,
+	"voided_at" timestamp,
+	"voided_by_user_id" text,
+	"document_kind" text NOT NULL,
+	"due_date" date,
+	"notes" text,
+	"outstanding_minor" bigint DEFAULT 0 NOT NULL,
+	"purchase_date" date NOT NULL,
+	"total_minor" bigint DEFAULT 0 NOT NULL,
+	"vendor_party_id" uuid NOT NULL,
+	"vendor_reference_number" text,
+	CONSTRAINT "purchase_document_status_ck" CHECK ("status" IN ('draft', 'posted', 'voided')),
+	CONSTRAINT "purchase_document_kind_ck" CHECK ("document_kind" IN ('purchase_bill', 'expense')),
+	CONSTRAINT "purchase_document_lifecycle_ck" CHECK (
+    (
+      "status" = 'draft'
+      AND "document_number" IS NULL
+      AND "journal_entry_id" IS NULL
+      AND "posted_at" IS NULL
+      AND "posted_by_user_id" IS NULL
+      AND "voided_at" IS NULL
+      AND "voided_by_user_id" IS NULL
+      AND "void_reason" IS NULL
+    )
+    OR (
+      "status" = 'posted'
+      AND "document_number" IS NOT NULL
+      AND "journal_entry_id" IS NOT NULL
+      AND "posted_at" IS NOT NULL
+      AND "posted_by_user_id" IS NOT NULL
+      AND "voided_at" IS NULL
+      AND "voided_by_user_id" IS NULL
+      AND "void_reason" IS NULL
+    )
+    OR (
+      "status" = 'voided'
+      AND "document_number" IS NOT NULL
+      AND "journal_entry_id" IS NOT NULL
+      AND "posted_at" IS NOT NULL
+      AND "posted_by_user_id" IS NOT NULL
+      AND "voided_at" IS NOT NULL
+      AND "voided_by_user_id" IS NOT NULL
+      AND "void_reason" IS NOT NULL
+    )
+  ),
+	CONSTRAINT "purchase_document_date_order_ck" CHECK ("due_date" IS NULL OR "purchase_date" <= "due_date"),
+	CONSTRAINT "purchase_document_total_minor_ck" CHECK ("total_minor" >= 0),
+	CONSTRAINT "purchase_document_outstanding_minor_ck" CHECK ("outstanding_minor" >= 0),
+	CONSTRAINT "purchase_document_outstanding_lte_total_ck" CHECK ("outstanding_minor" <= "total_minor")
+);
+--> statement-breakpoint
+CREATE TABLE "purchase_document_line" (
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"description" text NOT NULL,
+	"expense_account_id" uuid NOT NULL,
+	"id" uuid PRIMARY KEY,
+	"item_id" uuid,
+	"line_number" integer NOT NULL,
+	"organization_id" text NOT NULL,
+	"hsn_code" text,
+	"purchase_document_id" uuid NOT NULL,
+	"quantity" numeric(18,6) NOT NULL,
+	"rate_minor" bigint NOT NULL,
+	"total_minor" bigint NOT NULL,
+	"unit" text,
+	CONSTRAINT "purchase_document_line_line_number_ck" CHECK ("line_number" > 0),
+	CONSTRAINT "purchase_document_line_description_not_blank_ck" CHECK (length(trim("description")) > 0),
+	CONSTRAINT "purchase_document_line_quantity_ck" CHECK ("quantity" > 0),
+	CONSTRAINT "purchase_document_line_rate_minor_ck" CHECK ("rate_minor" > 0),
+	CONSTRAINT "purchase_document_line_total_minor_ck" CHECK ("total_minor" > 0)
+);
+--> statement-breakpoint
+CREATE TABLE "sales_document" (
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"document_number" text,
+	"draft_reference" text NOT NULL,
+	"id" uuid PRIMARY KEY,
+	"journal_entry_id" uuid,
+	"organization_id" text NOT NULL,
+	"posted_at" timestamp,
+	"posted_by_user_id" text,
+	"status" text DEFAULT 'draft' NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL,
+	"void_reason" text,
+	"voided_at" timestamp,
+	"voided_by_user_id" text,
+	"customer_party_id" uuid NOT NULL,
+	"due_date" date,
+	"invoice_date" date NOT NULL,
+	"notes" text,
+	"outstanding_minor" bigint DEFAULT 0 NOT NULL,
+	"terms" text,
+	"total_minor" bigint DEFAULT 0 NOT NULL,
+	CONSTRAINT "sales_document_status_ck" CHECK ("status" IN ('draft', 'posted', 'voided')),
+	CONSTRAINT "sales_document_lifecycle_ck" CHECK (
+    (
+      "status" = 'draft'
+      AND "document_number" IS NULL
+      AND "journal_entry_id" IS NULL
+      AND "posted_at" IS NULL
+      AND "posted_by_user_id" IS NULL
+      AND "voided_at" IS NULL
+      AND "voided_by_user_id" IS NULL
+      AND "void_reason" IS NULL
+    )
+    OR (
+      "status" = 'posted'
+      AND "document_number" IS NOT NULL
+      AND "journal_entry_id" IS NOT NULL
+      AND "posted_at" IS NOT NULL
+      AND "posted_by_user_id" IS NOT NULL
+      AND "voided_at" IS NULL
+      AND "voided_by_user_id" IS NULL
+      AND "void_reason" IS NULL
+    )
+    OR (
+      "status" = 'voided'
+      AND "document_number" IS NOT NULL
+      AND "journal_entry_id" IS NOT NULL
+      AND "posted_at" IS NOT NULL
+      AND "posted_by_user_id" IS NOT NULL
+      AND "voided_at" IS NOT NULL
+      AND "voided_by_user_id" IS NOT NULL
+      AND "void_reason" IS NOT NULL
+    )
+  ),
+	CONSTRAINT "sales_document_date_order_ck" CHECK ("due_date" IS NULL OR "invoice_date" <= "due_date"),
+	CONSTRAINT "sales_document_total_minor_ck" CHECK ("total_minor" >= 0),
+	CONSTRAINT "sales_document_outstanding_minor_ck" CHECK ("outstanding_minor" >= 0),
+	CONSTRAINT "sales_document_outstanding_lte_total_ck" CHECK ("outstanding_minor" <= "total_minor")
+);
+--> statement-breakpoint
+CREATE TABLE "sales_document_line" (
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"description" text NOT NULL,
+	"id" uuid PRIMARY KEY,
+	"income_account_id" uuid NOT NULL,
+	"item_id" uuid,
+	"line_number" integer NOT NULL,
+	"organization_id" text NOT NULL,
+	"quantity" numeric(18,6) NOT NULL,
+	"rate_minor" bigint NOT NULL,
+	"hsn_code" text,
+	"sales_document_id" uuid NOT NULL,
+	"total_minor" bigint NOT NULL,
+	"unit" text,
+	CONSTRAINT "sales_document_line_line_number_ck" CHECK ("line_number" > 0),
+	CONSTRAINT "sales_document_line_description_not_blank_ck" CHECK (length(trim("description")) > 0),
+	CONSTRAINT "sales_document_line_quantity_ck" CHECK ("quantity" > 0),
+	CONSTRAINT "sales_document_line_rate_minor_ck" CHECK ("rate_minor" > 0),
+	CONSTRAINT "sales_document_line_total_minor_ck" CHECK ("total_minor" > 0)
+);
+--> statement-breakpoint
 CREATE TABLE "session" (
 	"id" text PRIMARY KEY,
 	"expires_at" timestamp NOT NULL,
@@ -281,12 +456,89 @@ CREATE TABLE "session" (
 	"active_organization_id" text
 );
 --> statement-breakpoint
-CREATE TABLE "source_document" (
+CREATE TABLE "settlement_allocation" (
+	"amount_minor" bigint NOT NULL,
 	"created_at" timestamp DEFAULT now() NOT NULL,
-	"document_number" text,
 	"id" uuid PRIMARY KEY,
 	"organization_id" text NOT NULL,
-	"type" text NOT NULL
+	"purchase_document_id" uuid,
+	"sales_document_id" uuid,
+	"settlement_document_id" uuid NOT NULL,
+	"target_document_kind" text NOT NULL,
+	CONSTRAINT "settlement_allocation_target_document_kind_ck" CHECK ("target_document_kind" IN ('sales_invoice', 'purchase_bill', 'expense')),
+	CONSTRAINT "settlement_allocation_amount_minor_ck" CHECK ("amount_minor" > 0),
+	CONSTRAINT "settlement_allocation_target_ck" CHECK (
+        (
+          "target_document_kind" = 'sales_invoice'
+          AND "sales_document_id" IS NOT NULL
+          AND "purchase_document_id" IS NULL
+        )
+        OR (
+          "target_document_kind" IN ('purchase_bill', 'expense')
+          AND "sales_document_id" IS NULL
+          AND "purchase_document_id" IS NOT NULL
+        )
+      )
+);
+--> statement-breakpoint
+CREATE TABLE "settlement_document" (
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"document_number" text,
+	"draft_reference" text NOT NULL,
+	"id" uuid PRIMARY KEY,
+	"journal_entry_id" uuid,
+	"organization_id" text NOT NULL,
+	"posted_at" timestamp,
+	"posted_by_user_id" text,
+	"status" text DEFAULT 'draft' NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL,
+	"void_reason" text,
+	"voided_at" timestamp,
+	"voided_by_user_id" text,
+	"amount_minor" bigint NOT NULL,
+	"cash_account_id" uuid NOT NULL,
+	"direction" text NOT NULL,
+	"notes" text,
+	"party_id" uuid NOT NULL,
+	"payment_mode" text NOT NULL,
+	"reference" text,
+	"settlement_date" date NOT NULL,
+	CONSTRAINT "settlement_document_status_ck" CHECK ("status" IN ('draft', 'posted', 'voided')),
+	CONSTRAINT "settlement_document_direction_ck" CHECK ("direction" IN ('received', 'paid')),
+	CONSTRAINT "settlement_document_payment_mode_ck" CHECK ("payment_mode" IN ('cash', 'bank_transfer', 'upi', 'card', 'cheque', 'other')),
+	CONSTRAINT "settlement_document_lifecycle_ck" CHECK (
+    (
+      "status" = 'draft'
+      AND "document_number" IS NULL
+      AND "journal_entry_id" IS NULL
+      AND "posted_at" IS NULL
+      AND "posted_by_user_id" IS NULL
+      AND "voided_at" IS NULL
+      AND "voided_by_user_id" IS NULL
+      AND "void_reason" IS NULL
+    )
+    OR (
+      "status" = 'posted'
+      AND "document_number" IS NOT NULL
+      AND "journal_entry_id" IS NOT NULL
+      AND "posted_at" IS NOT NULL
+      AND "posted_by_user_id" IS NOT NULL
+      AND "voided_at" IS NULL
+      AND "voided_by_user_id" IS NULL
+      AND "void_reason" IS NULL
+    )
+    OR (
+      "status" = 'voided'
+      AND "document_number" IS NOT NULL
+      AND "journal_entry_id" IS NOT NULL
+      AND "posted_at" IS NOT NULL
+      AND "posted_by_user_id" IS NOT NULL
+      AND "voided_at" IS NOT NULL
+      AND "voided_by_user_id" IS NOT NULL
+      AND "void_reason" IS NOT NULL
+    )
+  ),
+	CONSTRAINT "settlement_document_amount_minor_ck" CHECK ("amount_minor" > 0)
 );
 --> statement-breakpoint
 CREATE TABLE "user" (
@@ -329,9 +581,9 @@ CREATE INDEX "item_organization_id_active_idx" ON "item" ("organization_id","is_
 CREATE INDEX "item_organization_id_sales_account_id_idx" ON "item" ("organization_id","sales_account_id");--> statement-breakpoint
 CREATE INDEX "item_organization_id_expense_account_id_idx" ON "item" ("organization_id","expense_account_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "journal_entry_organization_id_id_uidx" ON "journal_entry" ("organization_id","id");--> statement-breakpoint
-CREATE UNIQUE INDEX "journal_entry_organization_id_operation_key_uidx" ON "journal_entry" ("organization_id","operation_key");--> statement-breakpoint
 CREATE UNIQUE INDEX "journal_entry_organization_id_entry_number_uidx" ON "journal_entry" ("organization_id","entry_number");--> statement-breakpoint
 CREATE UNIQUE INDEX "journal_entry_one_reversal_per_original_uidx" ON "journal_entry" ("organization_id","reversal_of_entry_id") WHERE "reversal_of_entry_id" IS NOT NULL;--> statement-breakpoint
+CREATE UNIQUE INDEX "journal_entry_one_original_per_source_uidx" ON "journal_entry" ("organization_id","source_type","source_record_id") WHERE "source_record_id" IS NOT NULL AND "reversal_of_entry_id" IS NULL;--> statement-breakpoint
 CREATE INDEX "journal_entry_posted_date_idx" ON "journal_entry" ("organization_id","posting_date","id");--> statement-breakpoint
 CREATE INDEX "journal_entry_organization_id_idx" ON "journal_entry" ("organization_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "journal_line_organization_id_id_uidx" ON "journal_line" ("organization_id","id");--> statement-breakpoint
@@ -356,10 +608,51 @@ CREATE INDEX "party_organization_id_normalized_name_id_idx" ON "party" ("organiz
 CREATE INDEX "party_organization_id_idx" ON "party" ("organization_id");--> statement-breakpoint
 CREATE INDEX "party_organization_id_kind_idx" ON "party" ("organization_id","kind");--> statement-breakpoint
 CREATE INDEX "party_organization_id_active_idx" ON "party" ("organization_id","is_active");--> statement-breakpoint
+CREATE UNIQUE INDEX "purchase_document_organization_id_id_uidx" ON "purchase_document" ("organization_id","id");--> statement-breakpoint
+CREATE UNIQUE INDEX "purchase_document_organization_id_draft_reference_uidx" ON "purchase_document" ("organization_id","draft_reference");--> statement-breakpoint
+CREATE UNIQUE INDEX "purchase_document_organization_id_document_number_uidx" ON "purchase_document" ("organization_id","document_number") WHERE document_number IS NOT NULL;--> statement-breakpoint
+CREATE UNIQUE INDEX "purchase_document_organization_id_journal_entry_id_uidx" ON "purchase_document" ("organization_id","journal_entry_id") WHERE journal_entry_id IS NOT NULL;--> statement-breakpoint
+CREATE INDEX "purchase_document_register_idx" ON "purchase_document" ("organization_id","document_kind","status","purchase_date","id");--> statement-breakpoint
+CREATE INDEX "purchase_document_register_all_idx" ON "purchase_document" ("organization_id","purchase_date","id");--> statement-breakpoint
+CREATE INDEX "purchase_document_kind_register_idx" ON "purchase_document" ("organization_id","document_kind","purchase_date","id");--> statement-breakpoint
+CREATE INDEX "purchase_document_status_register_idx" ON "purchase_document" ("organization_id","status","purchase_date","id");--> statement-breakpoint
+CREATE INDEX "purchase_document_vendor_idx" ON "purchase_document" ("organization_id","vendor_party_id");--> statement-breakpoint
+CREATE INDEX "purchase_document_open_allocation_target_idx" ON "purchase_document" ("organization_id","vendor_party_id","purchase_date","id") WHERE status = 'posted' AND outstanding_minor > 0;--> statement-breakpoint
+CREATE UNIQUE INDEX "purchase_document_line_organization_id_id_uidx" ON "purchase_document_line" ("organization_id","id");--> statement-breakpoint
+CREATE UNIQUE INDEX "purchase_document_line_document_line_uidx" ON "purchase_document_line" ("organization_id","purchase_document_id","line_number");--> statement-breakpoint
+CREATE INDEX "purchase_document_line_document_idx" ON "purchase_document_line" ("organization_id","purchase_document_id");--> statement-breakpoint
+CREATE INDEX "purchase_document_line_expense_account_idx" ON "purchase_document_line" ("organization_id","expense_account_id");--> statement-breakpoint
+CREATE INDEX "purchase_document_line_item_idx" ON "purchase_document_line" ("organization_id","item_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "sales_document_organization_id_id_uidx" ON "sales_document" ("organization_id","id");--> statement-breakpoint
+CREATE UNIQUE INDEX "sales_document_organization_id_draft_reference_uidx" ON "sales_document" ("organization_id","draft_reference");--> statement-breakpoint
+CREATE UNIQUE INDEX "sales_document_organization_id_document_number_uidx" ON "sales_document" ("organization_id","document_number") WHERE document_number IS NOT NULL;--> statement-breakpoint
+CREATE UNIQUE INDEX "sales_document_organization_id_journal_entry_id_uidx" ON "sales_document" ("organization_id","journal_entry_id") WHERE journal_entry_id IS NOT NULL;--> statement-breakpoint
+CREATE INDEX "sales_document_register_idx" ON "sales_document" ("organization_id","status","invoice_date","id");--> statement-breakpoint
+CREATE INDEX "sales_document_register_all_idx" ON "sales_document" ("organization_id","invoice_date","id");--> statement-breakpoint
+CREATE INDEX "sales_document_customer_idx" ON "sales_document" ("organization_id","customer_party_id");--> statement-breakpoint
+CREATE INDEX "sales_document_open_allocation_target_idx" ON "sales_document" ("organization_id","customer_party_id","invoice_date","id") WHERE status = 'posted' AND outstanding_minor > 0;--> statement-breakpoint
+CREATE UNIQUE INDEX "sales_document_line_organization_id_id_uidx" ON "sales_document_line" ("organization_id","id");--> statement-breakpoint
+CREATE UNIQUE INDEX "sales_document_line_document_line_uidx" ON "sales_document_line" ("organization_id","sales_document_id","line_number");--> statement-breakpoint
+CREATE INDEX "sales_document_line_document_idx" ON "sales_document_line" ("organization_id","sales_document_id");--> statement-breakpoint
+CREATE INDEX "sales_document_line_income_account_idx" ON "sales_document_line" ("organization_id","income_account_id");--> statement-breakpoint
+CREATE INDEX "sales_document_line_item_idx" ON "sales_document_line" ("organization_id","item_id");--> statement-breakpoint
 CREATE INDEX "session_userId_idx" ON "session" ("user_id");--> statement-breakpoint
-CREATE UNIQUE INDEX "source_document_organization_id_id_uidx" ON "source_document" ("organization_id","id");--> statement-breakpoint
-CREATE UNIQUE INDEX "source_document_organization_id_type_number_uidx" ON "source_document" ("organization_id","type","document_number") WHERE "document_number" IS NOT NULL;--> statement-breakpoint
-CREATE INDEX "source_document_organization_id_idx" ON "source_document" ("organization_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "settlement_allocation_organization_id_id_uidx" ON "settlement_allocation" ("organization_id","id");--> statement-breakpoint
+CREATE INDEX "settlement_allocation_settlement_document_idx" ON "settlement_allocation" ("organization_id","settlement_document_id");--> statement-breakpoint
+CREATE INDEX "settlement_allocation_sales_document_idx" ON "settlement_allocation" ("organization_id","sales_document_id");--> statement-breakpoint
+CREATE INDEX "settlement_allocation_purchase_document_idx" ON "settlement_allocation" ("organization_id","purchase_document_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "settlement_allocation_sales_target_uidx" ON "settlement_allocation" ("organization_id","settlement_document_id","sales_document_id") WHERE sales_document_id IS NOT NULL;--> statement-breakpoint
+CREATE UNIQUE INDEX "settlement_allocation_purchase_target_uidx" ON "settlement_allocation" ("organization_id","settlement_document_id","purchase_document_id") WHERE purchase_document_id IS NOT NULL;--> statement-breakpoint
+CREATE UNIQUE INDEX "settlement_document_organization_id_id_uidx" ON "settlement_document" ("organization_id","id");--> statement-breakpoint
+CREATE UNIQUE INDEX "settlement_document_organization_id_draft_reference_uidx" ON "settlement_document" ("organization_id","draft_reference");--> statement-breakpoint
+CREATE UNIQUE INDEX "settlement_document_organization_id_document_number_uidx" ON "settlement_document" ("organization_id","document_number") WHERE document_number IS NOT NULL;--> statement-breakpoint
+CREATE UNIQUE INDEX "settlement_document_organization_id_journal_entry_id_uidx" ON "settlement_document" ("organization_id","journal_entry_id") WHERE journal_entry_id IS NOT NULL;--> statement-breakpoint
+CREATE INDEX "settlement_document_register_idx" ON "settlement_document" ("organization_id","direction","status","settlement_date","id");--> statement-breakpoint
+CREATE INDEX "settlement_document_register_all_idx" ON "settlement_document" ("organization_id","settlement_date","id");--> statement-breakpoint
+CREATE INDEX "settlement_document_direction_register_idx" ON "settlement_document" ("organization_id","direction","settlement_date","id");--> statement-breakpoint
+CREATE INDEX "settlement_document_status_register_idx" ON "settlement_document" ("organization_id","status","settlement_date","id");--> statement-breakpoint
+CREATE INDEX "settlement_document_party_idx" ON "settlement_document" ("organization_id","party_id");--> statement-breakpoint
+CREATE INDEX "settlement_document_cash_account_idx" ON "settlement_document" ("organization_id","cash_account_id");--> statement-breakpoint
 CREATE INDEX "verification_identifier_idx" ON "verification" ("identifier");--> statement-breakpoint
 ALTER TABLE "account" ADD CONSTRAINT "account_user_id_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "user"("id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "accounting_period" ADD CONSTRAINT "accounting_period_locked_by_user_id_fkey" FOREIGN KEY ("locked_by") REFERENCES "user"("id") ON DELETE SET NULL;--> statement-breakpoint
@@ -379,7 +672,6 @@ ALTER TABLE "item" ADD CONSTRAINT "item_organization_id_expense_account_id_fkey"
 ALTER TABLE "journal_entry" ADD CONSTRAINT "journal_entry_organization_id_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organization"("id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "journal_entry" ADD CONSTRAINT "journal_entry_posted_by_user_id_fkey" FOREIGN KEY ("posted_by") REFERENCES "user"("id") ON DELETE SET NULL;--> statement-breakpoint
 ALTER TABLE "journal_entry" ADD CONSTRAINT "journal_entry_organization_id_accounting_period_id_fkey" FOREIGN KEY ("organization_id","accounting_period_id") REFERENCES "accounting_period"("organization_id","id") ON DELETE RESTRICT;--> statement-breakpoint
-ALTER TABLE "journal_entry" ADD CONSTRAINT "journal_entry_organization_id_source_document_id_fkey" FOREIGN KEY ("organization_id","source_document_id") REFERENCES "source_document"("organization_id","id") ON DELETE RESTRICT;--> statement-breakpoint
 ALTER TABLE "journal_entry" ADD CONSTRAINT "journal_entry_organization_id_reversal_of_entry_id_fkey" FOREIGN KEY ("organization_id","reversal_of_entry_id") REFERENCES "journal_entry"("organization_id","id") ON DELETE RESTRICT;--> statement-breakpoint
 ALTER TABLE "journal_line" ADD CONSTRAINT "journal_line_organization_id_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organization"("id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "journal_line" ADD CONSTRAINT "journal_line_organization_id_journal_entry_id_fkey" FOREIGN KEY ("organization_id","journal_entry_id") REFERENCES "journal_entry"("organization_id","id") ON DELETE CASCADE;--> statement-breakpoint
@@ -394,5 +686,26 @@ ALTER TABLE "organization_setting" ADD CONSTRAINT "organization_setting_base_cur
 ALTER TABLE "organization_setting" ADD CONSTRAINT "organization_setting_organization_id_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organization"("id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "outbox_event" ADD CONSTRAINT "outbox_event_organization_id_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organization"("id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "party" ADD CONSTRAINT "party_organization_id_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organization"("id") ON DELETE CASCADE;--> statement-breakpoint
+ALTER TABLE "purchase_document" ADD CONSTRAINT "purchase_document_organization_id_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organization"("id") ON DELETE CASCADE;--> statement-breakpoint
+ALTER TABLE "purchase_document" ADD CONSTRAINT "purchase_document_organization_id_vendor_party_id_fkey" FOREIGN KEY ("organization_id","vendor_party_id") REFERENCES "party"("organization_id","id") ON DELETE RESTRICT;--> statement-breakpoint
+ALTER TABLE "purchase_document" ADD CONSTRAINT "purchase_document_organization_id_journal_entry_id_fkey" FOREIGN KEY ("organization_id","journal_entry_id") REFERENCES "journal_entry"("organization_id","id") ON DELETE RESTRICT;--> statement-breakpoint
+ALTER TABLE "purchase_document_line" ADD CONSTRAINT "purchase_document_line_organization_id_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organization"("id") ON DELETE CASCADE;--> statement-breakpoint
+ALTER TABLE "purchase_document_line" ADD CONSTRAINT "purchase_document_line_organization_id_purchase_document_id_fkey" FOREIGN KEY ("organization_id","purchase_document_id") REFERENCES "purchase_document"("organization_id","id") ON DELETE CASCADE;--> statement-breakpoint
+ALTER TABLE "purchase_document_line" ADD CONSTRAINT "purchase_document_line_organization_id_expense_account_id_fkey" FOREIGN KEY ("organization_id","expense_account_id") REFERENCES "ledger_account"("organization_id","id") ON DELETE RESTRICT;--> statement-breakpoint
+ALTER TABLE "purchase_document_line" ADD CONSTRAINT "purchase_document_line_organization_id_item_id_fkey" FOREIGN KEY ("organization_id","item_id") REFERENCES "item"("organization_id","id") ON DELETE RESTRICT;--> statement-breakpoint
+ALTER TABLE "sales_document" ADD CONSTRAINT "sales_document_organization_id_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organization"("id") ON DELETE CASCADE;--> statement-breakpoint
+ALTER TABLE "sales_document" ADD CONSTRAINT "sales_document_organization_id_customer_party_id_fkey" FOREIGN KEY ("organization_id","customer_party_id") REFERENCES "party"("organization_id","id") ON DELETE RESTRICT;--> statement-breakpoint
+ALTER TABLE "sales_document" ADD CONSTRAINT "sales_document_organization_id_journal_entry_id_fkey" FOREIGN KEY ("organization_id","journal_entry_id") REFERENCES "journal_entry"("organization_id","id") ON DELETE RESTRICT;--> statement-breakpoint
+ALTER TABLE "sales_document_line" ADD CONSTRAINT "sales_document_line_organization_id_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organization"("id") ON DELETE CASCADE;--> statement-breakpoint
+ALTER TABLE "sales_document_line" ADD CONSTRAINT "sales_document_line_organization_id_sales_document_id_fkey" FOREIGN KEY ("organization_id","sales_document_id") REFERENCES "sales_document"("organization_id","id") ON DELETE CASCADE;--> statement-breakpoint
+ALTER TABLE "sales_document_line" ADD CONSTRAINT "sales_document_line_organization_id_income_account_id_fkey" FOREIGN KEY ("organization_id","income_account_id") REFERENCES "ledger_account"("organization_id","id") ON DELETE RESTRICT;--> statement-breakpoint
+ALTER TABLE "sales_document_line" ADD CONSTRAINT "sales_document_line_organization_id_item_id_fkey" FOREIGN KEY ("organization_id","item_id") REFERENCES "item"("organization_id","id") ON DELETE RESTRICT;--> statement-breakpoint
 ALTER TABLE "session" ADD CONSTRAINT "session_user_id_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "user"("id") ON DELETE CASCADE;--> statement-breakpoint
-ALTER TABLE "source_document" ADD CONSTRAINT "source_document_organization_id_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organization"("id") ON DELETE CASCADE;
+ALTER TABLE "settlement_allocation" ADD CONSTRAINT "settlement_allocation_organization_id_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organization"("id") ON DELETE CASCADE;--> statement-breakpoint
+ALTER TABLE "settlement_allocation" ADD CONSTRAINT "settlement_allocation_organization_id_settlement_document_id_fkey" FOREIGN KEY ("organization_id","settlement_document_id") REFERENCES "settlement_document"("organization_id","id") ON DELETE CASCADE;--> statement-breakpoint
+ALTER TABLE "settlement_allocation" ADD CONSTRAINT "settlement_allocation_organization_id_sales_document_id_fkey" FOREIGN KEY ("organization_id","sales_document_id") REFERENCES "sales_document"("organization_id","id") ON DELETE RESTRICT;--> statement-breakpoint
+ALTER TABLE "settlement_allocation" ADD CONSTRAINT "settlement_allocation_organization_id_purchase_document_id_fkey" FOREIGN KEY ("organization_id","purchase_document_id") REFERENCES "purchase_document"("organization_id","id") ON DELETE RESTRICT;--> statement-breakpoint
+ALTER TABLE "settlement_document" ADD CONSTRAINT "settlement_document_organization_id_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organization"("id") ON DELETE CASCADE;--> statement-breakpoint
+ALTER TABLE "settlement_document" ADD CONSTRAINT "settlement_document_organization_id_party_id_fkey" FOREIGN KEY ("organization_id","party_id") REFERENCES "party"("organization_id","id") ON DELETE RESTRICT;--> statement-breakpoint
+ALTER TABLE "settlement_document" ADD CONSTRAINT "settlement_document_organization_id_cash_account_id_fkey" FOREIGN KEY ("organization_id","cash_account_id") REFERENCES "ledger_account"("organization_id","id") ON DELETE RESTRICT;--> statement-breakpoint
+ALTER TABLE "settlement_document" ADD CONSTRAINT "settlement_document_organization_id_journal_entry_id_fkey" FOREIGN KEY ("organization_id","journal_entry_id") REFERENCES "journal_entry"("organization_id","id") ON DELETE RESTRICT;

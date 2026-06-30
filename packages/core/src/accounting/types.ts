@@ -8,17 +8,16 @@ export const ACCOUNTING_ERROR_CODES = [
   "ACCOUNTING_PERIOD_NOT_FOUND",
   "FISCAL_YEAR_DATE_RANGE_INVALID",
   "FISCAL_YEAR_OVERLAPS",
-  "GENERAL_LEDGER_CURSOR_INVALID",
   "JOURNAL_ENTRY_ALREADY_REVERSED",
   "JOURNAL_ENTRY_NOT_FOUND",
+  "JOURNAL_ENTRY_REVERSAL_DATE_INVALID",
+  "JOURNAL_ENTRY_SOURCED_REVERSAL_FORBIDDEN",
   "JOURNAL_ENTRY_NEEDS_TWO_LINES",
   "JOURNAL_ENTRY_NOT_BALANCED",
   "JOURNAL_ENTRY_LINE_ACCOUNT_NOT_POSTABLE",
   "JOURNAL_ENTRY_LINE_HAS_DEBIT_AND_CREDIT",
   "JOURNAL_ENTRY_LINE_HAS_NO_AMOUNT",
   "JOURNAL_ENTRY_LINE_NEGATIVE_AMOUNT",
-  "JOURNAL_OPERATION_KEY_ALREADY_USED",
-  "JOURNAL_OPERATION_KEY_PAYLOAD_MISMATCH",
   "NUMBER_SEQUENCE_NOT_FOUND"
 ] as const;
 
@@ -33,6 +32,13 @@ export const LEDGER_ACCOUNT_CATEGORIES = [
   "expense"
 ] as const;
 export const NORMAL_BALANCES = ["debit", "credit"] as const;
+export const JOURNAL_SOURCE_TYPES = [
+  "sales_invoice",
+  "purchase_bill",
+  "expense",
+  "settlement_received",
+  "settlement_paid"
+] as const;
 
 export const AccountingErrorCodeSchema = z.enum(ACCOUNTING_ERROR_CODES);
 export type AccountingErrorCode = z.infer<typeof AccountingErrorCodeSchema>;
@@ -67,6 +73,16 @@ export type NormalBalance = z.infer<typeof NormalBalanceSchema>;
 
 export const JournalEntryLineSideSchema = z.enum(JOURNAL_ENTRY_LINE_SIDES);
 export type JournalEntryLineSide = z.infer<typeof JournalEntryLineSideSchema>;
+
+export const JournalSourceTypeSchema = z.enum(JOURNAL_SOURCE_TYPES);
+export type JournalSourceType = z.infer<typeof JournalSourceTypeSchema>;
+export const JOURNAL_SOURCE_PREFIX_BY_TYPE = {
+  expense: "EXP",
+  purchase_bill: "BILL",
+  sales_invoice: "INV",
+  settlement_paid: "PAY",
+  settlement_received: "RCT"
+} as const satisfies Record<JournalSourceType, string>;
 
 export const SetupFiscalYearInputSchema = OrgSlugInputSchema.extend({
   endDate: z.iso.date(),
@@ -165,7 +181,6 @@ export type PostJournalEntryLineInput = z.infer<typeof PostJournalEntryLineInput
 export const PostJournalEntryInputSchema = OrgSlugInputSchema.extend({
   description: z.string().trim().max(500).optional(),
   lines: z.array(PostJournalEntryLineInputSchema).min(2),
-  operationKey: z.string().trim().min(8).max(160),
   postingDate: z.iso.date()
 }).strict();
 export type PostJournalEntryInput = z.infer<typeof PostJournalEntryInputSchema>;
@@ -173,8 +188,7 @@ export type PostJournalEntryInput = z.infer<typeof PostJournalEntryInputSchema>;
 export const PostedJournalEntrySchema = z
   .object({
     entryNumber: z.string().trim().min(1),
-    journalEntryId: z.uuid(),
-    replayed: z.boolean()
+    journalEntryId: z.uuid()
   })
   .strict();
 export type PostedJournalEntry = z.infer<typeof PostedJournalEntrySchema>;
@@ -182,7 +196,6 @@ export type PostedJournalEntry = z.infer<typeof PostedJournalEntrySchema>;
 export const ReverseJournalEntryInputSchema = OrgSlugInputSchema.extend({
   description: z.string().trim().min(1).max(500),
   journalEntryId: z.uuid(),
-  operationKey: z.string().trim().min(8).max(160),
   postingDate: z.iso.date()
 }).strict();
 export type ReverseJournalEntryInput = z.infer<typeof ReverseJournalEntryInputSchema>;
@@ -199,7 +212,6 @@ export const JournalEntryRegisterItemSchema = z
     id: z.uuid(),
     postingDate: z.iso.date(),
     reversalOfEntryId: z.uuid().nullable(),
-    sourceDocumentId: z.uuid().nullable(),
     totalMinor: MinorUnitStringSchema
   })
   .strict();

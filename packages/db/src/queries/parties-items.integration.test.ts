@@ -6,8 +6,11 @@ import { afterAll, beforeAll, describe, expect, it } from "vite-plus/test";
 import { type Database } from "#@/client";
 import { organization, user } from "#@/schema/auth.schema";
 
-import { createItem, setItemActive, type ItemDbError } from "./items";
-import { createParty, setPartyActive, type PartyDbError } from "./parties";
+import { createItem, updateItem } from "./items";
+import { createParty, updateParty } from "./parties";
+
+const PG_UNIQUE_VIOLATION = "23505";
+const PG_FOREIGN_KEY_VIOLATION = "23503";
 
 const shouldRunIntegration = process.env.DB_INTEGRATION_TESTS === "1";
 const describeIntegration = shouldRunIntegration ? describe : describe.skip;
@@ -42,19 +45,18 @@ describeIntegration("parties and items database integration", () => {
         userId: context.userId
       });
 
-      await expect(
+      await expectPostgresErrorCode(
         createParty(integrationDb, {
           displayName: "  acme   traders ",
           gstRegistrationType: "unregistered",
           kind: "customer",
           organizationId: context.organizationId,
           userId: context.userId
-        })
-      ).rejects.toMatchObject({
-        code: "PARTY_DUPLICATE_NAME"
-      } satisfies Partial<PartyDbError>);
+        }),
+        PG_UNIQUE_VIOLATION
+      );
 
-      await setPartyActive(integrationDb, {
+      await updateParty(integrationDb, {
         id: original.id,
         isActive: false,
         organizationId: context.organizationId,
@@ -88,19 +90,18 @@ describeIntegration("parties and items database integration", () => {
         usage: "sales"
       });
 
-      await expect(
+      await expectPostgresErrorCode(
         createItem(integrationDb, {
           kind: "service",
           name: "  consulting ",
           organizationId: context.organizationId,
           userId: context.userId,
           usage: "purchases"
-        })
-      ).rejects.toMatchObject({
-        code: "ITEM_DUPLICATE_NAME"
-      } satisfies Partial<ItemDbError>);
+        }),
+        PG_UNIQUE_VIOLATION
+      );
 
-      await setItemActive(integrationDb, {
+      await updateItem(integrationDb, {
         id: original.id,
         isActive: false,
         organizationId: context.organizationId,
@@ -121,11 +122,12 @@ describeIntegration("parties and items database integration", () => {
     }
   });
 
-  it("maps a foreign-key violation on an unknown account ref to the account-mismatch error", async () => {
+  it("fails fast on a foreign-key violation for an unknown account ref", async () => {
+    expect.hasAssertions();
     const context = await createOwnerContext();
 
     try {
-      await expect(
+      await expectPostgresErrorCode(
         createItem(integrationDb, {
           kind: "goods",
           name: "Mismatched Item",
@@ -133,15 +135,34 @@ describeIntegration("parties and items database integration", () => {
           salesAccountId: randomUUID(),
           userId: context.userId,
           usage: "sales"
-        })
-      ).rejects.toMatchObject({
-        code: "ITEM_ACCOUNT_ORGANIZATION_MISMATCH"
-      } satisfies Partial<ItemDbError>);
+        }),
+        PG_FOREIGN_KEY_VIOLATION
+      );
     } finally {
       await context.cleanup();
     }
   });
 });
+
+async function expectPostgresErrorCode(promise: Promise<unknown>, code: string) {
+  await promise.then(
+    () => {
+      throw new Error("Expected Postgres error");
+    },
+    (error: unknown) => {
+      expect(postgresErrorCode(error)).toBe(code);
+    }
+  );
+}
+
+function postgresErrorCode(error: unknown): string | null {
+  if (typeof error !== "object" || error === null) {
+    return null;
+  }
+
+  const candidate = error as { cause?: unknown; code?: unknown };
+  return typeof candidate.code === "string" ? candidate.code : postgresErrorCode(candidate.cause);
+}
 
 type OwnerContext = {
   cleanup: () => Promise<void>;

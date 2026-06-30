@@ -71,8 +71,6 @@ export function TrialBalancePage({ orgSlug }: TrialBalancePageProps) {
     <PageLayout>
       <PageHeader
         description="Debit and credit totals by account from posted journal lines."
-        eyebrow="Reports"
-        icon={<ScaleIcon className="size-4" />}
         title="Trial balance"
       />
 

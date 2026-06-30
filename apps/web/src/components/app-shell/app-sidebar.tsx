@@ -38,7 +38,7 @@ export function AppSidebar({ showAccounting, ...props }: AppSidebarProps) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain showAccounting={showAccounting} />
+        <NavMain />
         <NavDocuments showAccounting={showAccounting} />
         <NavSecondary className="mt-auto" />
       </SidebarContent>

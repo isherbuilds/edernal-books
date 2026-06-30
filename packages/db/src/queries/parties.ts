@@ -11,10 +11,9 @@ import {
 } from "@tsu-stack/core/parties";
 import { normalizeName } from "@tsu-stack/core/text";
 
-import { type Database, type TransactionClient } from "#@/client";
+import { type Database, type DatabaseOrTransaction } from "#@/client";
 import {
   createCursorPage,
-  DbCursorError,
   decodeCursor,
   encodeNamedKeysetCursor,
   type NamedKeysetCursor,
@@ -22,7 +21,6 @@ import {
 } from "#@/queries/cursors";
 import { auditEvent } from "#@/schema/audit";
 import { party } from "#@/schema/parties";
-import { isPostgresError, PG_UNIQUE_VIOLATION } from "#@/utils/pg-error";
 import { escapeLikePattern } from "#@/utils/sql";
 
 export class PartyDbError extends Error {
@@ -40,10 +38,6 @@ type OrganizationScopedInput = {
 
 type CreatePartyDbInput = Omit<CreatePartyInput, "orgSlug"> & OrganizationScopedInput;
 type UpdatePartyDbInput = Omit<UpdatePartyInput, "orgSlug"> & OrganizationScopedInput;
-type SetPartyActiveDbInput = OrganizationScopedInput & {
-  id: string;
-  isActive: boolean;
-};
 type AuditedMutationInput = {
   userId: string;
 };
@@ -120,8 +114,12 @@ export async function listParties(
   };
 }
 
-export async function getParty(db: Database, input: GetPartyDbInput): Promise<Party> {
-  const row = await selectPartyRow(db, input);
+export async function getParty(db: DatabaseOrTransaction, input: GetPartyDbInput): Promise<Party> {
+  const [row] = await db
+    .select()
+    .from(party)
+    .where(and(eq(party.id, input.id), eq(party.organizationId, input.organizationId)))
+    .limit(1);
 
   if (!row) {
     throw new PartyDbError("PARTY_NOT_FOUND");
@@ -134,22 +132,18 @@ export async function createParty(
   db: Database,
   input: CreatePartyDbInput & AuditedMutationInput
 ): Promise<Party> {
-  try {
-    return await db.transaction(async (tx) => {
-      const [row] = await tx.insert(party).values(toPartyInsert(input)).returning();
-      await insertPartyAuditEvent(tx, {
-        action: "party.created",
-        after: toPartyDto(row),
-        entityId: row.id,
-        organizationId: input.organizationId,
-        userId: input.userId
-      });
-
-      return toPartyDto(row);
+  return db.transaction(async (tx) => {
+    const [row] = await tx.insert(party).values(toPartyInsert(input)).returning();
+    await insertPartyAuditEvent(tx, {
+      action: "party.created",
+      after: toPartyDto(row),
+      entityId: row.id,
+      organizationId: input.organizationId,
+      userId: input.userId
     });
-  } catch (error) {
-    throw mapPartyDbError(error);
-  }
+
+    return toPartyDto(row);
+  });
 }
 
 export async function updateParty(
@@ -158,82 +152,69 @@ export async function updateParty(
 ): Promise<Party> {
   const { id, organizationId, userId, ...values } = input;
 
-  try {
-    return await db.transaction(async (tx) => {
-      await tx.execute(
-        sql`SELECT 1 FROM ${party} WHERE ${party.id} = ${id} AND ${party.organizationId} = ${organizationId} FOR UPDATE`
-      );
-      const before = await selectPartyRow(tx, { id, organizationId });
+  return db.transaction(async (tx) => {
+    const updateValues = toPartyUpdate(values);
+    const hasUpdateValues = Object.values(updateValues).some((value) => value !== undefined);
 
-      if (!before) {
-        throw new PartyDbError("PARTY_NOT_FOUND");
-      }
+    if (!hasUpdateValues) {
+      return getParty(tx, { id, organizationId });
+    }
 
-      const updateValues = toPartyUpdate(values);
-      const hasUpdateValues = Object.values(updateValues).some((value) => value !== undefined);
-      const beforeDto = toPartyDto(before);
-
-      if (!hasUpdateValues) {
-        return beforeDto;
-      }
-
-      if (
-        Object.keys(values).length === 1 &&
-        values.isActive !== undefined &&
-        values.isActive === beforeDto.isActive
-      ) {
-        return beforeDto;
-      }
-
+    if (Object.keys(values).length === 1 && values.isActive !== undefined) {
       const [row] = await tx
         .update(party)
         .set(updateValues)
-        .where(and(eq(party.id, id), eq(party.organizationId, organizationId)))
+        .where(
+          and(
+            eq(party.id, id),
+            eq(party.organizationId, organizationId),
+            sql`${party.isActive} <> ${values.isActive}`
+          )
+        )
         .returning();
 
       if (!row) {
-        throw new PartyDbError("PARTY_NOT_FOUND");
+        return getParty(tx, { id, organizationId });
       }
 
       await insertPartyAuditEvent(tx, {
-        action: partyAuditAction(values, beforeDto),
+        action: partyAuditAction(values),
         after: toPartyDto(row),
-        before: beforeDto,
         entityId: row.id,
         organizationId,
         userId
       });
 
       return toPartyDto(row);
+    }
+
+    const [row] = await tx
+      .update(party)
+      .set(updateValues)
+      .where(and(eq(party.id, id), eq(party.organizationId, organizationId)))
+      .returning();
+
+    if (!row) {
+      throw new PartyDbError("PARTY_NOT_FOUND");
+    }
+
+    await insertPartyAuditEvent(tx, {
+      action: partyAuditAction(values),
+      after: toPartyDto(row),
+      entityId: row.id,
+      organizationId,
+      userId
     });
-  } catch (error) {
-    throw mapPartyDbError(error);
-  }
-}
 
-export async function setPartyActive(
-  db: Database,
-  input: SetPartyActiveDbInput & AuditedMutationInput
-): Promise<Party> {
-  return updateParty(db, input);
-}
-
-async function selectPartyRow(db: Database | TransactionClient, input: GetPartyDbInput) {
-  const [row] = await db
-    .select()
-    .from(party)
-    .where(and(eq(party.id, input.id), eq(party.organizationId, input.organizationId)))
-    .limit(1);
-
-  return row ?? null;
+    return toPartyDto(row);
+  });
 }
 
 async function insertPartyAuditEvent(
-  tx: TransactionClient,
+  tx: DatabaseOrTransaction,
   input: {
     action: string;
     after: Party;
-    before?: Party;
     entityId: string;
     organizationId: string;
     userId: string;
@@ -246,7 +227,6 @@ async function insertPartyAuditEvent(
     organizationId: input.organizationId,
     payloadJson: {
       after: input.after,
-      before: input.before,
       metadata: { source: "user" }
     },
     scopeId: input.entityId,
@@ -255,12 +235,9 @@ async function insertPartyAuditEvent(
   });
 }
 
-function partyAuditAction(
-  values: Omit<UpdatePartyDbInput, "id" | "organizationId">,
-  before: Party
-): string {
+function partyAuditAction(values: Omit<UpdatePartyDbInput, "id" | "organizationId">): string {
   if (Object.keys(values).length === 1 && values.isActive !== undefined) {
-    return values.isActive && !before.isActive ? "party.activated" : "party.deactivated";
+    return values.isActive ? "party.activated" : "party.deactivated";
   }
 
   return "party.updated";
@@ -320,26 +297,6 @@ function toPartyDto(row: typeof party.$inferSelect): Party {
   };
 }
 
-function mapPartyDbError(error: unknown): Error {
-  if (error instanceof PartyDbError) {
-    return error;
-  }
-
-  if (error instanceof DbCursorError) {
-    return new PartyDbError("PARTY_CURSOR_INVALID");
-  }
-
-  if (isPostgresError(error) && error.code === PG_UNIQUE_VIOLATION) {
-    return new PartyDbError("PARTY_DUPLICATE_NAME");
-  }
-
-  return error instanceof Error ? error : new Error(String(error));
-}
-
 function decodePartyCursor(cursor: string): NamedKeysetCursor {
-  try {
-    return decodeCursor(cursor, parseNamedKeysetCursor);
-  } catch (error) {
-    throw mapPartyDbError(error);
-  }
+  return decodeCursor(cursor, parseNamedKeysetCursor);
 }

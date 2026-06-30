@@ -16,12 +16,8 @@ describe("party contracts", () => {
     expect(PARTY_KINDS).toEqual(["customer", "vendor", "both"]);
   });
 
-  it("keeps party write error codes in the party contract", () => {
-    expect(PARTY_ERROR_CODES).toEqual([
-      "PARTY_CURSOR_INVALID",
-      "PARTY_DUPLICATE_NAME",
-      "PARTY_NOT_FOUND"
-    ]);
+  it("keeps party domain error codes in the party contract", () => {
+    expect(PARTY_ERROR_CODES).toEqual(["PARTY_NOT_FOUND"]);
 
     for (const code of PARTY_ERROR_CODES) {
       expect(PartyErrorCodeSchema.parse(code)).toBe(code);

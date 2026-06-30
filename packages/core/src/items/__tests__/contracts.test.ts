@@ -18,13 +18,8 @@ describe("item contracts", () => {
     expect(ITEM_USAGES).toEqual(["sales", "purchases", "both"]);
   });
 
-  it("keeps item write error codes in the item contract", () => {
-    expect(ITEM_ERROR_CODES).toEqual([
-      "ITEM_ACCOUNT_ORGANIZATION_MISMATCH",
-      "ITEM_CURSOR_INVALID",
-      "ITEM_DUPLICATE_NAME",
-      "ITEM_NOT_FOUND"
-    ]);
+  it("keeps item domain error codes in the item contract", () => {
+    expect(ITEM_ERROR_CODES).toEqual(["ITEM_NOT_FOUND"]);
 
     for (const code of ITEM_ERROR_CODES) {
       expect(ItemErrorCodeSchema.parse(code)).toBe(code);

@@ -24,7 +24,6 @@ import { useCreatePartyMutation, useUpdatePartyMutation } from "@/hooks/use-reco
 import { useZodForm } from "@/hooks/use-zod-form";
 
 import { FormSelectField, FormTextField } from "@/components/form-fields";
-import { handleRecordMutationError } from "@/components/records/record-error";
 
 function createPartyFormSchema() {
   const optionalText = (maxLength: number) => z.string().trim().max(maxLength);
@@ -148,8 +147,7 @@ export function PartyForm({ onClose, orgSlug, party }: PartyFormProps) {
     formState: { errors, isSubmitting },
     handleSubmit,
     register,
-    reset,
-    setError
+    reset
   } = form;
 
   const createParty = useCreatePartyMutation();
@@ -174,15 +172,7 @@ export function PartyForm({ onClose, orgSlug, party }: PartyFormProps) {
       state: values.state
     };
 
-    const onError = (error: unknown) =>
-      handleRecordMutationError(error, {
-        onDuplicateName: () =>
-          setError("displayName", { message: m.owner_records__parties_duplicate_name() }),
-        onFallback: () =>
-          toast.error(
-            error instanceof Error ? error.message : m.owner_records__parties_save_error()
-          )
-      });
+    const onError = () => toast.error(m.owner_records__parties_save_error());
 
     if (party) {
       updateParty.mutate(

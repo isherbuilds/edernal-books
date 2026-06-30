@@ -23,6 +23,8 @@ type RecordResource = {
   list: { key: () => readonly unknown[] };
 };
 
+const RECORD_REFERENCE_STALE_MS = 5 * 60 * 1000;
+
 /** Refresh a record resource's list + get caches after a successful create/update/setActive. */
 function invalidateRecord(queryClient: QueryClient, resource: RecordResource) {
   return {
@@ -36,19 +38,24 @@ function invalidateRecord(queryClient: QueryClient, resource: RecordResource) {
 }
 
 export function usePartiesQuery(input: PartiesQueryInput) {
-  return useInfiniteQuery(
-    orpc.parties.list.infiniteOptions({
+  return useInfiniteQuery({
+    ...orpc.parties.list.infiniteOptions({
       getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
       initialPageParam: undefined as string | undefined,
       input: (cursor) => {
         return { ...input, cursor };
       }
-    })
-  );
+    }),
+    staleTime: RECORD_REFERENCE_STALE_MS
+  });
 }
 
 export function usePartyQuery(input: GetPartyInput, enabled: boolean) {
-  return useQuery({ ...orpc.parties.get.queryOptions({ input }), enabled });
+  return useQuery({
+    ...orpc.parties.get.queryOptions({ input }),
+    enabled,
+    staleTime: RECORD_REFERENCE_STALE_MS
+  });
 }
 
 export function useCreatePartyMutation() {
@@ -76,19 +83,24 @@ export function useSetPartyActiveMutation() {
 }
 
 export function useItemsQuery(input: ItemsQueryInput) {
-  return useInfiniteQuery(
-    orpc.items.list.infiniteOptions({
+  return useInfiniteQuery({
+    ...orpc.items.list.infiniteOptions({
       getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
       initialPageParam: undefined as string | undefined,
       input: (cursor) => {
         return { ...input, cursor };
       }
-    })
-  );
+    }),
+    staleTime: RECORD_REFERENCE_STALE_MS
+  });
 }
 
 export function useItemQuery(input: GetItemInput, enabled: boolean) {
-  return useQuery({ ...orpc.items.get.queryOptions({ input }), enabled });
+  return useQuery({
+    ...orpc.items.get.queryOptions({ input }),
+    enabled,
+    staleTime: RECORD_REFERENCE_STALE_MS
+  });
 }
 
 export function useCreateItemMutation() {

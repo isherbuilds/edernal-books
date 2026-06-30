@@ -40,7 +40,6 @@ type JournalEntryFormProps = {
 type JournalEntrySubmitInput = {
   description: string;
   lines: JournalEntrySubmitLine[];
-  operationKey: string;
   postingDate: string;
 };
 
@@ -56,7 +55,6 @@ export function JournalEntryForm({ accounts, mode, onSubmit, pending }: JournalE
   const [description, setDescription] = useState(
     mode === "opening-balance" ? "Opening balance journal" : ""
   );
-  const [operationKey, setOperationKey] = useState(createOperationKey(mode));
   const [confirmedDifferenceAccount, setConfirmedDifferenceAccount] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [lines, setLines] = useState<JournalLineFormValue[]>([
@@ -153,16 +151,11 @@ export function JournalEntryForm({ accounts, mode, onSubmit, pending }: JournalE
       return;
     }
 
-    const posted = await onSubmit({
+    await onSubmit({
       description: description.trim(),
       lines: entryLines,
-      operationKey: operationKey.trim(),
       postingDate
     });
-
-    if (posted) {
-      setOperationKey(createOperationKey(mode));
-    }
   }
 
   return (
@@ -313,8 +306,4 @@ function createLineFormValue(): JournalLineFormValue {
     description: "",
     id: crypto.randomUUID()
   };
-}
-
-function createOperationKey(mode: "manual" | "opening-balance"): string {
-  return `${mode}-${crypto.randomUUID()}`;
 }

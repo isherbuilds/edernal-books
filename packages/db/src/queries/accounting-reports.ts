@@ -12,7 +12,6 @@ import {
 } from "@tsu-stack/core/accounting";
 
 import { type Database, type TransactionClient } from "#@/client";
-import { AccountingDbError } from "#@/queries/accounting";
 import { decodeCursor, encodeCursor, takeCursorPage } from "#@/queries/cursors";
 import { ledgerAccount } from "#@/schema/accounts";
 import { journalEntry, journalLine } from "#@/schema/journal";
@@ -33,6 +32,7 @@ type GeneralLedgerDbInput = AccountingReportDbInput & {
   cursor?: string;
   limit: number;
 };
+const INVALID_GENERAL_LEDGER_CURSOR_MESSAGE = "Invalid general ledger cursor";
 
 type GeneralLedgerCursor = {
   accountId: string;
@@ -303,7 +303,7 @@ async function assertGeneralLedgerCursorAnchorExists(
     .limit(1);
 
   if (!row) {
-    throw invalidCursorError();
+    throw new Error(INVALID_GENERAL_LEDGER_CURSOR_MESSAGE);
   }
 }
 
@@ -330,13 +330,7 @@ function encodeGeneralLedgerCursor(
 }
 
 function decodeGeneralLedgerCursor(cursor: string): GeneralLedgerCursor {
-  let value: SignedCursorEnvelope;
-
-  try {
-    value = decodeCursor(cursor, parseSignedCursorEnvelope);
-  } catch {
-    throw invalidCursorError();
-  }
+  const value = decodeCursor(cursor, parseSignedCursorEnvelope);
 
   const payload = value.payload;
   if (
@@ -358,12 +352,12 @@ function decodeGeneralLedgerCursor(cursor: string): GeneralLedgerCursor {
     ("fromDate" in payload && typeof payload.fromDate !== "string") ||
     ("toDate" in payload && typeof payload.toDate !== "string")
   ) {
-    throw invalidCursorError();
+    throw new Error(INVALID_GENERAL_LEDGER_CURSOR_MESSAGE);
   }
 
   const payloadJson = JSON.stringify(payload);
   if (!verifyCursorSignature(payloadJson, value.signature)) {
-    throw invalidCursorError();
+    throw new Error(INVALID_GENERAL_LEDGER_CURSOR_MESSAGE);
   }
 
   const fromDate =
@@ -409,12 +403,8 @@ function assertGeneralLedgerCursorMatchesInput(
     cursor.fromDate !== input.fromDate ||
     cursor.toDate !== input.toDate
   ) {
-    throw invalidCursorError();
+    throw new Error(INVALID_GENERAL_LEDGER_CURSOR_MESSAGE);
   }
-}
-
-function invalidCursorError(): AccountingDbError {
-  return new AccountingDbError("GENERAL_LEDGER_CURSOR_INVALID");
 }
 
 function signCursorPayload(payloadJson: string): string {

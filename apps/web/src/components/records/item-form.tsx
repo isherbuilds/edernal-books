@@ -25,7 +25,6 @@ import { useZodForm } from "@/hooks/use-zod-form";
 
 import { AccountSearchSelect } from "@/components/accounting/account-search-select";
 import { FormSelectField, FormTextField } from "@/components/form-fields";
-import { handleRecordMutationError } from "@/components/records/record-error";
 
 function itemRateSchema() {
   return z.string().refine(
@@ -176,14 +175,7 @@ export function ItemForm({ item, onClose, orgSlug }: ItemFormProps) {
       usage: values.usage
     };
 
-    const onError = (error: unknown) =>
-      handleRecordMutationError(error, {
-        onAccountMismatch: () => toast.error(m.owner_records__items_account_mismatch()),
-        onDuplicateName: () =>
-          setError("name", { message: m.owner_records__items_duplicate_name() }),
-        onFallback: () =>
-          toast.error(error instanceof Error ? error.message : m.owner_records__items_save_error())
-      });
+    const onError = () => toast.error(m.owner_records__items_save_error());
 
     if (item) {
       updateItem.mutate(

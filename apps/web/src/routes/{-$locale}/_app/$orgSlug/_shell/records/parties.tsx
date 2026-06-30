@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { canAccessAccounting } from "@tsu-stack/auth/permissions";
 import { PartyKindSchema } from "@tsu-stack/core/parties";
+import { SEARCH_QUERY_MAX_LENGTH } from "@tsu-stack/core/text";
 
 import { generateAppSeo } from "@/lib/seo";
 
@@ -13,7 +14,7 @@ import { PartiesPage } from "@/components/records/parties-page";
 const partiesSearchSchema = z.object({
   id: z.string().optional().catch(undefined),
   kind: PartyKindSchema.optional().catch(undefined),
-  q: z.string().optional().catch(undefined),
+  q: z.string().trim().max(SEARCH_QUERY_MAX_LENGTH).optional().catch(undefined),
   view: z.enum(["create", "edit"]).optional().catch(undefined)
 });
 

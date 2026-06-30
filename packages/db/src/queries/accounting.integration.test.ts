@@ -6,15 +6,19 @@ import { afterAll, beforeAll, describe, expect, it } from "vite-plus/test";
 import { type Database } from "#@/client";
 import { ledgerAccount, numberSequence } from "#@/schema/accounts";
 import { organization, user } from "#@/schema/auth.schema";
+import { journalEntry } from "#@/schema/journal";
 import { organizationSetting } from "#@/schema/organization";
 import { accountingPeriod } from "#@/schema/periods";
 
 import {
   type AccountingDbError,
   type PostJournalEntryDbInput,
+  type PostJournalEntryInTransactionInput,
   createFiscalYear,
   postJournalEntry,
+  postJournalEntryInTransaction,
   reverseJournalEntry,
+  reverseJournalEntryInTransaction,
   setupOrganizationAccountingDefaults
 } from "./accounting";
 import { getGeneralLedger } from "./accounting-reports";
@@ -41,50 +45,33 @@ afterAll(async () => {
 });
 
 describeIntegration("accounting kernel database integration", () => {
-  it("returns an idempotent duplicate result without allocating another number", async () => {
+  it("allocates a new number for each posted journal command", async () => {
     const context = await createAccountingContext();
 
     try {
       const input = makeJournalInput(context, "duplicate");
       const posted = await postJournalEntry(integrationDb, input);
-      const duplicate = await postJournalEntry(integrationDb, input);
+      const next = await postJournalEntry(integrationDb, input);
 
       expect(posted).toMatchObject({
-        entryNumber: "JV-25-26-000001",
-        replayed: false
+        entryNumber: "JV-25-26-000001"
       });
-      expect(duplicate).toEqual({
-        entryNumber: posted.entryNumber,
-        journalEntryId: posted.journalEntryId,
-        replayed: true
+      expect(next).toMatchObject({
+        entryNumber: "JV-25-26-000002"
       });
+      expect(next.journalEntryId).not.toBe(posted.journalEntryId);
 
       const [sequence] = await integrationDb
         .select({ nextNumber: numberSequence.nextNumber })
         .from(numberSequence)
-        .where(eq(numberSequence.organizationId, context.organizationId));
+        .where(
+          and(
+            eq(numberSequence.entityType, "journal_entry"),
+            eq(numberSequence.organizationId, context.organizationId)
+          )
+        );
 
-      expect(sequence?.nextNumber).toBe(2n);
-    } finally {
-      await context.cleanup();
-    }
-  });
-
-  it("rejects operation-key reuse with a different payload", async () => {
-    const context = await createAccountingContext();
-
-    try {
-      const input = makeJournalInput(context, "payload-conflict");
-      await postJournalEntry(integrationDb, input);
-
-      await expect(
-        postJournalEntry(integrationDb, {
-          ...input,
-          description: "Different payload"
-        })
-      ).rejects.toMatchObject({
-        code: "JOURNAL_OPERATION_KEY_PAYLOAD_MISMATCH"
-      } satisfies Partial<AccountingDbError>);
+      expect(sequence?.nextNumber).toBe(3n);
     } finally {
       await context.cleanup();
     }
@@ -115,31 +102,6 @@ describeIntegration("accounting kernel database integration", () => {
     }
   });
 
-  it("returns duplicate replay for concurrent identical operation keys", async () => {
-    const context = await createAccountingContext();
-
-    try {
-      const input = makeJournalInput(context, "same-key-concurrent");
-      const posted = await Promise.all([
-        postJournalEntry(integrationDb, input),
-        postJournalEntry(integrationDb, input)
-      ]);
-      const journalEntryIds = new Set(posted.map((entry) => entry.journalEntryId));
-
-      expect(journalEntryIds.size).toBe(1);
-      expect(posted.some((entry) => entry.replayed)).toBe(true);
-
-      const [sequence] = await integrationDb
-        .select({ nextNumber: numberSequence.nextNumber })
-        .from(numberSequence)
-        .where(eq(numberSequence.organizationId, context.organizationId));
-
-      expect(sequence?.nextNumber).toBe(2n);
-    } finally {
-      await context.cleanup();
-    }
-  });
-
   it("resets journal sequence per fiscal year without entry number collisions", async () => {
     const context = await createAccountingContext();
 
@@ -164,76 +126,121 @@ describeIntegration("accounting kernel database integration", () => {
     }
   });
 
-  it("rejects duplicate operation keys across fiscal years with different payloads", async () => {
+  it("rolls back sequence allocation when duplicate source posting fails after allocation", async () => {
     const context = await createAccountingContext();
 
     try {
-      await createFiscalYear(integrationDb, {
-        endDate: "2027-03-31",
-        organizationId: context.organizationId,
-        startDate: "2026-04-01",
-        userId: context.userId
+      const source = {
+        number: "INV-TEST-001",
+        recordId: randomUUID(),
+        type: "sales_invoice"
+      } satisfies NonNullable<PostJournalEntryInTransactionInput["source"]>;
+      const original = await postDocumentWorkflowJournal({
+        ...makeJournalInput(context, "rollback-original"),
+        postingOrigin: "document_workflow",
+        source
       });
 
-      const operationKey = `integration:${context.organizationId}:same-key-across-years`;
-      const attempts = await Promise.allSettled([
-        postJournalEntry(integrationDb, {
-          ...makeJournalInput(context, "same-key-across-years", "2025-04-15"),
-          operationKey
-        }),
-        postJournalEntry(integrationDb, {
-          ...makeJournalInput(context, "same-key-across-years", "2026-04-15"),
-          operationKey
-        })
-      ]);
-      const rejected = attempts.filter((attempt) => attempt.status === "rejected");
+      expect(original.entryNumber).toBe("JV-25-26-000001");
 
-      expect(rejected).toHaveLength(1);
-      expect(rejected[0]).toMatchObject({
-        reason: { code: "JOURNAL_OPERATION_KEY_PAYLOAD_MISMATCH" },
-        status: "rejected"
-      });
-
-      const sequences = await integrationDb
-        .select({
-          fiscalYearId: numberSequence.fiscalYearId,
-          nextNumber: numberSequence.nextNumber
-        })
-        .from(numberSequence)
-        .where(eq(numberSequence.organizationId, context.organizationId));
-
-      const nextNumbers = sequences.map((sequence) => sequence.nextNumber);
-      nextNumbers.sort((left, right) => Number(left - right));
-      expect(nextNumbers).toEqual([1n, 2n]);
-    } finally {
-      await context.cleanup();
-    }
-  });
-
-  it("rolls back sequence allocation when posting fails after allocation", async () => {
-    const context = await createAccountingContext();
-
-    try {
       await expect(
         rejectionMessageFor(
-          postJournalEntry(integrationDb, {
+          postDocumentWorkflowJournal({
             ...makeJournalInput(context, "rollback-fails"),
-            sourceDocumentId: randomUUID()
+            postingOrigin: "document_workflow",
+            source
           })
         )
-      ).resolves.toMatch(/foreign key|source_document/);
+      ).resolves.toMatch(/journal_entry_one_original_per_source_uidx|duplicate key/);
 
       const [sequenceAfterFailure] = await integrationDb
         .select({ nextNumber: numberSequence.nextNumber })
         .from(numberSequence)
-        .where(eq(numberSequence.organizationId, context.organizationId));
-      expect(sequenceAfterFailure?.nextNumber).toBe(1n);
+        .where(
+          and(
+            eq(numberSequence.entityType, "journal_entry"),
+            eq(numberSequence.organizationId, context.organizationId)
+          )
+        );
+      expect(sequenceAfterFailure?.nextNumber).toBe(2n);
 
       const posted = await postJournalEntry(
         integrationDb,
         makeJournalInput(context, "rollback-succeeds")
       );
-      expect(posted.entryNumber).toBe("JV-25-26-000001");
+      expect(posted.entryNumber).toBe("JV-25-26-000002");
+    } finally {
+      await context.cleanup();
+    }
+  });
+
+  it("keeps public journal posting manual-only even when internal fields are present", async () => {
+    const context = await createAccountingContext();
+
+    try {
+      const source = {
+        number: "INV-TEST-PUBLIC",
+        recordId: randomUUID(),
+        type: "sales_invoice"
+      } satisfies NonNullable<PostJournalEntryInTransactionInput["source"]>;
+      const injectedInput = {
+        ...makeJournalInput(context, "public-boundary"),
+        postingOrigin: "document_workflow",
+        source
+      } as PostJournalEntryDbInput &
+        Pick<PostJournalEntryInTransactionInput, "postingOrigin" | "source">;
+
+      const posted = await postJournalEntry(integrationDb, injectedInput);
+      const [entry] = await integrationDb
+        .select({
+          sourceNumber: journalEntry.sourceNumber,
+          sourceRecordId: journalEntry.sourceRecordId,
+          sourceType: journalEntry.sourceType
+        })
+        .from(journalEntry)
+        .where(eq(journalEntry.id, posted.journalEntryId))
+        .limit(1);
+
+      expect(entry).toEqual({
+        sourceNumber: null,
+        sourceRecordId: null,
+        sourceType: null
+      });
+
+      const [receivableAccount] = await integrationDb
+        .select({ id: ledgerAccount.id })
+        .from(ledgerAccount)
+        .where(
+          and(
+            eq(ledgerAccount.organizationId, context.organizationId),
+            eq(ledgerAccount.systemKey, "accounts_receivable")
+          )
+        )
+        .limit(1);
+
+      if (!receivableAccount) {
+        throw new Error("Missing accounts receivable account");
+      }
+
+      await expect(
+        postJournalEntry(integrationDb, {
+          ...injectedInput,
+          lines: [
+            {
+              accountId: receivableAccount.id,
+              amountMinor: 10000n,
+              side: "debit"
+            },
+            {
+              accountId: context.equityAccountId,
+              amountMinor: 10000n,
+              side: "credit"
+            }
+          ]
+        })
+      ).rejects.toMatchObject({
+        code: "JOURNAL_ENTRY_LINE_ACCOUNT_NOT_POSTABLE"
+      } satisfies Partial<AccountingDbError>);
     } finally {
       await context.cleanup();
     }
@@ -276,7 +283,6 @@ describeIntegration("accounting kernel database integration", () => {
       const reversed = await reverseJournalEntry(integrationDb, {
         description: "Reverse original integration entry",
         journalEntryId: posted.journalEntryId,
-        operationKey: `integration:${context.organizationId}:reverse-1`,
         organizationId: context.organizationId,
         postingDate: "2025-04-20",
         userId: context.userId
@@ -288,7 +294,6 @@ describeIntegration("accounting kernel database integration", () => {
         reverseJournalEntry(integrationDb, {
           description: "Reverse original integration entry again",
           journalEntryId: posted.journalEntryId,
-          operationKey: `integration:${context.organizationId}:reverse-2`,
           organizationId: context.organizationId,
           postingDate: "2025-04-21",
           userId: context.userId
@@ -296,6 +301,134 @@ describeIntegration("accounting kernel database integration", () => {
       ).rejects.toMatchObject({
         code: "JOURNAL_ENTRY_ALREADY_REVERSED"
       } satisfies Partial<AccountingDbError>);
+    } finally {
+      await context.cleanup();
+    }
+  });
+
+  it("rejects reversing before original posting date", async () => {
+    const context = await createAccountingContext();
+
+    try {
+      const posted = await postJournalEntry(
+        integrationDb,
+        makeJournalInput(context, "original", "2025-04-20")
+      );
+
+      await expect(
+        reverseJournalEntry(integrationDb, {
+          description: "Reverse original integration entry",
+          journalEntryId: posted.journalEntryId,
+          organizationId: context.organizationId,
+          postingDate: "2025-04-19",
+          userId: context.userId
+        })
+      ).rejects.toMatchObject({
+        code: "JOURNAL_ENTRY_REVERSAL_DATE_INVALID"
+      } satisfies Partial<AccountingDbError>);
+    } finally {
+      await context.cleanup();
+    }
+  });
+
+  it("rejects public reversal of sourced document journals", async () => {
+    const context = await createAccountingContext();
+
+    try {
+      const source = {
+        number: "INV-TEST-002",
+        recordId: randomUUID(),
+        type: "sales_invoice"
+      } satisfies NonNullable<PostJournalEntryInTransactionInput["source"]>;
+      const posted = await postDocumentWorkflowJournal({
+        ...makeJournalInput(context, "source-copy-original"),
+        postingOrigin: "document_workflow",
+        source
+      });
+
+      await expect(
+        reverseJournalEntry(integrationDb, {
+          description: "Reverse source-copy original",
+          journalEntryId: posted.journalEntryId,
+          organizationId: context.organizationId,
+          postingDate: "2025-04-20",
+          userId: context.userId
+        })
+      ).rejects.toMatchObject({
+        code: "JOURNAL_ENTRY_SOURCED_REVERSAL_FORBIDDEN"
+      } satisfies Partial<AccountingDbError>);
+    } finally {
+      await context.cleanup();
+    }
+  });
+
+  it("copies journal source metadata when internal sourced reversal is allowed", async () => {
+    const context = await createAccountingContext();
+
+    try {
+      const source = {
+        number: "INV-TEST-002",
+        recordId: randomUUID(),
+        type: "sales_invoice"
+      } satisfies NonNullable<PostJournalEntryInTransactionInput["source"]>;
+      const posted = await postDocumentWorkflowJournal({
+        ...makeJournalInput(context, "source-copy-original"),
+        postingOrigin: "document_workflow",
+        source
+      });
+      const reversed = await integrationDb.transaction((tx) =>
+        reverseJournalEntryInTransaction(tx, {
+          allowSourcedEntry: true,
+          description: "Reverse source-copy original",
+          journalEntryId: posted.journalEntryId,
+          organizationId: context.organizationId,
+          postingDate: "2025-04-20",
+          userId: context.userId
+        })
+      );
+
+      const entries = await integrationDb
+        .select({
+          id: journalEntry.id,
+          reversalOfEntryId: journalEntry.reversalOfEntryId,
+          sourceNumber: journalEntry.sourceNumber,
+          sourceRecordId: journalEntry.sourceRecordId,
+          sourceType: journalEntry.sourceType
+        })
+        .from(journalEntry)
+        .where(
+          and(
+            eq(journalEntry.organizationId, context.organizationId),
+            inArray(journalEntry.id, [posted.journalEntryId, reversed.journalEntryId])
+          )
+        )
+        .orderBy(asc(journalEntry.entryNumber));
+
+      expect(entries).toEqual([
+        {
+          id: posted.journalEntryId,
+          reversalOfEntryId: null,
+          sourceNumber: source.number,
+          sourceRecordId: source.recordId,
+          sourceType: source.type
+        },
+        {
+          id: reversed.journalEntryId,
+          reversalOfEntryId: posted.journalEntryId,
+          sourceNumber: source.number,
+          sourceRecordId: source.recordId,
+          sourceType: source.type
+        }
+      ]);
+      await expect(
+        rejectionMessageFor(
+          postDocumentWorkflowJournal({
+            ...makeJournalInput(context, "source-copy-duplicate"),
+            postingOrigin: "document_workflow",
+            source
+          })
+        )
+      ).resolves.toMatch(/journal_entry_one_original_per_source_uidx|duplicate key/);
     } finally {
       await context.cleanup();
     }
@@ -309,7 +442,6 @@ describeIntegration("accounting kernel database integration", () => {
       const reversed = await reverseJournalEntry(integrationDb, {
         description: "Reverse original integration entry",
         journalEntryId: posted.journalEntryId,
-        operationKey: `integration:${context.organizationId}:reverse-1`,
         organizationId: context.organizationId,
         postingDate: "2025-04-20",
         userId: context.userId
@@ -319,7 +451,6 @@ describeIntegration("accounting kernel database integration", () => {
         reverseJournalEntry(integrationDb, {
           description: "Reverse the reversal",
           journalEntryId: reversed.journalEntryId,
-          operationKey: `integration:${context.organizationId}:reverse-reversal`,
           organizationId: context.organizationId,
           postingDate: "2025-04-21",
           userId: context.userId
@@ -332,7 +463,7 @@ describeIntegration("accounting kernel database integration", () => {
     }
   });
 
-  it("allows only one concurrent reversal with distinct operation keys", async () => {
+  it("allows only one concurrent reversal", async () => {
     const context = await createAccountingContext();
 
     try {
@@ -345,7 +476,6 @@ describeIntegration("accounting kernel database integration", () => {
           reverseJournalEntry(integrationDb, {
             description: `Concurrent reversal ${index + 1}`,
             journalEntryId: posted.journalEntryId,
-            operationKey: `integration:${context.organizationId}:concurrent-reversal-${index + 1}`,
             organizationId: context.organizationId,
             postingDate: "2025-04-20",
             userId: context.userId
@@ -364,33 +494,6 @@ describeIntegration("accounting kernel database integration", () => {
           status: "rejected"
         });
       }
-    } finally {
-      await context.cleanup();
-    }
-  });
-
-  it("replays duplicate reversal operation keys without posting another reversal", async () => {
-    const context = await createAccountingContext();
-
-    try {
-      const posted = await postJournalEntry(integrationDb, makeJournalInput(context, "original"));
-      const input = {
-        description: "Reverse original integration entry again",
-        journalEntryId: posted.journalEntryId,
-        operationKey: `integration:${context.organizationId}:reverse-1`,
-        organizationId: context.organizationId,
-        postingDate: "2025-04-20",
-        userId: context.userId
-      };
-
-      const reversed = await reverseJournalEntry(integrationDb, input);
-      const replayed = await reverseJournalEntry(integrationDb, input);
-
-      expect(replayed).toEqual({
-        entryNumber: reversed.entryNumber,
-        journalEntryId: reversed.journalEntryId,
-        replayed: true
-      });
     } finally {
       await context.cleanup();
     }
@@ -493,9 +596,7 @@ describeIntegration("accounting kernel database integration", () => {
           limit: 1,
           organizationId: context.organizationId
         })
-      ).rejects.toMatchObject({
-        code: "GENERAL_LEDGER_CURSOR_INVALID"
-      } satisfies Partial<AccountingDbError>);
+      ).rejects.toThrow("CURSOR_INVALID");
     } finally {
       await context.cleanup();
     }
@@ -533,9 +634,7 @@ describeIntegration("accounting kernel database integration", () => {
           limit: 1,
           organizationId: context.organizationId
         })
-      ).rejects.toMatchObject({
-        code: "GENERAL_LEDGER_CURSOR_INVALID"
-      } satisfies Partial<AccountingDbError>);
+      ).rejects.toThrow("Invalid general ledger cursor");
     } finally {
       await context.cleanup();
     }
@@ -592,17 +691,25 @@ describeIntegration("accounting kernel database integration", () => {
         .select({ id: ledgerAccount.id })
         .from(ledgerAccount)
         .where(eq(ledgerAccount.organizationId, organizationId));
-      const [sequence] = await integrationDb
-        .select({ prefix: numberSequence.prefix })
+      const sequences = await integrationDb
+        .select({ entityType: numberSequence.entityType, prefix: numberSequence.prefix })
         .from(numberSequence)
-        .where(eq(numberSequence.organizationId, organizationId));
+        .where(eq(numberSequence.organizationId, organizationId))
+        .orderBy(asc(numberSequence.entityType));
 
       expect(periods).toHaveLength(10);
       expect(periods[0]).toEqual({
         endDate: "2026-06-30",
         startDate: "2026-06-26"
       });
-      expect(sequence?.prefix).toBe("JV-26-27-");
+      expect(sequences).toEqual([
+        { entityType: "expense", prefix: "EXP-26-27-" },
+        { entityType: "journal_entry", prefix: "JV-26-27-" },
+        { entityType: "purchase_bill", prefix: "BILL-26-27-" },
+        { entityType: "sales_invoice", prefix: "INV-26-27-" },
+        { entityType: "settlement_paid", prefix: "PAY-26-27-" },
+        { entityType: "settlement_received", prefix: "RCT-26-27-" }
+      ]);
       expect(accounts.length).toBeGreaterThan(0);
     } finally {
       await integrationDb.delete(organization).where(eq(organization.id, organizationId));
@@ -696,11 +803,11 @@ async function seedCurrencies(): Promise<void> {
 
 function makeJournalInput(
   context: AccountingContext,
-  operationKeySuffix: string,
+  descriptionSuffix: string,
   postingDate = "2025-04-15"
 ): PostJournalEntryDbInput {
   return {
-    description: `Integration ${operationKeySuffix}`,
+    description: `Integration ${descriptionSuffix}`,
     lines: [
       {
         accountId: context.bankAccountId,
@@ -713,11 +820,14 @@ function makeJournalInput(
         side: "credit"
       }
     ],
-    operationKey: `integration:${context.organizationId}:${operationKeySuffix}`,
     organizationId: context.organizationId,
     postingDate,
     userId: context.userId
   };
+}
+
+async function postDocumentWorkflowJournal(input: PostJournalEntryInTransactionInput) {
+  return integrationDb.transaction((tx) => postJournalEntryInTransaction(tx, input));
 }
 
 async function rejectionMessageFor(promise: Promise<unknown>): Promise<string> {

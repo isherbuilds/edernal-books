@@ -37,11 +37,10 @@ describe("accounting kernel migration", () => {
     expect(migration).not.toContain("EXCLUDE USING gist");
   });
 
-  it("enforces operation-key uniqueness per organization", () => {
-    expect(migration).toContain(
-      'CREATE UNIQUE INDEX "journal_entry_organization_id_operation_key_uidx"'
-    );
-    expect(migration).toContain('"request_hash" text NOT NULL');
+  it("does not persist journal replay keys", () => {
+    expect(migration).not.toContain("journal_entry_organization_id_operation_key_uidx");
+    expect(migration).not.toContain('"operation_key"');
+    expect(migration).not.toContain('"request_hash"');
   });
 
   it("keeps account hierarchy tenant-scoped without category-coupling", () => {
@@ -71,7 +70,15 @@ describe("accounting kernel migration", () => {
 
   it("enforces one reversal per original entry", () => {
     expect(migration).toContain("journal_entry_one_reversal_per_original_uidx");
-    expect(migration).not.toContain("journal_entry_one_original_per_source_document_uidx");
+    expect(migration).not.toContain(
+      ["journal_entry_one_original_per_source", "document_uidx"].join("_")
+    );
+  });
+
+  it("stores document provenance on journal entries", () => {
+    expect(migration).toContain("journal_entry_source_all_or_none_ck");
+    expect(migration).toContain("journal_entry_source_type_ck");
+    expect(migration).toContain("journal_entry_one_original_per_source_uidx");
   });
 
   it("enforces line-level money-side invariants", () => {

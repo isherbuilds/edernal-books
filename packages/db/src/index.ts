@@ -8,4 +8,5 @@ export {
   type TransactionClient
 } from "#@/client";
 export { migrateDatabase } from "#@/migrate";
+export { getQueryTiming, runWithQueryTiming } from "#@/query-timing";
 export { checkHealth, checkIsDbReady } from "#@/utils/health";

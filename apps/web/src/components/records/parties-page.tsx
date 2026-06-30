@@ -1,6 +1,6 @@
 import { getRouteApi } from "@tanstack/react-router";
 import { UserRoundIcon } from "lucide-react";
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { type Party, type PartyKind, PartyKindSchema } from "@tsu-stack/core/parties";
@@ -24,7 +24,6 @@ import {
   gstRegistrationTypeLabel,
   partyKindLabel
 } from "@/components/records/party-form";
-import { handleRecordMutationError } from "@/components/records/record-error";
 import {
   type RecordFilterGroup,
   RecordActiveBadge,
@@ -59,8 +58,30 @@ export function PartiesPage({ orgSlug }: PartiesPageProps) {
     void navigate({ replace: true, search: { ...search, ...patch } });
   };
 
-  const debouncedSearch = useDebouncedValue((search.q ?? "").trim());
+  const [query, setQuery] = useState(search.q ?? "");
+  const lastUrlQuery = useRef(search.q ?? "");
+  const debouncedSearch = useDebouncedValue(query.trim());
   const isEditing = search.view === "edit" && Boolean(search.id);
+
+  useEffect(() => {
+    const nextQuery = search.q ?? "";
+    if (nextQuery !== lastUrlQuery.current) {
+      lastUrlQuery.current = nextQuery;
+      setQuery(nextQuery);
+    }
+  }, [search.q]);
+
+  useEffect(() => {
+    const nextQuery = debouncedSearch.length > 0 ? debouncedSearch : undefined;
+    const nextValue = nextQuery ?? "";
+
+    if (nextValue === lastUrlQuery.current) {
+      return;
+    }
+
+    lastUrlQuery.current = nextValue;
+    void navigate({ replace: true, search: { ...search, q: nextQuery } });
+  }, [debouncedSearch, navigate, search]);
 
   const partiesQuery = usePartiesQuery({
     includeInactive: true,
@@ -75,7 +96,12 @@ export function PartiesPage({ orgSlug }: PartiesPageProps) {
     [partiesQuery.data]
   );
 
-  const hasFilters = Boolean((search.q ?? "").trim()) || Boolean(search.kind);
+  const hasFilters = Boolean(query.trim()) || Boolean(search.kind);
+
+  const clearFilters = () => {
+    setQuery("");
+    setSearch({ kind: undefined, q: undefined });
+  };
 
   const filterGroups: RecordFilterGroup[] = [
     {
@@ -104,14 +130,7 @@ export function PartiesPage({ orgSlug }: PartiesPageProps) {
     setPartyActive.mutate(
       { id: party.id, isActive: !party.isActive, orgSlug },
       {
-        onError: (error) =>
-          handleRecordMutationError(error, {
-            onDuplicateName: () => toast.error(m.owner_records__parties_duplicate_name()),
-            onFallback: () =>
-              toast.error(
-                error instanceof Error ? error.message : m.owner_records__parties_update_error()
-              )
-          })
+        onError: () => toast.error(m.owner_records__parties_update_error())
       }
     );
   };
@@ -188,15 +207,13 @@ export function PartiesPage({ orgSlug }: PartiesPageProps) {
   return (
     <RecordsPageLayout
       description={m.owner_records__parties_subtitle()}
-      eyebrow={m.owner_records__eyebrow()}
-      icon={<UserRoundIcon className="size-4" />}
       title={m.owner_records__parties_title()}
     >
       <RecordsToolbar
         pills={
           <RecordFilterPills
             clearLabel={m.owner_records__clear_filters()}
-            onClear={() => setSearch({ kind: undefined, q: undefined })}
+            onClear={clearFilters}
             onRemove={() => setSearch({ kind: undefined })}
             pills={pills}
           />
@@ -205,9 +222,9 @@ export function PartiesPage({ orgSlug }: PartiesPageProps) {
           <RecordSearchField
             ariaLabel={m.owner_records__parties_search_label()}
             maxLength={SEARCH_QUERY_MAX_LENGTH}
-            onChange={(value) => setSearch({ q: value.trim().length > 0 ? value : undefined })}
+            onChange={setQuery}
             placeholder={m.owner_records__parties_search_placeholder()}
-            value={search.q ?? ""}
+            value={query}
           />
         }
       >
@@ -225,7 +242,7 @@ export function PartiesPage({ orgSlug }: PartiesPageProps) {
             <NoResults
               actionLabel={m.owner_records__clear_filters()}
               description={m.owner_records__no_results_description()}
-              onAction={() => setSearch({ kind: undefined, q: undefined })}
+              onAction={clearFilters}
               title={m.owner_records__no_results_title()}
             />
           ) : (
