@@ -163,12 +163,13 @@ themselves. Optional GST/PAN/HSN-style columns are tax-ready metadata only until
 Phase 3; they must not be interpreted as GST validation, tax calculation, or
 compliance state.
 
-## Planned Phase 2.5 Document Spine
+## Phase 2.5 Document Spine
 
-The typed document tables in this section are the accepted Phase 2.5 design,
-but they are not exported by the current branch. Current code still has the
-Phase 1 `source_document` table and `journal_entry.source_document_id`; it does
-not yet have `src/schema/documents.ts` or document query modules.
+The typed document tables in this section are the active Phase 2.5 design.
+ADR-0012 removed the historical Phase 1 `source_document` table and
+`journal_entry.source_document_id`; journal entries now use nullable source
+metadata (`source_type`, `source_record_id`, `source_number`) for posted
+documents.
 
 ```mermaid
 erDiagram
@@ -276,7 +277,9 @@ erDiagram
     uuid id PK
     text organization_id
     uuid accounting_period_id FK
-    uuid source_document_id FK
+    text source_type
+    uuid source_record_id
+    text source_number
     text entry_number
   }
   journal_line {
@@ -294,12 +297,11 @@ erDiagram
 ```
 
 Posting allocates `number_sequence` values with atomic `UPDATE ... RETURNING`,
-writes awaited audit rows transactionally, links optional `source_document_id`
-for source-backed entries, and enforces posted journal immutability through the
-posting/reversal service boundary plus database constraints. ADR-0012 replaces
-`source_document_id` with nullable all-or-nothing source metadata in a later
-schema change: manual journals keep `source_type`, `source_record_id`, and
-`source_number` all null; document postings set all three. PostgreSQL
+writes awaited audit rows transactionally, sets nullable all-or-nothing source
+metadata for source-backed entries, and enforces posted journal immutability
+through the posting/reversal service boundary plus database constraints.
+Manual journals keep `source_type`, `source_record_id`, and `source_number`
+all null; document postings set all three. PostgreSQL
 immutability triggers are deferred until a second writer path or
 public/integration API makes service bypass realistic. Phase 1 accounting
 posting does not write outbox rows; add outbox producers only when a durable
@@ -311,11 +313,9 @@ The source of truth for foundation and ledger tables is
 
 ## Migration Boundary
 
-`src/schema/migration.ts` is the active migration export boundary. Future draft
-schema files may exist only when clearly marked as drafts and not exported to
-migrations.
+`src/schema/migration.ts` is the active migration export boundary.
 
-This prevents future-phase tables from shipping before services read/write them.
+This keeps shipped schema aligned with services that read and write it.
 
 ## Package Composition
 

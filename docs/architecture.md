@@ -256,10 +256,11 @@ The source of truth is
 Current schema includes Better Auth identity/organization tables, Phase 0
 app-owned platform tables, the Phase 1 ledger kernel, the Phase 2 owner record
 foundation tables (`party`, `item`), and the Phase 2.5 document spine.
-ADR-0012 removed the historical Phase 1 `source_document` table in favor of
-journal source metadata. This diagram shows the platform foundation subset;
-ledger, owner records, and document records are tracked in the schema revision
-and package architecture docs.
+[ADR-0012](decisions/0012-replace-source-document-with-journal-source-metadata.md)
+removed the historical Phase 1 `source_document` table in favor of journal
+source metadata. This diagram shows the platform foundation subset; ledger,
+owner records, and document records are tracked in the schema revision and
+package architecture docs.
 
 [Phase 2.5 document spine](superpowers/plans/2026-06-28-phase-02-5-document-spine-plan.md)
 is the implemented bridge before Phase 3 GST semantics. It adds typed posted

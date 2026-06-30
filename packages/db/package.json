@@ -26,7 +26,6 @@
   "dependencies": {
     "@tsu-stack/core": "workspace:*",
     "@tsu-stack/logger": "workspace:*",
-    "better-auth": "catalog:",
     "drizzle-orm": "catalog:",
     "postgres": "catalog:",
     "uuid": "catalog:"
@@ -36,6 +35,7 @@
     "@tsu-stack/env": "workspace:*",
     "@tsu-stack/tsconfig": "workspace:*",
     "@types/node": "catalog:",
+    "better-auth": "catalog:",
     "drizzle-kit": "catalog:",
     "tsx": "catalog:",
     "typescript": "catalog:",

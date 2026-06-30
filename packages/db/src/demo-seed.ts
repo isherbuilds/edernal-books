@@ -2,6 +2,7 @@ import { hashPassword } from "better-auth/crypto";
 import { and, eq } from "drizzle-orm";
 
 import { formatSequenceNumber, type JournalSourceType } from "@tsu-stack/core/accounting";
+import { createLogger } from "@tsu-stack/logger/server";
 
 import { closeDb, db, type TransactionClient } from "#@/client";
 import { setupOrganizationAccountingDefaults } from "#@/queries/accounting";
@@ -94,6 +95,8 @@ type PurchaseTarget = SalesTarget & {
 await main();
 
 async function main() {
+  const logger = createLogger({ operation: "database__demo_seed" });
+
   try {
     assertLocalDatabase();
 
@@ -167,11 +170,12 @@ async function main() {
       };
     });
 
-    console.debug("Demo tenant seeded");
-    console.debug(`Organization: ${DEMO_ORG_SLUG}`);
-    console.debug(`Demo email: ${DEMO_USER_EMAIL}`);
-    console.debug(`Browser session token: ${DEMO_SESSION_TOKEN}`);
-    console.debug(JSON.stringify(summary, null, 2));
+    logger.emit({
+      demoEmail: DEMO_USER_EMAIL,
+      event: "demo_seed_completed",
+      organizationSlug: DEMO_ORG_SLUG,
+      summary
+    });
   } finally {
     await closeDb();
   }
@@ -188,7 +192,12 @@ function assertLocalDatabase() {
 
 function readTransactionCount(): number {
   const raw = process.env.DEMO_TRANSACTION_COUNT ?? "100000";
-  const parsed = Number.parseInt(raw, 10);
+
+  if (!/^\d+$/.test(raw)) {
+    throw new Error("DEMO_TRANSACTION_COUNT must be an integer >= 100");
+  }
+
+  const parsed = Number(raw);
 
   if (!Number.isSafeInteger(parsed) || parsed < 100) {
     throw new Error("DEMO_TRANSACTION_COUNT must be an integer >= 100");
@@ -914,7 +923,6 @@ async function seedDraftAndVoidedDocuments(
   const purchaseDocuments: PurchaseDocumentInsert[] = [];
   const purchaseLines: PurchaseDocumentLineInsert[] = [];
   const settlementDocuments: SettlementDocumentInsert[] = [];
-  const settlementAllocations: SettlementAllocationInsert[] = [];
   const entries: JournalEntryInsert[] = [];
   const journalLines: JournalLineInsert[] = [];
   const audits: AuditEventInsert[] = [];
@@ -928,7 +936,6 @@ async function seedDraftAndVoidedDocuments(
     const customer = atModulo(input.parties.customers, index + 3);
     const vendor = atModulo(input.parties.vendors, index + 5);
     const amountMinor = BigInt(18_000 + index * 101);
-    const salesTarget = atModulo(input.salesTargets, index);
 
     salesDocuments.push({
       customerPartyId: customer.id,
@@ -996,7 +1003,7 @@ async function seedDraftAndVoidedDocuments(
     });
 
     settlementDocuments.push({
-      amountMinor: salesTarget.amountMinor,
+      amountMinor,
       cashAccountId: input.accounts.bank,
       direction: "received",
       documentNumber: null,
@@ -1005,22 +1012,13 @@ async function seedDraftAndVoidedDocuments(
       journalEntryId: null,
       notes: "Demo draft receipt",
       organizationId: DEMO_ORG_ID,
-      partyId: salesTarget.partyId,
+      partyId: customer.id,
       paymentMode: "bank_transfer",
       postedAt: null,
       postedByUserId: null,
       reference: `DRAFT-UTR-${index + 1}`,
       settlementDate: date,
       status: "draft"
-    });
-    settlementAllocations.push({
-      amountMinor: salesTarget.amountMinor,
-      id: createUuidV7(),
-      organizationId: DEMO_ORG_ID,
-      purchaseDocumentId: null,
-      salesDocumentId: salesTarget.documentId,
-      settlementDocumentId: settlementId,
-      targetDocumentKind: "sales_invoice"
     });
   }
 
@@ -1029,7 +1027,6 @@ async function seedDraftAndVoidedDocuments(
   await tx.insert(purchaseDocumentTable).values(purchaseDocuments);
   await tx.insert(purchaseDocumentLineTable).values(purchaseLines);
   await tx.insert(settlementDocumentTable).values(settlementDocuments);
-  await tx.insert(settlementAllocationTable).values(settlementAllocations);
 
   for (let index = 0; index < 20; index += 1) {
     const date = dateForIndex(index + 311);
@@ -1168,7 +1165,11 @@ async function seedVoidedPurchaseDocuments(
     const documentId = createUuidV7();
     const originalEntryId = createUuidV7();
     const reversalEntryId = createUuidV7();
-    const documentNumber = takeSequence(input.sequences, "purchase_bill");
+    const documentKind = index % 3 === 0 ? "expense" : "purchase_bill";
+    const documentLabel = documentKind === "expense" ? "Expense" : "Purchase bill";
+    const expenseAccountId =
+      documentKind === "expense" ? input.accounts.generalExpenses : input.accounts.purchases;
+    const documentNumber = takeSequence(input.sequences, documentKind);
     const originalEntryNumber = takeSequence(input.sequences, "journal_entry");
     const reversalEntryNumber = takeSequence(input.sequences, "journal_entry");
     const selectedItem = atModulo(input.items, index + 11);
@@ -1176,7 +1177,7 @@ async function seedVoidedPurchaseDocuments(
     const periodId = periodForDate(input.periods, date);
 
     documents.push({
-      documentKind: index % 3 === 0 ? "expense" : "purchase_bill",
+      documentKind,
       documentNumber,
       draftReference: `void-purchase-${documentId}`,
       dueDate: addIsoDays(date, 20),
@@ -1198,7 +1199,7 @@ async function seedVoidedPurchaseDocuments(
     });
     lines.push({
       description: selectedItem.name,
-      expenseAccountId: input.accounts.purchases,
+      expenseAccountId,
       hsnCode: selectedItem.hsnCode,
       id: createUuidV7(),
       itemId: selectedItem.id,
@@ -1214,12 +1215,12 @@ async function seedVoidedPurchaseDocuments(
       makeJournalEntry({
         accountingPeriodId: periodId,
         date,
-        description: `Voided purchase original ${documentNumber}`,
+        description: `Voided ${documentLabel.toLowerCase()} original ${documentNumber}`,
         entryNumber: originalEntryNumber,
         id: originalEntryId,
         sourceNumber: documentNumber,
         sourceRecordId: documentId,
-        sourceType: "purchase_bill",
+        sourceType: documentKind,
         totalMinor: amountMinor
       }),
       makeJournalEntry({
@@ -1234,9 +1235,9 @@ async function seedVoidedPurchaseDocuments(
     );
     journalLines.push(
       makeJournalLine({
-        accountId: input.accounts.purchases,
+        accountId: expenseAccountId,
         debitMinor: amountMinor,
-        description: `Purchase ${documentNumber}`,
+        description: `${documentLabel} ${documentNumber}`,
         journalEntryId: originalEntryId,
         lineNumber: 1
       }),
@@ -1248,9 +1249,9 @@ async function seedVoidedPurchaseDocuments(
         lineNumber: 2
       }),
       makeJournalLine({
-        accountId: input.accounts.purchases,
+        accountId: expenseAccountId,
         creditMinor: amountMinor,
-        description: `Reverse purchase ${documentNumber}`,
+        description: `Reverse ${documentLabel.toLowerCase()} ${documentNumber}`,
         journalEntryId: reversalEntryId,
         lineNumber: 1
       }),

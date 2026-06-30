@@ -578,9 +578,6 @@ importers:
       '@tsu-stack/logger':
         specifier: workspace:*
         version: link:../logger
-      better-auth:
-        specifier: 'catalog:'
-        version: 1.6.20(@opentelemetry/api@1.9.1)(@tanstack/react-start@1.168.26(crossws@0.4.6(srvx@0.11.17))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(vite@8.1.0(@types/node@26.0.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0)))(drizzle-kit@1.0.0-rc.4-ca0f029)(drizzle-orm@1.0.0-rc.4-5d5b77c(@opentelemetry/api@1.9.1)(postgres@3.4.9)(zod@4.4.3))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(vitest@4.1.9(@opentelemetry/api@1.9.1)(@types/node@26.0.0)(@vitest/browser-preview@4.1.9)(vite@8.1.0(@types/node@26.0.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0)))
       drizzle-orm:
         specifier: 1.0.0-rc.4-5d5b77c
         version: 1.0.0-rc.4-5d5b77c(@opentelemetry/api@1.9.1)(postgres@3.4.9)(zod@4.4.3)
@@ -603,6 +600,9 @@ importers:
       '@types/node':
         specifier: 'catalog:'
         version: 26.0.0
+      better-auth:
+        specifier: 'catalog:'
+        version: 1.6.20(@opentelemetry/api@1.9.1)(@tanstack/react-start@1.168.26(crossws@0.4.6(srvx@0.11.17))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(vite@8.1.0(@types/node@26.0.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0)))(drizzle-kit@1.0.0-rc.4-ca0f029)(drizzle-orm@1.0.0-rc.4-5d5b77c(@opentelemetry/api@1.9.1)(postgres@3.4.9)(zod@4.4.3))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(vitest@4.1.9(@opentelemetry/api@1.9.1)(@types/node@26.0.0)(@vitest/browser-preview@4.1.9)(vite@8.1.0(@types/node@26.0.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0)))
       drizzle-kit:
         specifier: 'catalog:'
         version: 1.0.0-rc.4-ca0f029
