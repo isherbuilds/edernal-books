@@ -12,10 +12,9 @@ import {
 import { clampCursorLimit } from "@tsu-stack/core/pagination";
 import { normalizeName } from "@tsu-stack/core/text";
 
-import { type Database, type TransactionClient } from "#@/client";
+import { type Database, type DatabaseOrTransaction } from "#@/client";
 import {
   createCursorPage,
-  DbCursorError,
   decodeCursor,
   encodeNamedKeysetCursor,
   type NamedKeysetCursor,
@@ -23,7 +22,6 @@ import {
 } from "#@/queries/cursors";
 import { auditEvent } from "#@/schema/audit";
 import { item } from "#@/schema/items";
-import { isPostgresError, PG_FOREIGN_KEY_VIOLATION, PG_UNIQUE_VIOLATION } from "#@/utils/pg-error";
 import { escapeLikePattern } from "#@/utils/sql";
 
 export class ItemDbError extends Error {
@@ -41,10 +39,6 @@ type OrganizationScopedInput = {
 
 type CreateItemDbInput = Omit<CreateItemInput, "orgSlug"> & OrganizationScopedInput;
 type UpdateItemDbInput = Omit<UpdateItemInput, "orgSlug"> & OrganizationScopedInput;
-type SetItemActiveDbInput = OrganizationScopedInput & {
-  id: string;
-  isActive: boolean;
-};
 type AuditedMutationInput = {
   userId: string;
 };
@@ -111,8 +105,12 @@ export async function listItems(db: Database, input: ListItemsDbInput): Promise<
   };
 }
 
-export async function getItem(db: Database, input: GetItemDbInput): Promise<Item> {
-  const row = await selectItemRow(db, input);
+export async function getItem(db: DatabaseOrTransaction, input: GetItemDbInput): Promise<Item> {
+  const [row] = await db
+    .select()
+    .from(item)
+    .where(and(eq(item.id, input.id), eq(item.organizationId, input.organizationId)))
+    .limit(1);
 
   if (!row) {
     throw new ItemDbError("ITEM_NOT_FOUND");
@@ -125,22 +123,18 @@ export async function createItem(
   db: Database,
   input: CreateItemDbInput & AuditedMutationInput
 ): Promise<Item> {
-  try {
-    return await db.transaction(async (tx) => {
-      const [row] = await tx.insert(item).values(toItemInsert(input)).returning();
-      await insertItemAuditEvent(tx, {
-        action: "item.created",
-        after: toItemDto(row),
-        entityId: row.id,
-        organizationId: input.organizationId,
-        userId: input.userId
-      });
-
-      return toItemDto(row);
+  return db.transaction(async (tx) => {
+    const [row] = await tx.insert(item).values(toItemInsert(input)).returning();
+    await insertItemAuditEvent(tx, {
+      action: "item.created",
+      after: toItemDto(row),
+      entityId: row.id,
+      organizationId: input.organizationId,
+      userId: input.userId
     });
-  } catch (error) {
-    throw mapItemDbError(error);
-  }
+
+    return toItemDto(row);
+  });
 }
 
 export async function updateItem(
@@ -149,82 +143,69 @@ export async function updateItem(
 ): Promise<Item> {
   const { id, organizationId, userId, ...values } = input;
 
-  try {
-    return await db.transaction(async (tx) => {
-      await tx.execute(
-        sql`SELECT 1 FROM ${item} WHERE ${item.id} = ${id} AND ${item.organizationId} = ${organizationId} FOR UPDATE`
-      );
-      const before = await selectItemRow(tx, { id, organizationId });
+  return db.transaction(async (tx) => {
+    const updateValues = toItemUpdate(values);
+    const hasUpdateValues = Object.values(updateValues).some((value) => value !== undefined);
 
-      if (!before) {
-        throw new ItemDbError("ITEM_NOT_FOUND");
-      }
+    if (!hasUpdateValues) {
+      return getItem(tx, { id, organizationId });
+    }
 
-      const updateValues = toItemUpdate(values);
-      const hasUpdateValues = Object.values(updateValues).some((value) => value !== undefined);
-      const beforeDto = toItemDto(before);
-
-      if (!hasUpdateValues) {
-        return beforeDto;
-      }
-
-      if (
-        Object.keys(values).length === 1 &&
-        values.isActive !== undefined &&
-        values.isActive === beforeDto.isActive
-      ) {
-        return beforeDto;
-      }
-
+    if (Object.keys(values).length === 1 && values.isActive !== undefined) {
       const [row] = await tx
         .update(item)
         .set(updateValues)
-        .where(and(eq(item.id, id), eq(item.organizationId, organizationId)))
+        .where(
+          and(
+            eq(item.id, id),
+            eq(item.organizationId, organizationId),
+            sql`${item.isActive} <> ${values.isActive}`
+          )
+        )
         .returning();
 
       if (!row) {
-        throw new ItemDbError("ITEM_NOT_FOUND");
+        return getItem(tx, { id, organizationId });
       }
 
       await insertItemAuditEvent(tx, {
-        action: itemAuditAction(values, beforeDto),
+        action: itemAuditAction(values),
         after: toItemDto(row),
-        before: beforeDto,
         entityId: row.id,
         organizationId,
         userId
       });
 
       return toItemDto(row);
+    }
+
+    const [row] = await tx
+      .update(item)
+      .set(updateValues)
+      .where(and(eq(item.id, id), eq(item.organizationId, organizationId)))
+      .returning();
+
+    if (!row) {
+      throw new ItemDbError("ITEM_NOT_FOUND");
+    }
+
+    await insertItemAuditEvent(tx, {
+      action: itemAuditAction(values),
+      after: toItemDto(row),
+      entityId: row.id,
+      organizationId,
+      userId
     });
-  } catch (error) {
-    throw mapItemDbError(error);
-  }
-}
 
-export async function setItemActive(
-  db: Database,
-  input: SetItemActiveDbInput & AuditedMutationInput
-): Promise<Item> {
-  return updateItem(db, input);
-}
-
-async function selectItemRow(db: Database | TransactionClient, input: GetItemDbInput) {
-  const [row] = await db
-    .select()
-    .from(item)
-    .where(and(eq(item.id, input.id), eq(item.organizationId, input.organizationId)))
-    .limit(1);
-
-  return row ?? null;
+    return toItemDto(row);
+  });
 }
 
 async function insertItemAuditEvent(
-  tx: TransactionClient,
+  tx: DatabaseOrTransaction,
   input: {
     action: string;
     after: Item;
-    before?: Item;
     entityId: string;
     organizationId: string;
     userId: string;
@@ -237,7 +218,6 @@ async function insertItemAuditEvent(
     organizationId: input.organizationId,
     payloadJson: {
       after: input.after,
-      before: input.before,
       metadata: { source: "user" }
     },
     scopeId: input.entityId,
@@ -246,12 +226,9 @@ async function insertItemAuditEvent(
   });
 }
 
-function itemAuditAction(
-  values: Omit<UpdateItemDbInput, "id" | "organizationId">,
-  before: Item
-): string {
+function itemAuditAction(values: Omit<UpdateItemDbInput, "id" | "organizationId">): string {
   if (Object.keys(values).length === 1 && values.isActive !== undefined) {
-    return values.isActive && !before.isActive ? "item.activated" : "item.deactivated";
+    return values.isActive ? "item.activated" : "item.deactivated";
   }
 
   return "item.updated";
@@ -313,36 +290,6 @@ function toItemDto(row: typeof item.$inferSelect): Item {
   };
 }
 
-function mapItemDbError(error: unknown): Error {
-  if (error instanceof ItemDbError) {
-    return error;
-  }
-
-  if (error instanceof DbCursorError) {
-    return new ItemDbError("ITEM_CURSOR_INVALID");
-  }
-
-  if (isPostgresError(error)) {
-    if (error.code === PG_UNIQUE_VIOLATION) {
-      return new ItemDbError("ITEM_DUPLICATE_NAME");
-    }
-
-    if (
-      error.code === PG_FOREIGN_KEY_VIOLATION &&
-      (error.constraint === "item_organization_id_sales_account_id_fkey" ||
-        error.constraint === "item_organization_id_expense_account_id_fkey")
-    ) {
-      return new ItemDbError("ITEM_ACCOUNT_ORGANIZATION_MISMATCH");
-    }
-  }
-
-  return error instanceof Error ? error : new Error(String(error));
-}
-
 function decodeItemCursor(cursor: string): NamedKeysetCursor {
-  try {
-    return decodeCursor(cursor, parseNamedKeysetCursor);
-  } catch (error) {
-    throw mapItemDbError(error);
-  }
+  return decodeCursor(cursor, parseNamedKeysetCursor);
 }

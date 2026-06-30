@@ -7,12 +7,7 @@ import { nullableTextInput, SearchQuerySchema } from "#@/text/index";
 
 export const ITEM_KINDS = ["goods", "service"] as const;
 export const ITEM_USAGES = ["sales", "purchases", "both"] as const;
-export const ITEM_ERROR_CODES = [
-  "ITEM_ACCOUNT_ORGANIZATION_MISMATCH",
-  "ITEM_CURSOR_INVALID",
-  "ITEM_DUPLICATE_NAME",
-  "ITEM_NOT_FOUND"
-] as const;
+export const ITEM_ERROR_CODES = ["ITEM_NOT_FOUND"] as const;
 
 export const ItemKindSchema = z.enum(ITEM_KINDS);
 export type ItemKind = z.infer<typeof ItemKindSchema>;

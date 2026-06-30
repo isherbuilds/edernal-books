@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { canAccessAccounting } from "@tsu-stack/auth/permissions";
 import { ItemKindSchema, ItemUsageSchema } from "@tsu-stack/core/items";
+import { SEARCH_QUERY_MAX_LENGTH } from "@tsu-stack/core/text";
 
 import { generateAppSeo } from "@/lib/seo";
 
@@ -13,7 +14,7 @@ import { ItemsPage } from "@/components/records/items-page";
 const itemsSearchSchema = z.object({
   id: z.string().optional().catch(undefined),
   kind: ItemKindSchema.optional().catch(undefined),
-  q: z.string().optional().catch(undefined),
+  q: z.string().trim().max(SEARCH_QUERY_MAX_LENGTH).optional().catch(undefined),
   usage: ItemUsageSchema.optional().catch(undefined),
   view: z.enum(["create", "edit"]).optional().catch(undefined)
 });

@@ -91,8 +91,6 @@ export function GeneralLedgerPage({ orgSlug }: GeneralLedgerPageProps) {
     <PageLayout>
       <PageHeader
         description="Account-level journal lines with opening, running, and closing balances."
-        eyebrow="Reports"
-        icon={<BookMarkedIcon className="size-4" />}
         title="General ledger"
       />
 

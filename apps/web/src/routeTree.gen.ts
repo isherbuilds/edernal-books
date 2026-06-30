@@ -30,6 +30,9 @@ import { Route as Char123LocaleChar125AppOrganizationsNewRouteImport } from './r
 import { Route as Char123LocaleChar125AppOrgSlugOnboardingRouteImport } from './routes/{-$locale}/_app/$orgSlug/onboarding'
 import { Route as Char123LocaleChar125AppOrgSlugShellRouteRouteImport } from './routes/{-$locale}/_app/$orgSlug/_shell/route'
 import { Route as Char123LocaleChar125AppOrgSlugShellIndexRouteImport } from './routes/{-$locale}/_app/$orgSlug/_shell/index'
+import { Route as Char123LocaleChar125AppOrgSlugShellSettingsIndexRouteImport } from './routes/{-$locale}/_app/$orgSlug/_shell/settings/index'
+import { Route as Char123LocaleChar125AppOrgSlugShellSalesIndexRouteImport } from './routes/{-$locale}/_app/$orgSlug/_shell/sales/index'
+import { Route as Char123LocaleChar125AppOrgSlugShellPurchaseIndexRouteImport } from './routes/{-$locale}/_app/$orgSlug/_shell/purchase/index'
 import { Route as Char123LocaleChar125AppOrgSlugShellSettingsChartOfAccountsRouteImport } from './routes/{-$locale}/_app/$orgSlug/_shell/settings/chart-of-accounts'
 import { Route as Char123LocaleChar125AppOrgSlugShellSettingsBusinessRouteImport } from './routes/{-$locale}/_app/$orgSlug/_shell/settings/business'
 import { Route as Char123LocaleChar125AppOrgSlugShellSettingsAccountingPeriodsRouteImport } from './routes/{-$locale}/_app/$orgSlug/_shell/settings/accounting-periods'
@@ -38,6 +41,18 @@ import { Route as Char123LocaleChar125AppOrgSlugShellReportsGeneralLedgerRouteIm
 import { Route as Char123LocaleChar125AppOrgSlugShellRecordsPartiesRouteImport } from './routes/{-$locale}/_app/$orgSlug/_shell/records/parties'
 import { Route as Char123LocaleChar125AppOrgSlugShellRecordsItemsRouteImport } from './routes/{-$locale}/_app/$orgSlug/_shell/records/items'
 import { Route as Char123LocaleChar125AppOrgSlugShellAccountingJournalEntriesRouteImport } from './routes/{-$locale}/_app/$orgSlug/_shell/accounting/journal-entries'
+import { Route as Char123LocaleChar125AppOrgSlugShellSalesReceiptsIndexRouteImport } from './routes/{-$locale}/_app/$orgSlug/_shell/sales/receipts/index'
+import { Route as Char123LocaleChar125AppOrgSlugShellSalesInvoicesIndexRouteImport } from './routes/{-$locale}/_app/$orgSlug/_shell/sales/invoices/index'
+import { Route as Char123LocaleChar125AppOrgSlugShellPurchasePaymentsIndexRouteImport } from './routes/{-$locale}/_app/$orgSlug/_shell/purchase/payments/index'
+import { Route as Char123LocaleChar125AppOrgSlugShellPurchaseBillsIndexRouteImport } from './routes/{-$locale}/_app/$orgSlug/_shell/purchase/bills/index'
+import { Route as Char123LocaleChar125AppOrgSlugShellSalesReceiptsNewRouteImport } from './routes/{-$locale}/_app/$orgSlug/_shell/sales/receipts/new'
+import { Route as Char123LocaleChar125AppOrgSlugShellSalesReceiptsDocumentIdRouteImport } from './routes/{-$locale}/_app/$orgSlug/_shell/sales/receipts/$documentId'
+import { Route as Char123LocaleChar125AppOrgSlugShellSalesInvoicesNewRouteImport } from './routes/{-$locale}/_app/$orgSlug/_shell/sales/invoices/new'
+import { Route as Char123LocaleChar125AppOrgSlugShellSalesInvoicesDocumentIdRouteImport } from './routes/{-$locale}/_app/$orgSlug/_shell/sales/invoices/$documentId'
+import { Route as Char123LocaleChar125AppOrgSlugShellPurchasePaymentsNewRouteImport } from './routes/{-$locale}/_app/$orgSlug/_shell/purchase/payments/new'
+import { Route as Char123LocaleChar125AppOrgSlugShellPurchasePaymentsDocumentIdRouteImport } from './routes/{-$locale}/_app/$orgSlug/_shell/purchase/payments/$documentId'
+import { Route as Char123LocaleChar125AppOrgSlugShellPurchaseBillsNewRouteImport } from './routes/{-$locale}/_app/$orgSlug/_shell/purchase/bills/new'
+import { Route as Char123LocaleChar125AppOrgSlugShellPurchaseBillsDocumentIdRouteImport } from './routes/{-$locale}/_app/$orgSlug/_shell/purchase/bills/$documentId'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
@@ -157,6 +172,24 @@ const Char123LocaleChar125AppOrgSlugShellIndexRoute =
     path: '/',
     getParentRoute: () => Char123LocaleChar125AppOrgSlugShellRouteRoute,
   } as any)
+const Char123LocaleChar125AppOrgSlugShellSettingsIndexRoute =
+  Char123LocaleChar125AppOrgSlugShellSettingsIndexRouteImport.update({
+    id: '/settings/',
+    path: '/settings/',
+    getParentRoute: () => Char123LocaleChar125AppOrgSlugShellRouteRoute,
+  } as any)
+const Char123LocaleChar125AppOrgSlugShellSalesIndexRoute =
+  Char123LocaleChar125AppOrgSlugShellSalesIndexRouteImport.update({
+    id: '/sales/',
+    path: '/sales/',
+    getParentRoute: () => Char123LocaleChar125AppOrgSlugShellRouteRoute,
+  } as any)
+const Char123LocaleChar125AppOrgSlugShellPurchaseIndexRoute =
+  Char123LocaleChar125AppOrgSlugShellPurchaseIndexRouteImport.update({
+    id: '/purchase/',
+    path: '/purchase/',
+    getParentRoute: () => Char123LocaleChar125AppOrgSlugShellRouteRoute,
+  } as any)
 const Char123LocaleChar125AppOrgSlugShellSettingsChartOfAccountsRoute =
   Char123LocaleChar125AppOrgSlugShellSettingsChartOfAccountsRouteImport.update({
     id: '/settings/chart-of-accounts',
@@ -209,6 +242,80 @@ const Char123LocaleChar125AppOrgSlugShellAccountingJournalEntriesRoute =
       getParentRoute: () => Char123LocaleChar125AppOrgSlugShellRouteRoute,
     } as any,
   )
+const Char123LocaleChar125AppOrgSlugShellSalesReceiptsIndexRoute =
+  Char123LocaleChar125AppOrgSlugShellSalesReceiptsIndexRouteImport.update({
+    id: '/sales/receipts/',
+    path: '/sales/receipts/',
+    getParentRoute: () => Char123LocaleChar125AppOrgSlugShellRouteRoute,
+  } as any)
+const Char123LocaleChar125AppOrgSlugShellSalesInvoicesIndexRoute =
+  Char123LocaleChar125AppOrgSlugShellSalesInvoicesIndexRouteImport.update({
+    id: '/sales/invoices/',
+    path: '/sales/invoices/',
+    getParentRoute: () => Char123LocaleChar125AppOrgSlugShellRouteRoute,
+  } as any)
+const Char123LocaleChar125AppOrgSlugShellPurchasePaymentsIndexRoute =
+  Char123LocaleChar125AppOrgSlugShellPurchasePaymentsIndexRouteImport.update({
+    id: '/purchase/payments/',
+    path: '/purchase/payments/',
+    getParentRoute: () => Char123LocaleChar125AppOrgSlugShellRouteRoute,
+  } as any)
+const Char123LocaleChar125AppOrgSlugShellPurchaseBillsIndexRoute =
+  Char123LocaleChar125AppOrgSlugShellPurchaseBillsIndexRouteImport.update({
+    id: '/purchase/bills/',
+    path: '/purchase/bills/',
+    getParentRoute: () => Char123LocaleChar125AppOrgSlugShellRouteRoute,
+  } as any)
+const Char123LocaleChar125AppOrgSlugShellSalesReceiptsNewRoute =
+  Char123LocaleChar125AppOrgSlugShellSalesReceiptsNewRouteImport.update({
+    id: '/sales/receipts/new',
+    path: '/sales/receipts/new',
+    getParentRoute: () => Char123LocaleChar125AppOrgSlugShellRouteRoute,
+  } as any)
+const Char123LocaleChar125AppOrgSlugShellSalesReceiptsDocumentIdRoute =
+  Char123LocaleChar125AppOrgSlugShellSalesReceiptsDocumentIdRouteImport.update({
+    id: '/sales/receipts/$documentId',
+    path: '/sales/receipts/$documentId',
+    getParentRoute: () => Char123LocaleChar125AppOrgSlugShellRouteRoute,
+  } as any)
+const Char123LocaleChar125AppOrgSlugShellSalesInvoicesNewRoute =
+  Char123LocaleChar125AppOrgSlugShellSalesInvoicesNewRouteImport.update({
+    id: '/sales/invoices/new',
+    path: '/sales/invoices/new',
+    getParentRoute: () => Char123LocaleChar125AppOrgSlugShellRouteRoute,
+  } as any)
+const Char123LocaleChar125AppOrgSlugShellSalesInvoicesDocumentIdRoute =
+  Char123LocaleChar125AppOrgSlugShellSalesInvoicesDocumentIdRouteImport.update({
+    id: '/sales/invoices/$documentId',
+    path: '/sales/invoices/$documentId',
+    getParentRoute: () => Char123LocaleChar125AppOrgSlugShellRouteRoute,
+  } as any)
+const Char123LocaleChar125AppOrgSlugShellPurchasePaymentsNewRoute =
+  Char123LocaleChar125AppOrgSlugShellPurchasePaymentsNewRouteImport.update({
+    id: '/purchase/payments/new',
+    path: '/purchase/payments/new',
+    getParentRoute: () => Char123LocaleChar125AppOrgSlugShellRouteRoute,
+  } as any)
+const Char123LocaleChar125AppOrgSlugShellPurchasePaymentsDocumentIdRoute =
+  Char123LocaleChar125AppOrgSlugShellPurchasePaymentsDocumentIdRouteImport.update(
+    {
+      id: '/purchase/payments/$documentId',
+      path: '/purchase/payments/$documentId',
+      getParentRoute: () => Char123LocaleChar125AppOrgSlugShellRouteRoute,
+    } as any,
+  )
+const Char123LocaleChar125AppOrgSlugShellPurchaseBillsNewRoute =
+  Char123LocaleChar125AppOrgSlugShellPurchaseBillsNewRouteImport.update({
+    id: '/purchase/bills/new',
+    path: '/purchase/bills/new',
+    getParentRoute: () => Char123LocaleChar125AppOrgSlugShellRouteRoute,
+  } as any)
+const Char123LocaleChar125AppOrgSlugShellPurchaseBillsDocumentIdRoute =
+  Char123LocaleChar125AppOrgSlugShellPurchaseBillsDocumentIdRouteImport.update({
+    id: '/purchase/bills/$documentId',
+    path: '/purchase/bills/$documentId',
+    getParentRoute: () => Char123LocaleChar125AppOrgSlugShellRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/{-$locale}': typeof Char123LocaleChar125RouteRouteWithChildren
@@ -236,6 +343,21 @@ export interface FileRoutesByFullPath {
   '/{-$locale}/$orgSlug/settings/accounting-periods': typeof Char123LocaleChar125AppOrgSlugShellSettingsAccountingPeriodsRoute
   '/{-$locale}/$orgSlug/settings/business': typeof Char123LocaleChar125AppOrgSlugShellSettingsBusinessRoute
   '/{-$locale}/$orgSlug/settings/chart-of-accounts': typeof Char123LocaleChar125AppOrgSlugShellSettingsChartOfAccountsRoute
+  '/{-$locale}/$orgSlug/purchase/': typeof Char123LocaleChar125AppOrgSlugShellPurchaseIndexRoute
+  '/{-$locale}/$orgSlug/sales/': typeof Char123LocaleChar125AppOrgSlugShellSalesIndexRoute
+  '/{-$locale}/$orgSlug/settings/': typeof Char123LocaleChar125AppOrgSlugShellSettingsIndexRoute
+  '/{-$locale}/$orgSlug/purchase/bills/$documentId': typeof Char123LocaleChar125AppOrgSlugShellPurchaseBillsDocumentIdRoute
+  '/{-$locale}/$orgSlug/purchase/bills/new': typeof Char123LocaleChar125AppOrgSlugShellPurchaseBillsNewRoute
+  '/{-$locale}/$orgSlug/purchase/payments/$documentId': typeof Char123LocaleChar125AppOrgSlugShellPurchasePaymentsDocumentIdRoute
+  '/{-$locale}/$orgSlug/purchase/payments/new': typeof Char123LocaleChar125AppOrgSlugShellPurchasePaymentsNewRoute
+  '/{-$locale}/$orgSlug/sales/invoices/$documentId': typeof Char123LocaleChar125AppOrgSlugShellSalesInvoicesDocumentIdRoute
+  '/{-$locale}/$orgSlug/sales/invoices/new': typeof Char123LocaleChar125AppOrgSlugShellSalesInvoicesNewRoute
+  '/{-$locale}/$orgSlug/sales/receipts/$documentId': typeof Char123LocaleChar125AppOrgSlugShellSalesReceiptsDocumentIdRoute
+  '/{-$locale}/$orgSlug/sales/receipts/new': typeof Char123LocaleChar125AppOrgSlugShellSalesReceiptsNewRoute
+  '/{-$locale}/$orgSlug/purchase/bills/': typeof Char123LocaleChar125AppOrgSlugShellPurchaseBillsIndexRoute
+  '/{-$locale}/$orgSlug/purchase/payments/': typeof Char123LocaleChar125AppOrgSlugShellPurchasePaymentsIndexRoute
+  '/{-$locale}/$orgSlug/sales/invoices/': typeof Char123LocaleChar125AppOrgSlugShellSalesInvoicesIndexRoute
+  '/{-$locale}/$orgSlug/sales/receipts/': typeof Char123LocaleChar125AppOrgSlugShellSalesReceiptsIndexRoute
 }
 export interface FileRoutesByTo {
   '/{-$locale}': typeof Char123LocaleChar125PublicIndexRoute
@@ -261,6 +383,21 @@ export interface FileRoutesByTo {
   '/{-$locale}/$orgSlug/settings/accounting-periods': typeof Char123LocaleChar125AppOrgSlugShellSettingsAccountingPeriodsRoute
   '/{-$locale}/$orgSlug/settings/business': typeof Char123LocaleChar125AppOrgSlugShellSettingsBusinessRoute
   '/{-$locale}/$orgSlug/settings/chart-of-accounts': typeof Char123LocaleChar125AppOrgSlugShellSettingsChartOfAccountsRoute
+  '/{-$locale}/$orgSlug/purchase': typeof Char123LocaleChar125AppOrgSlugShellPurchaseIndexRoute
+  '/{-$locale}/$orgSlug/sales': typeof Char123LocaleChar125AppOrgSlugShellSalesIndexRoute
+  '/{-$locale}/$orgSlug/settings': typeof Char123LocaleChar125AppOrgSlugShellSettingsIndexRoute
+  '/{-$locale}/$orgSlug/purchase/bills/$documentId': typeof Char123LocaleChar125AppOrgSlugShellPurchaseBillsDocumentIdRoute
+  '/{-$locale}/$orgSlug/purchase/bills/new': typeof Char123LocaleChar125AppOrgSlugShellPurchaseBillsNewRoute
+  '/{-$locale}/$orgSlug/purchase/payments/$documentId': typeof Char123LocaleChar125AppOrgSlugShellPurchasePaymentsDocumentIdRoute
+  '/{-$locale}/$orgSlug/purchase/payments/new': typeof Char123LocaleChar125AppOrgSlugShellPurchasePaymentsNewRoute
+  '/{-$locale}/$orgSlug/sales/invoices/$documentId': typeof Char123LocaleChar125AppOrgSlugShellSalesInvoicesDocumentIdRoute
+  '/{-$locale}/$orgSlug/sales/invoices/new': typeof Char123LocaleChar125AppOrgSlugShellSalesInvoicesNewRoute
+  '/{-$locale}/$orgSlug/sales/receipts/$documentId': typeof Char123LocaleChar125AppOrgSlugShellSalesReceiptsDocumentIdRoute
+  '/{-$locale}/$orgSlug/sales/receipts/new': typeof Char123LocaleChar125AppOrgSlugShellSalesReceiptsNewRoute
+  '/{-$locale}/$orgSlug/purchase/bills': typeof Char123LocaleChar125AppOrgSlugShellPurchaseBillsIndexRoute
+  '/{-$locale}/$orgSlug/purchase/payments': typeof Char123LocaleChar125AppOrgSlugShellPurchasePaymentsIndexRoute
+  '/{-$locale}/$orgSlug/sales/invoices': typeof Char123LocaleChar125AppOrgSlugShellSalesInvoicesIndexRoute
+  '/{-$locale}/$orgSlug/sales/receipts': typeof Char123LocaleChar125AppOrgSlugShellSalesReceiptsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -293,6 +430,21 @@ export interface FileRoutesById {
   '/{-$locale}/_app/$orgSlug/_shell/settings/accounting-periods': typeof Char123LocaleChar125AppOrgSlugShellSettingsAccountingPeriodsRoute
   '/{-$locale}/_app/$orgSlug/_shell/settings/business': typeof Char123LocaleChar125AppOrgSlugShellSettingsBusinessRoute
   '/{-$locale}/_app/$orgSlug/_shell/settings/chart-of-accounts': typeof Char123LocaleChar125AppOrgSlugShellSettingsChartOfAccountsRoute
+  '/{-$locale}/_app/$orgSlug/_shell/purchase/': typeof Char123LocaleChar125AppOrgSlugShellPurchaseIndexRoute
+  '/{-$locale}/_app/$orgSlug/_shell/sales/': typeof Char123LocaleChar125AppOrgSlugShellSalesIndexRoute
+  '/{-$locale}/_app/$orgSlug/_shell/settings/': typeof Char123LocaleChar125AppOrgSlugShellSettingsIndexRoute
+  '/{-$locale}/_app/$orgSlug/_shell/purchase/bills/$documentId': typeof Char123LocaleChar125AppOrgSlugShellPurchaseBillsDocumentIdRoute
+  '/{-$locale}/_app/$orgSlug/_shell/purchase/bills/new': typeof Char123LocaleChar125AppOrgSlugShellPurchaseBillsNewRoute
+  '/{-$locale}/_app/$orgSlug/_shell/purchase/payments/$documentId': typeof Char123LocaleChar125AppOrgSlugShellPurchasePaymentsDocumentIdRoute
+  '/{-$locale}/_app/$orgSlug/_shell/purchase/payments/new': typeof Char123LocaleChar125AppOrgSlugShellPurchasePaymentsNewRoute
+  '/{-$locale}/_app/$orgSlug/_shell/sales/invoices/$documentId': typeof Char123LocaleChar125AppOrgSlugShellSalesInvoicesDocumentIdRoute
+  '/{-$locale}/_app/$orgSlug/_shell/sales/invoices/new': typeof Char123LocaleChar125AppOrgSlugShellSalesInvoicesNewRoute
+  '/{-$locale}/_app/$orgSlug/_shell/sales/receipts/$documentId': typeof Char123LocaleChar125AppOrgSlugShellSalesReceiptsDocumentIdRoute
+  '/{-$locale}/_app/$orgSlug/_shell/sales/receipts/new': typeof Char123LocaleChar125AppOrgSlugShellSalesReceiptsNewRoute
+  '/{-$locale}/_app/$orgSlug/_shell/purchase/bills/': typeof Char123LocaleChar125AppOrgSlugShellPurchaseBillsIndexRoute
+  '/{-$locale}/_app/$orgSlug/_shell/purchase/payments/': typeof Char123LocaleChar125AppOrgSlugShellPurchasePaymentsIndexRoute
+  '/{-$locale}/_app/$orgSlug/_shell/sales/invoices/': typeof Char123LocaleChar125AppOrgSlugShellSalesInvoicesIndexRoute
+  '/{-$locale}/_app/$orgSlug/_shell/sales/receipts/': typeof Char123LocaleChar125AppOrgSlugShellSalesReceiptsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -322,6 +474,21 @@ export interface FileRouteTypes {
     | '/{-$locale}/$orgSlug/settings/accounting-periods'
     | '/{-$locale}/$orgSlug/settings/business'
     | '/{-$locale}/$orgSlug/settings/chart-of-accounts'
+    | '/{-$locale}/$orgSlug/purchase/'
+    | '/{-$locale}/$orgSlug/sales/'
+    | '/{-$locale}/$orgSlug/settings/'
+    | '/{-$locale}/$orgSlug/purchase/bills/$documentId'
+    | '/{-$locale}/$orgSlug/purchase/bills/new'
+    | '/{-$locale}/$orgSlug/purchase/payments/$documentId'
+    | '/{-$locale}/$orgSlug/purchase/payments/new'
+    | '/{-$locale}/$orgSlug/sales/invoices/$documentId'
+    | '/{-$locale}/$orgSlug/sales/invoices/new'
+    | '/{-$locale}/$orgSlug/sales/receipts/$documentId'
+    | '/{-$locale}/$orgSlug/sales/receipts/new'
+    | '/{-$locale}/$orgSlug/purchase/bills/'
+    | '/{-$locale}/$orgSlug/purchase/payments/'
+    | '/{-$locale}/$orgSlug/sales/invoices/'
+    | '/{-$locale}/$orgSlug/sales/receipts/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/{-$locale}'
@@ -347,6 +514,21 @@ export interface FileRouteTypes {
     | '/{-$locale}/$orgSlug/settings/accounting-periods'
     | '/{-$locale}/$orgSlug/settings/business'
     | '/{-$locale}/$orgSlug/settings/chart-of-accounts'
+    | '/{-$locale}/$orgSlug/purchase'
+    | '/{-$locale}/$orgSlug/sales'
+    | '/{-$locale}/$orgSlug/settings'
+    | '/{-$locale}/$orgSlug/purchase/bills/$documentId'
+    | '/{-$locale}/$orgSlug/purchase/bills/new'
+    | '/{-$locale}/$orgSlug/purchase/payments/$documentId'
+    | '/{-$locale}/$orgSlug/purchase/payments/new'
+    | '/{-$locale}/$orgSlug/sales/invoices/$documentId'
+    | '/{-$locale}/$orgSlug/sales/invoices/new'
+    | '/{-$locale}/$orgSlug/sales/receipts/$documentId'
+    | '/{-$locale}/$orgSlug/sales/receipts/new'
+    | '/{-$locale}/$orgSlug/purchase/bills'
+    | '/{-$locale}/$orgSlug/purchase/payments'
+    | '/{-$locale}/$orgSlug/sales/invoices'
+    | '/{-$locale}/$orgSlug/sales/receipts'
   id:
     | '__root__'
     | '/{-$locale}'
@@ -378,6 +560,21 @@ export interface FileRouteTypes {
     | '/{-$locale}/_app/$orgSlug/_shell/settings/accounting-periods'
     | '/{-$locale}/_app/$orgSlug/_shell/settings/business'
     | '/{-$locale}/_app/$orgSlug/_shell/settings/chart-of-accounts'
+    | '/{-$locale}/_app/$orgSlug/_shell/purchase/'
+    | '/{-$locale}/_app/$orgSlug/_shell/sales/'
+    | '/{-$locale}/_app/$orgSlug/_shell/settings/'
+    | '/{-$locale}/_app/$orgSlug/_shell/purchase/bills/$documentId'
+    | '/{-$locale}/_app/$orgSlug/_shell/purchase/bills/new'
+    | '/{-$locale}/_app/$orgSlug/_shell/purchase/payments/$documentId'
+    | '/{-$locale}/_app/$orgSlug/_shell/purchase/payments/new'
+    | '/{-$locale}/_app/$orgSlug/_shell/sales/invoices/$documentId'
+    | '/{-$locale}/_app/$orgSlug/_shell/sales/invoices/new'
+    | '/{-$locale}/_app/$orgSlug/_shell/sales/receipts/$documentId'
+    | '/{-$locale}/_app/$orgSlug/_shell/sales/receipts/new'
+    | '/{-$locale}/_app/$orgSlug/_shell/purchase/bills/'
+    | '/{-$locale}/_app/$orgSlug/_shell/purchase/payments/'
+    | '/{-$locale}/_app/$orgSlug/_shell/sales/invoices/'
+    | '/{-$locale}/_app/$orgSlug/_shell/sales/receipts/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -537,6 +734,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Char123LocaleChar125AppOrgSlugShellIndexRouteImport
       parentRoute: typeof Char123LocaleChar125AppOrgSlugShellRouteRoute
     }
+    '/{-$locale}/_app/$orgSlug/_shell/settings/': {
+      id: '/{-$locale}/_app/$orgSlug/_shell/settings/'
+      path: '/settings'
+      fullPath: '/{-$locale}/$orgSlug/settings/'
+      preLoaderRoute: typeof Char123LocaleChar125AppOrgSlugShellSettingsIndexRouteImport
+      parentRoute: typeof Char123LocaleChar125AppOrgSlugShellRouteRoute
+    }
+    '/{-$locale}/_app/$orgSlug/_shell/sales/': {
+      id: '/{-$locale}/_app/$orgSlug/_shell/sales/'
+      path: '/sales'
+      fullPath: '/{-$locale}/$orgSlug/sales/'
+      preLoaderRoute: typeof Char123LocaleChar125AppOrgSlugShellSalesIndexRouteImport
+      parentRoute: typeof Char123LocaleChar125AppOrgSlugShellRouteRoute
+    }
+    '/{-$locale}/_app/$orgSlug/_shell/purchase/': {
+      id: '/{-$locale}/_app/$orgSlug/_shell/purchase/'
+      path: '/purchase'
+      fullPath: '/{-$locale}/$orgSlug/purchase/'
+      preLoaderRoute: typeof Char123LocaleChar125AppOrgSlugShellPurchaseIndexRouteImport
+      parentRoute: typeof Char123LocaleChar125AppOrgSlugShellRouteRoute
+    }
     '/{-$locale}/_app/$orgSlug/_shell/settings/chart-of-accounts': {
       id: '/{-$locale}/_app/$orgSlug/_shell/settings/chart-of-accounts'
       path: '/settings/chart-of-accounts'
@@ -593,6 +811,90 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Char123LocaleChar125AppOrgSlugShellAccountingJournalEntriesRouteImport
       parentRoute: typeof Char123LocaleChar125AppOrgSlugShellRouteRoute
     }
+    '/{-$locale}/_app/$orgSlug/_shell/sales/receipts/': {
+      id: '/{-$locale}/_app/$orgSlug/_shell/sales/receipts/'
+      path: '/sales/receipts'
+      fullPath: '/{-$locale}/$orgSlug/sales/receipts/'
+      preLoaderRoute: typeof Char123LocaleChar125AppOrgSlugShellSalesReceiptsIndexRouteImport
+      parentRoute: typeof Char123LocaleChar125AppOrgSlugShellRouteRoute
+    }
+    '/{-$locale}/_app/$orgSlug/_shell/sales/invoices/': {
+      id: '/{-$locale}/_app/$orgSlug/_shell/sales/invoices/'
+      path: '/sales/invoices'
+      fullPath: '/{-$locale}/$orgSlug/sales/invoices/'
+      preLoaderRoute: typeof Char123LocaleChar125AppOrgSlugShellSalesInvoicesIndexRouteImport
+      parentRoute: typeof Char123LocaleChar125AppOrgSlugShellRouteRoute
+    }
+    '/{-$locale}/_app/$orgSlug/_shell/purchase/payments/': {
+      id: '/{-$locale}/_app/$orgSlug/_shell/purchase/payments/'
+      path: '/purchase/payments'
+      fullPath: '/{-$locale}/$orgSlug/purchase/payments/'
+      preLoaderRoute: typeof Char123LocaleChar125AppOrgSlugShellPurchasePaymentsIndexRouteImport
+      parentRoute: typeof Char123LocaleChar125AppOrgSlugShellRouteRoute
+    }
+    '/{-$locale}/_app/$orgSlug/_shell/purchase/bills/': {
+      id: '/{-$locale}/_app/$orgSlug/_shell/purchase/bills/'
+      path: '/purchase/bills'
+      fullPath: '/{-$locale}/$orgSlug/purchase/bills/'
+      preLoaderRoute: typeof Char123LocaleChar125AppOrgSlugShellPurchaseBillsIndexRouteImport
+      parentRoute: typeof Char123LocaleChar125AppOrgSlugShellRouteRoute
+    }
+    '/{-$locale}/_app/$orgSlug/_shell/sales/receipts/new': {
+      id: '/{-$locale}/_app/$orgSlug/_shell/sales/receipts/new'
+      path: '/sales/receipts/new'
+      fullPath: '/{-$locale}/$orgSlug/sales/receipts/new'
+      preLoaderRoute: typeof Char123LocaleChar125AppOrgSlugShellSalesReceiptsNewRouteImport
+      parentRoute: typeof Char123LocaleChar125AppOrgSlugShellRouteRoute
+    }
+    '/{-$locale}/_app/$orgSlug/_shell/sales/receipts/$documentId': {
+      id: '/{-$locale}/_app/$orgSlug/_shell/sales/receipts/$documentId'
+      path: '/sales/receipts/$documentId'
+      fullPath: '/{-$locale}/$orgSlug/sales/receipts/$documentId'
+      preLoaderRoute: typeof Char123LocaleChar125AppOrgSlugShellSalesReceiptsDocumentIdRouteImport
+      parentRoute: typeof Char123LocaleChar125AppOrgSlugShellRouteRoute
+    }
+    '/{-$locale}/_app/$orgSlug/_shell/sales/invoices/new': {
+      id: '/{-$locale}/_app/$orgSlug/_shell/sales/invoices/new'
+      path: '/sales/invoices/new'
+      fullPath: '/{-$locale}/$orgSlug/sales/invoices/new'
+      preLoaderRoute: typeof Char123LocaleChar125AppOrgSlugShellSalesInvoicesNewRouteImport
+      parentRoute: typeof Char123LocaleChar125AppOrgSlugShellRouteRoute
+    }
+    '/{-$locale}/_app/$orgSlug/_shell/sales/invoices/$documentId': {
+      id: '/{-$locale}/_app/$orgSlug/_shell/sales/invoices/$documentId'
+      path: '/sales/invoices/$documentId'
+      fullPath: '/{-$locale}/$orgSlug/sales/invoices/$documentId'
+      preLoaderRoute: typeof Char123LocaleChar125AppOrgSlugShellSalesInvoicesDocumentIdRouteImport
+      parentRoute: typeof Char123LocaleChar125AppOrgSlugShellRouteRoute
+    }
+    '/{-$locale}/_app/$orgSlug/_shell/purchase/payments/new': {
+      id: '/{-$locale}/_app/$orgSlug/_shell/purchase/payments/new'
+      path: '/purchase/payments/new'
+      fullPath: '/{-$locale}/$orgSlug/purchase/payments/new'
+      preLoaderRoute: typeof Char123LocaleChar125AppOrgSlugShellPurchasePaymentsNewRouteImport
+      parentRoute: typeof Char123LocaleChar125AppOrgSlugShellRouteRoute
+    }
+    '/{-$locale}/_app/$orgSlug/_shell/purchase/payments/$documentId': {
+      id: '/{-$locale}/_app/$orgSlug/_shell/purchase/payments/$documentId'
+      path: '/purchase/payments/$documentId'
+      fullPath: '/{-$locale}/$orgSlug/purchase/payments/$documentId'
+      preLoaderRoute: typeof Char123LocaleChar125AppOrgSlugShellPurchasePaymentsDocumentIdRouteImport
+      parentRoute: typeof Char123LocaleChar125AppOrgSlugShellRouteRoute
+    }
+    '/{-$locale}/_app/$orgSlug/_shell/purchase/bills/new': {
+      id: '/{-$locale}/_app/$orgSlug/_shell/purchase/bills/new'
+      path: '/purchase/bills/new'
+      fullPath: '/{-$locale}/$orgSlug/purchase/bills/new'
+      preLoaderRoute: typeof Char123LocaleChar125AppOrgSlugShellPurchaseBillsNewRouteImport
+      parentRoute: typeof Char123LocaleChar125AppOrgSlugShellRouteRoute
+    }
+    '/{-$locale}/_app/$orgSlug/_shell/purchase/bills/$documentId': {
+      id: '/{-$locale}/_app/$orgSlug/_shell/purchase/bills/$documentId'
+      path: '/purchase/bills/$documentId'
+      fullPath: '/{-$locale}/$orgSlug/purchase/bills/$documentId'
+      preLoaderRoute: typeof Char123LocaleChar125AppOrgSlugShellPurchaseBillsDocumentIdRouteImport
+      parentRoute: typeof Char123LocaleChar125AppOrgSlugShellRouteRoute
+    }
   }
 }
 
@@ -606,6 +908,21 @@ interface Char123LocaleChar125AppOrgSlugShellRouteRouteChildren {
   Char123LocaleChar125AppOrgSlugShellSettingsAccountingPeriodsRoute: typeof Char123LocaleChar125AppOrgSlugShellSettingsAccountingPeriodsRoute
   Char123LocaleChar125AppOrgSlugShellSettingsBusinessRoute: typeof Char123LocaleChar125AppOrgSlugShellSettingsBusinessRoute
   Char123LocaleChar125AppOrgSlugShellSettingsChartOfAccountsRoute: typeof Char123LocaleChar125AppOrgSlugShellSettingsChartOfAccountsRoute
+  Char123LocaleChar125AppOrgSlugShellPurchaseIndexRoute: typeof Char123LocaleChar125AppOrgSlugShellPurchaseIndexRoute
+  Char123LocaleChar125AppOrgSlugShellSalesIndexRoute: typeof Char123LocaleChar125AppOrgSlugShellSalesIndexRoute
+  Char123LocaleChar125AppOrgSlugShellSettingsIndexRoute: typeof Char123LocaleChar125AppOrgSlugShellSettingsIndexRoute
+  Char123LocaleChar125AppOrgSlugShellPurchaseBillsDocumentIdRoute: typeof Char123LocaleChar125AppOrgSlugShellPurchaseBillsDocumentIdRoute
+  Char123LocaleChar125AppOrgSlugShellPurchaseBillsNewRoute: typeof Char123LocaleChar125AppOrgSlugShellPurchaseBillsNewRoute
+  Char123LocaleChar125AppOrgSlugShellPurchasePaymentsDocumentIdRoute: typeof Char123LocaleChar125AppOrgSlugShellPurchasePaymentsDocumentIdRoute
+  Char123LocaleChar125AppOrgSlugShellPurchasePaymentsNewRoute: typeof Char123LocaleChar125AppOrgSlugShellPurchasePaymentsNewRoute
+  Char123LocaleChar125AppOrgSlugShellSalesInvoicesDocumentIdRoute: typeof Char123LocaleChar125AppOrgSlugShellSalesInvoicesDocumentIdRoute
+  Char123LocaleChar125AppOrgSlugShellSalesInvoicesNewRoute: typeof Char123LocaleChar125AppOrgSlugShellSalesInvoicesNewRoute
+  Char123LocaleChar125AppOrgSlugShellSalesReceiptsDocumentIdRoute: typeof Char123LocaleChar125AppOrgSlugShellSalesReceiptsDocumentIdRoute
+  Char123LocaleChar125AppOrgSlugShellSalesReceiptsNewRoute: typeof Char123LocaleChar125AppOrgSlugShellSalesReceiptsNewRoute
+  Char123LocaleChar125AppOrgSlugShellPurchaseBillsIndexRoute: typeof Char123LocaleChar125AppOrgSlugShellPurchaseBillsIndexRoute
+  Char123LocaleChar125AppOrgSlugShellPurchasePaymentsIndexRoute: typeof Char123LocaleChar125AppOrgSlugShellPurchasePaymentsIndexRoute
+  Char123LocaleChar125AppOrgSlugShellSalesInvoicesIndexRoute: typeof Char123LocaleChar125AppOrgSlugShellSalesInvoicesIndexRoute
+  Char123LocaleChar125AppOrgSlugShellSalesReceiptsIndexRoute: typeof Char123LocaleChar125AppOrgSlugShellSalesReceiptsIndexRoute
 }
 
 const Char123LocaleChar125AppOrgSlugShellRouteRouteChildren: Char123LocaleChar125AppOrgSlugShellRouteRouteChildren =
@@ -628,6 +945,36 @@ const Char123LocaleChar125AppOrgSlugShellRouteRouteChildren: Char123LocaleChar12
       Char123LocaleChar125AppOrgSlugShellSettingsBusinessRoute,
     Char123LocaleChar125AppOrgSlugShellSettingsChartOfAccountsRoute:
       Char123LocaleChar125AppOrgSlugShellSettingsChartOfAccountsRoute,
+    Char123LocaleChar125AppOrgSlugShellPurchaseIndexRoute:
+      Char123LocaleChar125AppOrgSlugShellPurchaseIndexRoute,
+    Char123LocaleChar125AppOrgSlugShellSalesIndexRoute:
+      Char123LocaleChar125AppOrgSlugShellSalesIndexRoute,
+    Char123LocaleChar125AppOrgSlugShellSettingsIndexRoute:
+      Char123LocaleChar125AppOrgSlugShellSettingsIndexRoute,
+    Char123LocaleChar125AppOrgSlugShellPurchaseBillsDocumentIdRoute:
+      Char123LocaleChar125AppOrgSlugShellPurchaseBillsDocumentIdRoute,
+    Char123LocaleChar125AppOrgSlugShellPurchaseBillsNewRoute:
+      Char123LocaleChar125AppOrgSlugShellPurchaseBillsNewRoute,
+    Char123LocaleChar125AppOrgSlugShellPurchasePaymentsDocumentIdRoute:
+      Char123LocaleChar125AppOrgSlugShellPurchasePaymentsDocumentIdRoute,
+    Char123LocaleChar125AppOrgSlugShellPurchasePaymentsNewRoute:
+      Char123LocaleChar125AppOrgSlugShellPurchasePaymentsNewRoute,
+    Char123LocaleChar125AppOrgSlugShellSalesInvoicesDocumentIdRoute:
+      Char123LocaleChar125AppOrgSlugShellSalesInvoicesDocumentIdRoute,
+    Char123LocaleChar125AppOrgSlugShellSalesInvoicesNewRoute:
+      Char123LocaleChar125AppOrgSlugShellSalesInvoicesNewRoute,
+    Char123LocaleChar125AppOrgSlugShellSalesReceiptsDocumentIdRoute:
+      Char123LocaleChar125AppOrgSlugShellSalesReceiptsDocumentIdRoute,
+    Char123LocaleChar125AppOrgSlugShellSalesReceiptsNewRoute:
+      Char123LocaleChar125AppOrgSlugShellSalesReceiptsNewRoute,
+    Char123LocaleChar125AppOrgSlugShellPurchaseBillsIndexRoute:
+      Char123LocaleChar125AppOrgSlugShellPurchaseBillsIndexRoute,
+    Char123LocaleChar125AppOrgSlugShellPurchasePaymentsIndexRoute:
+      Char123LocaleChar125AppOrgSlugShellPurchasePaymentsIndexRoute,
+    Char123LocaleChar125AppOrgSlugShellSalesInvoicesIndexRoute:
+      Char123LocaleChar125AppOrgSlugShellSalesInvoicesIndexRoute,
+    Char123LocaleChar125AppOrgSlugShellSalesReceiptsIndexRoute:
+      Char123LocaleChar125AppOrgSlugShellSalesReceiptsIndexRoute,
   }
 
 const Char123LocaleChar125AppOrgSlugShellRouteRouteWithChildren =

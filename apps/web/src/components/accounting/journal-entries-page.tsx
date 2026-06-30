@@ -141,8 +141,6 @@ export function JournalEntriesPage({ orgSlug }: JournalEntriesPageProps) {
           </>
         }
         description="Post balanced journals and reverse posted entries. Posted entries are immutable — correct them with a reversal."
-        eyebrow="Accounting"
-        icon={<Rows3Icon className="size-4" />}
         title="Journal entries"
       />
 
@@ -287,7 +285,6 @@ export function JournalEntriesPage({ orgSlug }: JournalEntriesPageProps) {
       {
         description: reason,
         journalEntryId: reversingEntry.id,
-        operationKey: `reversal-${reversingEntry.id}`,
         orgSlug,
         postingDate: getTodayDateString()
       },

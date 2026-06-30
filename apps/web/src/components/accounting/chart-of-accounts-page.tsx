@@ -62,8 +62,6 @@ export function ChartOfAccountsPage({ orgSlug }: ChartOfAccountsPageProps) {
     <PageLayout>
       <PageHeader
         description="Ledger accounts available to journals and accounting reports."
-        eyebrow="Settings"
-        icon={<BookOpenIcon className="size-4" />}
         title="Chart of accounts"
       />
 

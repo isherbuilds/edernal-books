@@ -27,21 +27,13 @@ import { PageHeader, PageLayout } from "@/components/page-layout";
 type RecordsPageLayoutProps = {
   children: ReactNode;
   description: ReactNode;
-  eyebrow: ReactNode;
-  icon: ReactNode;
   title: ReactNode;
 };
 
-export function RecordsPageLayout({
-  children,
-  description,
-  eyebrow,
-  icon,
-  title
-}: RecordsPageLayoutProps) {
+export function RecordsPageLayout({ children, description, title }: RecordsPageLayoutProps) {
   return (
     <PageLayout>
-      <PageHeader description={description} eyebrow={eyebrow} icon={icon} title={title} />
+      <PageHeader description={description} title={title} />
       {children}
     </PageLayout>
   );
@@ -137,11 +129,11 @@ export function RecordFilterMenu({ ariaLabel, groups, label }: RecordFilterMenuP
         {groups.map((group, index) => (
           <Fragment key={group.id}>
             {index > 0 ? <DropdownMenuSeparator /> : null}
-            <DropdownMenuLabel>{group.label}</DropdownMenuLabel>
             <DropdownMenuRadioGroup
               onValueChange={(value) => group.onValueChange(value)}
               value={group.value}
             >
+              <DropdownMenuLabel>{group.label}</DropdownMenuLabel>
               <DropdownMenuRadioItem value="all">{group.allLabel}</DropdownMenuRadioItem>
               {group.options.map((option) => (
                 <DropdownMenuRadioItem key={option.value} value={option.value}>

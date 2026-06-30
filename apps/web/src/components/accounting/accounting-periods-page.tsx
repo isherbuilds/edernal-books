@@ -54,8 +54,6 @@ export function AccountingPeriodsPage({ orgSlug }: AccountingPeriodsPageProps) {
     <PageLayout>
       <PageHeader
         description="Fiscal periods that control posting dates and report boundaries."
-        eyebrow="Settings"
-        icon={<CalendarRangeIcon className="size-4" />}
         title="Accounting periods"
       />
 

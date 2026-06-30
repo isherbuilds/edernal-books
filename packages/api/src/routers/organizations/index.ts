@@ -14,7 +14,6 @@ import {
   listOrganizationsForUser,
   logOrganizationSettingAudit,
   markOrganizationOnboardingCompleted,
-  OrganizationSettingDbError,
   setupOrganizationAccountingDefaults,
   upsertOrganizationSetting
 } from "@tsu-stack/db/queries";
@@ -43,21 +42,6 @@ const CompleteOrganizationOnboardingOutputSchema = z
     organizationId: z.string().min(1)
   })
   .strict();
-const organizationSettingErrorDataSchema = z.object({
-  code: z.literal("ACCOUNTING_FOUNDATION_SETTINGS_LOCKED")
-});
-const organizationSettingErrors = {
-  ACCOUNTING_FOUNDATION_SETTINGS_LOCKED: {
-    data: organizationSettingErrorDataSchema,
-    status: 409
-  }
-};
-
-type OrganizationSettingErrorFactories = {
-  ACCOUNTING_FOUNDATION_SETTINGS_LOCKED: (input: {
-    data: { code: "ACCOUNTING_FOUNDATION_SETTINGS_LOCKED" };
-  }) => unknown;
-};
 
 export const organizationsRouter = {
   completeOnboarding: organizationPermissionProcedure(
@@ -68,9 +52,8 @@ export const organizationsRouter = {
       description: "Complete onboarding for the request organization",
       method: "POST"
     })
-    .errors(organizationSettingErrors)
     .output(CompleteOrganizationOnboardingOutputSchema)
-    .handler(async ({ context, errors, input }) => {
+    .handler(async ({ context, input }) => {
       const requestedCompletedAt = new Date();
       const settingInput = {
         baseCurrencyCode: input.baseCurrencyCode,
@@ -85,38 +68,32 @@ export const organizationsRouter = {
         tradeName: input.tradeName
       };
 
-      let completedAt: Date;
-
-      try {
-        completedAt = await context.db.transaction(async (tx) => {
-          const completion = await markOrganizationOnboardingCompleted(tx, {
-            completedAt: requestedCompletedAt,
-            organizationId: context.organizationId
-          });
-
-          if (completion.alreadyCompleted) {
-            return completion.completedAt;
-          }
-
-          await upsertOrganizationSetting(tx, settingInput);
-          await setupOrganizationAccountingDefaults(tx, {
-            booksStartDate: settingInput.booksStartDate,
-            initialFiscalYearEndDate: input.initialFiscalYearEndDate,
-            organizationId: context.organizationId,
-            userId: context.authSession.user.id
-          });
-
-          await logOrganizationSettingAudit(tx, {
-            ...settingInput,
-            source: "user",
-            userId: context.authSession.user.id
-          });
-
-          return completion.completedAt;
+      const completedAt = await context.db.transaction(async (tx) => {
+        const completion = await markOrganizationOnboardingCompleted(tx, {
+          completedAt: requestedCompletedAt,
+          organizationId: context.organizationId
         });
-      } catch (error) {
-        throwOrganizationSettingDbError(errors, error);
-      }
+
+        if (completion.alreadyCompleted) {
+          return completion.completedAt;
+        }
+
+        await upsertOrganizationSetting(tx, settingInput);
+        await setupOrganizationAccountingDefaults(tx, {
+          booksStartDate: settingInput.booksStartDate,
+          initialFiscalYearEndDate: input.initialFiscalYearEndDate,
+          organizationId: context.organizationId,
+          userId: context.authSession.user.id
+        });
+
+        await logOrganizationSettingAudit(tx, {
+          ...settingInput,
+          source: "user",
+          userId: context.authSession.user.id
+        });
+
+        return completion.completedAt;
+      });
 
       return {
         ok: true,
@@ -172,9 +149,8 @@ export const organizationsRouter = {
         description: "Create or update settings for the request organization",
         method: "PUT"
       })
-      .errors(organizationSettingErrors)
       .output(UpsertOrganizationSettingOutputSchema)
-      .handler(async ({ context, errors, input }) => {
+      .handler(async ({ context, input }) => {
         const settingInput = {
           baseCurrencyCode: input.baseCurrencyCode,
           booksStartDate: input.booksStartDate,
@@ -188,18 +164,14 @@ export const organizationsRouter = {
           tradeName: input.tradeName
         };
 
-        try {
-          await context.db.transaction(async (tx) => {
-            await upsertOrganizationSetting(tx, settingInput);
-            await logOrganizationSettingAudit(tx, {
-              ...settingInput,
-              source: "user",
-              userId: context.authSession.user.id
-            });
+        await context.db.transaction(async (tx) => {
+          await upsertOrganizationSetting(tx, settingInput);
+          await logOrganizationSettingAudit(tx, {
+            ...settingInput,
+            source: "user",
+            userId: context.authSession.user.id
           });
-        } catch (error) {
-          throwOrganizationSettingDbError(errors, error);
-        }
+        });
 
         return {
           ok: true,
@@ -208,16 +180,3 @@ export const organizationsRouter = {
       })
   }
 };
-
-function throwOrganizationSettingDbError(
-  errors: OrganizationSettingErrorFactories,
-  error: unknown
-): never {
-  if (error instanceof OrganizationSettingDbError) {
-    throw errors.ACCOUNTING_FOUNDATION_SETTINGS_LOCKED({
-      data: { code: "ACCOUNTING_FOUNDATION_SETTINGS_LOCKED" }
-    });
-  }
-
-  throw error;
-}

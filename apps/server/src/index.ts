@@ -1,5 +1,6 @@
 import { hostname } from "node:os";
 import { join } from "node:path/posix";
+import { performance } from "node:perf_hooks";
 
 import { serve } from "@hono/node-server";
 import { SmartCoercionPlugin } from "@orpc/json-schema";
@@ -16,7 +17,7 @@ import { type ContentfulStatusCode } from "hono/utils/http-status";
 import { createContext } from "@tsu-stack/api/lib/context/hono/create-context";
 import { appRouter } from "@tsu-stack/api/routers/index";
 import { auth } from "@tsu-stack/auth/index";
-import { migrateDatabase } from "@tsu-stack/db";
+import { getQueryTiming, migrateDatabase, runWithQueryTiming } from "@tsu-stack/db";
 import { ENV_SERVER } from "@tsu-stack/env/server/env";
 import { log, parseError } from "@tsu-stack/logger/server";
 import {
@@ -51,6 +52,26 @@ app.use(
     }
   })
 );
+
+app.use("/*", async (c, next) => {
+  const startedAt = performance.now();
+
+  await runWithQueryTiming(async () => {
+    try {
+      await next();
+    } finally {
+      const logger = c.get("log");
+      if (logger) {
+        logger.set({
+          db: getQueryTiming(),
+          timing: {
+            requestMs: Math.round((performance.now() - startedAt) * 100) / 100
+          }
+        });
+      }
+    }
+  });
+});
 
 app.post("/_logs/ingest", honoLogIngestionMiddleware());
 

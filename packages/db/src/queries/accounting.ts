@@ -1,5 +1,3 @@
-import { createHash } from "node:crypto";
-
 import { and, asc, desc, eq, gte, ilike, inArray, lte, or, sql } from "drizzle-orm";
 
 import {
@@ -7,6 +5,7 @@ import {
   type AccountingPeriod,
   type JournalEntryLineSide,
   type JournalEntryRegisterItem,
+  type JournalSourceType,
   type LedgerAccountListItem,
   type PostedJournalEntry,
   type ReverseJournalEntryInput,
@@ -16,6 +15,8 @@ import {
   DEFAULT_LEDGER_ACCOUNTS,
   formatFiscalYearLabel,
   formatSequenceNumber,
+  JOURNAL_SOURCE_PREFIX_BY_TYPE,
+  JOURNAL_SOURCE_TYPES,
   validateJournalEntryDraft
 } from "@tsu-stack/core/accounting";
 
@@ -68,21 +69,28 @@ export type PostJournalEntryLineDbInput = {
 export type PostJournalEntryDbInput = OrganizationScopedInput & {
   description?: string;
   lines: PostJournalEntryLineDbInput[];
-  operationKey: string;
   postingDate: string;
-  postingOrigin?: PostingOrigin;
-  sourceDocumentId?: string | null;
 };
 
 type ReverseJournalEntryDbInput = Omit<ReverseJournalEntryInput, "orgSlug"> &
   OrganizationScopedInput;
-
-type PostJournalEntryInTransactionInput = PostJournalEntryDbInput & {
-  requestHash?: string;
-  reversalOfEntryId?: string | null;
+type ReverseJournalEntryInTransactionInput = ReverseJournalEntryDbInput & {
+  allowSourcedEntry?: boolean;
 };
 
-type PostingOrigin = "manual" | "reversal";
+type JournalSourceMetadata = { type: JournalSourceType; recordId: string; number: string };
+
+export type PostJournalEntryInTransactionInput = PostJournalEntryDbInput & {
+  postingOrigin?: PostingOrigin;
+  postingPeriod?: {
+    fiscalYearId: string;
+    periodId: string;
+  };
+  reversalOfEntryId?: string | null;
+  source?: JournalSourceMetadata | null;
+};
+
+export type PostingOrigin = "manual" | "document_workflow" | "reversal";
 
 type NormalizedJournalLine = {
   accountId: string;
@@ -96,11 +104,7 @@ type SequenceAllocation = {
   sequenceValue: string;
 };
 
-type ExistingJournalEntry = {
-  entryNumber: string;
-  id: string;
-  requestHash: string;
-};
+type DocumentSequenceType = JournalSourceType;
 
 /**
  * Onboarding entry point: create the first fiscal year and seed the default chart.
@@ -117,7 +121,7 @@ export async function setupOrganizationAccountingDefaults(
   await lockFiscalYearScope(tx, input.organizationId);
 
   const [existingFiscalYear] = await tx
-    .select({ id: fiscalYear.id })
+    .select({ id: fiscalYear.id, name: fiscalYear.name })
     .from(fiscalYear)
     .where(
       and(
@@ -133,6 +137,12 @@ export async function setupOrganizationAccountingDefaults(
       organizationId: input.organizationId,
       startDate: input.booksStartDate,
       userId: input.userId
+    });
+  } else {
+    await seedDocumentSequences(tx, {
+      fiscalYearId: existingFiscalYear.id,
+      fiscalYearName: existingFiscalYear.name,
+      organizationId: input.organizationId
     });
   }
 
@@ -200,14 +210,21 @@ async function createFiscalYearInTransaction(
     status: accountingPeriod.status
   });
 
-  await tx.insert(numberSequence).values({
-    entityType: "journal_entry",
-    fiscalYearId: fiscalYearRow.id,
-    organizationId: input.organizationId,
-    padding: 6,
-    prefix: `JV-${name}-`,
-    resetPolicy: "fiscal_year"
-  });
+  await tx.insert(numberSequence).values([
+    {
+      entityType: "journal_entry",
+      fiscalYearId: fiscalYearRow.id,
+      organizationId: input.organizationId,
+      padding: 6,
+      prefix: `JV-${name}-`,
+      resetPolicy: "fiscal_year"
+    },
+    ...documentSequenceRows({
+      fiscalYearId: fiscalYearRow.id,
+      fiscalYearName: name,
+      organizationId: input.organizationId
+    })
+  ]);
 
   await tx.insert(auditEvent).values({
     action: "fiscal_year.setup",
@@ -227,6 +244,34 @@ async function createFiscalYearInTransaction(
     fiscalYearId: fiscalYearRow.id,
     periods
   };
+}
+
+async function seedDocumentSequences(
+  tx: TransactionClient,
+  input: { fiscalYearId: string; fiscalYearName: string; organizationId: string }
+) {
+  await tx.insert(numberSequence).values(documentSequenceRows(input)).onConflictDoNothing();
+}
+
+function documentSequenceRows(input: {
+  fiscalYearId: string;
+  fiscalYearName: string;
+  organizationId: string;
+}) {
+  return JOURNAL_SOURCE_TYPES.map((entityType) => {
+    return {
+      entityType,
+      fiscalYearId: input.fiscalYearId,
+      organizationId: input.organizationId,
+      padding: 6,
+      prefix: `${documentSequencePrefix(entityType)}-${input.fiscalYearName}-`,
+      resetPolicy: "fiscal_year"
+    };
+  });
+}
+
+export function documentSequencePrefix(entityType: DocumentSequenceType): string {
+  return JOURNAL_SOURCE_PREFIX_BY_TYPE[entityType];
 }
 
 async function seedDefaultChart(
@@ -372,7 +417,6 @@ export async function listRecentJournalEntries(
       id: journalEntry.id,
       postingDate: journalEntry.postingDate,
       reversalOfEntryId: journalEntry.reversalOfEntryId,
-      sourceDocumentId: journalEntry.sourceDocumentId,
       totalMinor: sql<string>`${journalEntry.totalMinor}::text`
     })
     .from(journalEntry)
@@ -385,102 +429,90 @@ export async function postJournalEntry(
   db: Database,
   input: PostJournalEntryDbInput
 ): Promise<PostedJournalEntry> {
-  return db.transaction((tx) => postJournalEntryInTransaction(tx, input));
+  return db.transaction((tx) =>
+    postJournalEntryInTransaction(tx, {
+      description: input.description,
+      lines: input.lines,
+      organizationId: input.organizationId,
+      postingDate: input.postingDate,
+      userId: input.userId
+    })
+  );
 }
 
 export async function reverseJournalEntry(
   db: Database,
   input: ReverseJournalEntryDbInput
 ): Promise<PostedJournalEntry> {
-  return db.transaction(async (tx) => {
-    await lockOperationKey(tx, input);
-    const requestHash = hashJournalRequest({
-      description: input.description,
-      journalEntryId: input.journalEntryId,
-      operationKey: input.operationKey,
-      organizationId: input.organizationId,
-      postingDate: input.postingDate,
-      postingOrigin: "reversal"
-    });
+  return db.transaction((tx) => reverseJournalEntryInTransaction(tx, input));
+}
 
-    const existing = await findEntryByOperationKey(tx, {
-      operationKey: input.operationKey,
-      organizationId: input.organizationId
-    });
-    if (existing) {
-      assertMatchingOperationPayload(existing, requestHash);
-      return toPostedJournalEntry(existing, true);
+export async function reverseJournalEntryInTransaction(
+  tx: TransactionClient,
+  input: ReverseJournalEntryInTransactionInput
+): Promise<PostedJournalEntry> {
+  const original = await loadPostedEntryForReversal(tx, input);
+  if (input.postingDate < dateString(original.entry.postingDate)) {
+    throw new AccountingDbError("JOURNAL_ENTRY_REVERSAL_DATE_INVALID");
+  }
+
+  const reversalLines: PostJournalEntryLineDbInput[] = original.lines.map((line) => {
+    return {
+      accountId: line.accountId,
+      amountMinor: line.debitMinor > 0n ? line.debitMinor : line.creditMinor,
+      description: line.description ?? undefined,
+      side: line.debitMinor > 0n ? "credit" : "debit"
+    };
+  });
+  const hasSource =
+    original.entry.sourceType !== null ||
+    original.entry.sourceRecordId !== null ||
+    original.entry.sourceNumber !== null;
+  let source: JournalSourceMetadata | null = null;
+
+  if (hasSource) {
+    if (!input.allowSourcedEntry) {
+      throw new AccountingDbError("JOURNAL_ENTRY_SOURCED_REVERSAL_FORBIDDEN");
     }
 
-    const original = await loadPostedEntryForReversal(tx, input);
-    const reversalLines: PostJournalEntryLineDbInput[] = original.lines.map((line) => {
-      return {
-        accountId: line.accountId,
-        amountMinor: line.debitMinor > 0n ? line.debitMinor : line.creditMinor,
-        description: line.description ?? undefined,
-        side: line.debitMinor > 0n ? "credit" : "debit"
-      };
-    });
+    const { sourceNumber, sourceRecordId, sourceType } = original.entry;
 
-    return postJournalEntryInTransaction(tx, {
-      description: input.description,
-      lines: reversalLines,
-      operationKey: input.operationKey,
-      organizationId: input.organizationId,
-      postingDate: input.postingDate,
-      postingOrigin: "reversal",
-      requestHash,
-      reversalOfEntryId: original.entry.id,
-      sourceDocumentId: original.entry.sourceDocumentId ?? undefined,
-      userId: input.userId
-    });
+    if (!sourceType || !sourceRecordId || !sourceNumber) {
+      throw new Error("Journal source columns must be all populated or all null");
+    }
+
+    source = {
+      number: sourceNumber,
+      recordId: sourceRecordId,
+      type: sourceType
+    };
+  }
+
+  return postJournalEntryInTransaction(tx, {
+    description: input.description,
+    lines: reversalLines,
+    organizationId: input.organizationId,
+    postingDate: input.postingDate,
+    postingOrigin: "reversal",
+    reversalOfEntryId: original.entry.id,
+    source,
+    userId: input.userId
   });
 }
 
-async function postJournalEntryInTransaction(
+export async function postJournalEntryInTransaction(
   tx: TransactionClient,
   input: PostJournalEntryInTransactionInput
 ): Promise<PostedJournalEntry> {
   const postingOrigin = input.postingOrigin ?? "manual";
   const lines = normalizeJournalLines(input.lines);
-  const requestHash =
-    input.requestHash ??
-    hashJournalRequest({
-      description: input.description ?? null,
-      lines: lines.map((line) => {
-        return {
-          accountId: line.accountId,
-          creditMinor: line.creditMinor.toString(),
-          debitMinor: line.debitMinor.toString(),
-          description: line.description ?? null
-        };
-      }),
-      operationKey: input.operationKey,
-      organizationId: input.organizationId,
-      postingDate: input.postingDate,
-      postingOrigin,
-      reversalOfEntryId: input.reversalOfEntryId ?? null,
-      sourceDocumentId: input.sourceDocumentId ?? null
-    });
-
-  await lockOperationKey(tx, input);
-
-  const existing = await findEntryByOperationKey(tx, {
-    operationKey: input.operationKey,
-    organizationId: input.organizationId
-  });
-  if (existing) {
-    assertMatchingOperationPayload(existing, requestHash);
-    return toPostedJournalEntry(existing, true);
-  }
-
   const validation = validateJournalEntryDraft({ lines });
 
   if (!validation.ok) {
     throw new AccountingDbError(validation.errorCode);
   }
 
-  const postingPeriod = await loadPostingPeriod(tx, input);
+  const postingPeriod = input.postingPeriod ?? (await loadPostingPeriod(tx, input));
 
   await assertPostableAccounts(tx, {
     accountIds: lines.map((line) => line.accountId),
@@ -499,39 +531,20 @@ async function postJournalEntryInTransaction(
       accountingPeriodId: postingPeriod.periodId,
       description: input.description ?? null,
       entryNumber: allocationResult.entryNumber,
-      operationKey: input.operationKey,
       organizationId: input.organizationId,
       postedAt: new Date(),
       postedBy: input.userId,
       postingDate: input.postingDate,
-      requestHash,
       reversalOfEntryId: input.reversalOfEntryId ?? null,
-      sourceDocumentId: input.sourceDocumentId ?? null,
+      sourceNumber: input.source?.number ?? null,
+      sourceRecordId: input.source?.recordId ?? null,
+      sourceType: input.source?.type ?? null,
       totalMinor: lines.reduce((sum, line) => sum + line.debitMinor, 0n)
-    })
-    .onConflictDoNothing({
-      target: [journalEntry.organizationId, journalEntry.operationKey]
     })
     .returning({
       entryNumber: journalEntry.entryNumber,
-      id: journalEntry.id,
-      requestHash: journalEntry.requestHash
+      id: journalEntry.id
     });
-
-  if (!entry) {
-    // The unique key is the durable idempotency guard if advisory locking is bypassed.
-    const replayed = await findEntryByOperationKey(tx, {
-      operationKey: input.operationKey,
-      organizationId: input.organizationId
-    });
-
-    if (replayed) {
-      assertMatchingOperationPayload(replayed, requestHash);
-      return toPostedJournalEntry(replayed, true);
-    }
-
-    throw new AccountingDbError("JOURNAL_OPERATION_KEY_ALREADY_USED");
-  }
 
   await tx.insert(journalLine).values(
     lines.map((line, index) => {
@@ -557,7 +570,6 @@ async function postJournalEntryInTransaction(
         entryNumber: entry.entryNumber,
         journalEntryId: entry.id,
         lineCount: lines.length,
-        operationKey: input.operationKey,
         reversalOfEntryId: input.reversalOfEntryId ?? null,
         sequenceValue: allocationResult.sequenceValue
       },
@@ -570,8 +582,7 @@ async function postJournalEntryInTransaction(
 
   return {
     entryNumber: entry.entryNumber,
-    journalEntryId: entry.id,
-    replayed: false
+    journalEntryId: entry.id
   };
 }
 
@@ -637,7 +648,12 @@ async function assertPostableAccounts(
 
   const postable =
     accounts.length === accountIds.length &&
-    accounts.every((account) => account.active && !account.isGroup && account.allowManualPosting);
+    accounts.every(
+      (account) =>
+        account.active &&
+        !account.isGroup &&
+        (input.postingOrigin === "document_workflow" || account.allowManualPosting)
+    );
 
   if (!postable) {
     throw new AccountingDbError("JOURNAL_ENTRY_LINE_ACCOUNT_NOT_POSTABLE");
@@ -686,58 +702,6 @@ async function allocateJournalEntryNumber(
   };
 }
 
-async function findEntryByOperationKey(
-  tx: TransactionClient,
-  input: {
-    operationKey: string;
-    organizationId: string;
-  }
-): Promise<ExistingJournalEntry | undefined> {
-  const [entry] = await tx
-    .select({
-      entryNumber: journalEntry.entryNumber,
-      id: journalEntry.id,
-      requestHash: journalEntry.requestHash
-    })
-    .from(journalEntry)
-    .where(
-      and(
-        eq(journalEntry.operationKey, input.operationKey),
-        eq(journalEntry.organizationId, input.organizationId)
-      )
-    )
-    .limit(1);
-
-  if (!entry) {
-    return undefined;
-  }
-
-  return entry;
-}
-
-function assertMatchingOperationPayload(entry: ExistingJournalEntry, requestHash: string): void {
-  if (entry.requestHash !== requestHash) {
-    throw new AccountingDbError("JOURNAL_OPERATION_KEY_PAYLOAD_MISMATCH");
-  }
-}
-
-function toPostedJournalEntry(entry: ExistingJournalEntry, replayed: boolean): PostedJournalEntry {
-  return {
-    entryNumber: entry.entryNumber,
-    journalEntryId: entry.id,
-    replayed
-  };
-}
-
-async function lockOperationKey(
-  tx: TransactionClient,
-  input: { operationKey: string; organizationId: string }
-): Promise<void> {
-  await tx.execute(
-    sql`SELECT pg_advisory_xact_lock(hashtext(${input.organizationId}), hashtext(${input.operationKey}))`
-  );
-}
-
 async function lockFiscalYearScope(tx: TransactionClient, organizationId: string): Promise<void> {
   await tx.execute(
     sql`SELECT pg_advisory_xact_lock(hashtext(${organizationId}), hashtext('fiscal_year'))`
@@ -755,10 +719,6 @@ function normalizeJournalLines(lines: PostJournalEntryLineDbInput[]): Normalized
   });
 }
 
-function hashJournalRequest(value: unknown): string {
-  return createHash("sha256").update(JSON.stringify(value)).digest("hex");
-}
-
 async function loadPostedEntryForReversal(
   tx: TransactionClient,
   input: { journalEntryId: string; organizationId: string }
@@ -767,8 +727,11 @@ async function loadPostedEntryForReversal(
     .select({
       entryNumber: journalEntry.entryNumber,
       id: journalEntry.id,
+      postingDate: journalEntry.postingDate,
       reversalOfEntryId: journalEntry.reversalOfEntryId,
-      sourceDocumentId: journalEntry.sourceDocumentId
+      sourceNumber: journalEntry.sourceNumber,
+      sourceRecordId: journalEntry.sourceRecordId,
+      sourceType: journalEntry.sourceType
     })
     .from(journalEntry)
     .where(
@@ -820,4 +783,8 @@ async function loadPostedEntryForReversal(
     .orderBy(asc(journalLine.lineNumber));
 
   return { entry, lines };
+}
+
+function dateString(value: Date | string): string {
+  return typeof value === "string" ? value : value.toISOString().slice(0, 10);
 }

@@ -26,8 +26,8 @@ describe("accounting contracts", () => {
 
   it("exposes reversal integrity errors", () => {
     expect(ACCOUNTING_ERROR_CODES).toContain("JOURNAL_ENTRY_ALREADY_REVERSED");
-    expect(ACCOUNTING_ERROR_CODES).toContain("JOURNAL_OPERATION_KEY_PAYLOAD_MISMATCH");
-    expect(ACCOUNTING_ERROR_CODES).toContain("GENERAL_LEDGER_CURSOR_INVALID");
+    expect(ACCOUNTING_ERROR_CODES).toContain("JOURNAL_ENTRY_REVERSAL_DATE_INVALID");
+    expect(ACCOUNTING_ERROR_CODES).toContain("JOURNAL_ENTRY_SOURCED_REVERSAL_FORBIDDEN");
   });
 
   it("keeps ledger account hierarchy and manual posting in the public contract", () => {
@@ -86,7 +86,6 @@ describe("accounting contracts", () => {
           side: "credit"
         }
       ],
-      operationKey: "op_12345678",
       orgSlug: "demo",
       postingDate: "2026-04-01"
     });
@@ -118,7 +117,6 @@ describe("accounting contracts", () => {
           side: "credit"
         }
       ],
-      operationKey: "op_12345678",
       orgSlug: "demo",
       postingDate: "2026-04-01"
     });
@@ -129,7 +127,6 @@ describe("accounting contracts", () => {
   it("requires a reversal reason", () => {
     const baseInput = {
       journalEntryId: "018ff8d9-ae36-7d5b-8f21-8687bde90001",
-      operationKey: "reverse_12345678",
       orgSlug: "demo",
       postingDate: "2026-04-01"
     };

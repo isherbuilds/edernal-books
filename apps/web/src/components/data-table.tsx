@@ -46,11 +46,15 @@ export function DataTable<T>({
 }: DataTableProps<T>) {
   return (
     <Table className={minWidthClassName}>
-      <TableHeader>
-        <TableRow>
+      <TableHeader className="bg-muted/60">
+        <TableRow className="hover:bg-transparent">
           {columns.map((column) => (
             <TableHead
-              className={cn(column.align === "right" && "text-right", column.headClassName)}
+              className={cn(
+                "text-xs font-medium tracking-wide text-muted-foreground uppercase",
+                column.align === "right" && "text-right",
+                column.headClassName
+              )}
               key={column.id}
             >
               {column.header}

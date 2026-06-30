@@ -8,8 +8,13 @@ export type NamedKeysetCursor = {
   id: string;
   normalizedName: string;
 };
+export type DateIdCursor = {
+  documentDate: string;
+  id: string;
+};
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 
 export function encodeCursor(payload: unknown): string {
   return Buffer.from(JSON.stringify(payload)).toString("base64url");
@@ -58,6 +63,30 @@ export function parseNamedKeysetCursor(payload: unknown): NamedKeysetCursor | nu
   return {
     id: payload.id,
     normalizedName: payload.normalizedName
+  };
+}
+
+export function parseDateIdCursor(payload: unknown): DateIdCursor | null {
+  if (!payload || typeof payload !== "object") {
+    return null;
+  }
+
+  if (!("documentDate" in payload) || !("id" in payload)) {
+    return null;
+  }
+
+  if (
+    typeof payload.documentDate !== "string" ||
+    typeof payload.id !== "string" ||
+    !DATE_REGEX.test(payload.documentDate) ||
+    !UUID_REGEX.test(payload.id)
+  ) {
+    return null;
+  }
+
+  return {
+    documentDate: payload.documentDate,
+    id: payload.id
   };
 }
 

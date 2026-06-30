@@ -8,6 +8,8 @@ import {
 
 import { orpc } from "@tsu-stack/api/client/tanstack-start/orpc";
 
+const ACCOUNTING_REFERENCE_STALE_MS = 5 * 60 * 1000;
+
 export function useChartAccountsQuery(orgSlug: string, input?: { enabled?: boolean; q?: string }) {
   return useQuery({
     ...orpc.accounting.chart.list.queryOptions({
@@ -16,7 +18,8 @@ export function useChartAccountsQuery(orgSlug: string, input?: { enabled?: boole
         q: input?.q
       }
     }),
-    enabled: input?.enabled ?? true
+    enabled: input?.enabled ?? true,
+    staleTime: ACCOUNTING_REFERENCE_STALE_MS
   });
 }
 

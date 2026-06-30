@@ -22,22 +22,15 @@ export function PageLayout({ children, className }: PageLayoutProps) {
 }
 
 type PageHeaderProps = {
-  /** Right-aligned action cluster (buttons). Records put actions in the toolbar instead. */
   actions?: ReactNode;
   description: ReactNode;
-  eyebrow: ReactNode;
-  icon: ReactNode;
   title: ReactNode;
 };
 
-export function PageHeader({ actions, description, eyebrow, icon, title }: PageHeaderProps) {
+export function PageHeader({ actions, description, title }: PageHeaderProps) {
   return (
     <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div className="flex flex-col gap-1">
-        <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-          {icon}
-          {eyebrow}
-        </div>
         <h1 className="text-2xl font-semibold tracking-normal">{title}</h1>
         <p className="max-w-2xl text-sm text-muted-foreground">{description}</p>
       </div>

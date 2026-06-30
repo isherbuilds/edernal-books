@@ -14,13 +14,13 @@ function OrganizationLayout() {
   const { organization } = Route.useRouteContext();
 
   return (
-    <SidebarProvider>
+    <SidebarProvider className="h-svh">
       <AppSidebar showAccounting={canAccessAccounting(organization.role)} />
 
-      <SidebarInset>
+      <SidebarInset className="min-h-0 overflow-hidden">
         <SiteHeader />
 
-        <div className="flex min-h-0 flex-1 flex-col">
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
           <Outlet />
         </div>
       </SidebarInset>

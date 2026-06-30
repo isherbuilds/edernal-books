@@ -6,6 +6,9 @@ import { itemsRouter } from "#@/routers/items/index";
 import { organizationsRouter } from "#@/routers/organizations/index";
 import { partiesRouter } from "#@/routers/parties/index";
 import { privateRouter } from "#@/routers/private/index";
+import { purchaseDocumentsRouter } from "#@/routers/purchase-documents/index";
+import { salesDocumentsRouter } from "#@/routers/sales-documents/index";
+import { settlementsRouter } from "#@/routers/settlements/index";
 
 export const appRouter = {
   accounting: accountingRouter,
@@ -13,7 +16,10 @@ export const appRouter = {
   items: itemsRouter,
   organizations: organizationsRouter,
   parties: partiesRouter,
-  private: privateRouter
+  purchaseDocuments: purchaseDocumentsRouter,
+  private: privateRouter,
+  salesDocuments: salesDocumentsRouter,
+  settlements: settlementsRouter
 };
 
 export type AppRouter = typeof appRouter;

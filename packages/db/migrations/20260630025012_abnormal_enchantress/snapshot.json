@@ -1,7 +1,7 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "dcaf42d9-856a-407b-880e-54a5db385be5",
+  "id": "374fb070-75e0-4c5b-b524-e42cc0fc16b3",
   "prevIds": [
     "00000000-0000-0000-0000-000000000000"
   ],
@@ -110,13 +110,43 @@
     },
     {
       "isRlsEnabled": false,
+      "name": "purchase_document",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "purchase_document_line",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "sales_document",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "sales_document_line",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
       "name": "session",
       "entityType": "tables",
       "schema": "public"
     },
     {
       "isRlsEnabled": false,
-      "name": "source_document",
+      "name": "settlement_allocation",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "settlement_document",
       "entityType": "tables",
       "schema": "public"
     },
@@ -1206,19 +1236,6 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "operation_key",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "journal_entry"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
       "name": "organization_id",
       "entityType": "columns",
       "schema": "public",
@@ -1264,19 +1281,6 @@
       "table": "journal_entry"
     },
     {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "request_hash",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "journal_entry"
-    },
-    {
       "type": "uuid",
       "typeSchema": null,
       "notNull": false,
@@ -1290,6 +1294,19 @@
       "table": "journal_entry"
     },
     {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "source_number",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "journal_entry"
+    },
+    {
       "type": "uuid",
       "typeSchema": null,
       "notNull": false,
@@ -1297,7 +1314,20 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "source_document_id",
+      "name": "source_record_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "journal_entry"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "source_type",
       "entityType": "columns",
       "schema": "public",
       "table": "journal_entry"
@@ -2525,6 +2555,877 @@
       "table": "party"
     },
     {
+      "type": "timestamp",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_document"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "document_number",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_document"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "draft_reference",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_document"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_document"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "journal_entry_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_document"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "organization_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_document"
+    },
+    {
+      "type": "timestamp",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "posted_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_document"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "posted_by_user_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_document"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "'draft'",
+      "generated": null,
+      "identity": null,
+      "name": "status",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_document"
+    },
+    {
+      "type": "timestamp",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_document"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "void_reason",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_document"
+    },
+    {
+      "type": "timestamp",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "voided_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_document"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "voided_by_user_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_document"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "document_kind",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_document"
+    },
+    {
+      "type": "date",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "due_date",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_document"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "notes",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_document"
+    },
+    {
+      "type": "bigint",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "0",
+      "generated": null,
+      "identity": null,
+      "name": "outstanding_minor",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_document"
+    },
+    {
+      "type": "date",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "purchase_date",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_document"
+    },
+    {
+      "type": "bigint",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "0",
+      "generated": null,
+      "identity": null,
+      "name": "total_minor",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_document"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "vendor_party_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_document"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "vendor_reference_number",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_document"
+    },
+    {
+      "type": "timestamp",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_document_line"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "description",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_document_line"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "expense_account_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_document_line"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_document_line"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "item_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_document_line"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "line_number",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_document_line"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "organization_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_document_line"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "hsn_code",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_document_line"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "purchase_document_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_document_line"
+    },
+    {
+      "type": "numeric(18,6)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "quantity",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_document_line"
+    },
+    {
+      "type": "bigint",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "rate_minor",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_document_line"
+    },
+    {
+      "type": "bigint",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "total_minor",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_document_line"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "unit",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_document_line"
+    },
+    {
+      "type": "timestamp",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sales_document"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "document_number",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sales_document"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "draft_reference",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sales_document"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sales_document"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "journal_entry_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sales_document"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "organization_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sales_document"
+    },
+    {
+      "type": "timestamp",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "posted_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sales_document"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "posted_by_user_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sales_document"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "'draft'",
+      "generated": null,
+      "identity": null,
+      "name": "status",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sales_document"
+    },
+    {
+      "type": "timestamp",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sales_document"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "void_reason",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sales_document"
+    },
+    {
+      "type": "timestamp",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "voided_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sales_document"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "voided_by_user_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sales_document"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "customer_party_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sales_document"
+    },
+    {
+      "type": "date",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "due_date",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sales_document"
+    },
+    {
+      "type": "date",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "invoice_date",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sales_document"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "notes",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sales_document"
+    },
+    {
+      "type": "bigint",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "0",
+      "generated": null,
+      "identity": null,
+      "name": "outstanding_minor",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sales_document"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "terms",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sales_document"
+    },
+    {
+      "type": "bigint",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "0",
+      "generated": null,
+      "identity": null,
+      "name": "total_minor",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sales_document"
+    },
+    {
+      "type": "timestamp",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sales_document_line"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "description",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sales_document_line"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sales_document_line"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "income_account_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sales_document_line"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "item_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sales_document_line"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "line_number",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sales_document_line"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "organization_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sales_document_line"
+    },
+    {
+      "type": "numeric(18,6)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "quantity",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sales_document_line"
+    },
+    {
+      "type": "bigint",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "rate_minor",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sales_document_line"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "hsn_code",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sales_document_line"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "sales_document_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sales_document_line"
+    },
+    {
+      "type": "bigint",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "total_minor",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sales_document_line"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "unit",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sales_document_line"
+    },
+    {
       "type": "text",
       "typeSchema": null,
       "notNull": true,
@@ -2642,6 +3543,19 @@
       "table": "session"
     },
     {
+      "type": "bigint",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "amount_minor",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "settlement_allocation"
+    },
+    {
       "type": "timestamp",
       "typeSchema": null,
       "notNull": true,
@@ -2652,20 +3566,7 @@
       "name": "created_at",
       "entityType": "columns",
       "schema": "public",
-      "table": "source_document"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "document_number",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "source_document"
+      "table": "settlement_allocation"
     },
     {
       "type": "uuid",
@@ -2678,7 +3579,7 @@
       "name": "id",
       "entityType": "columns",
       "schema": "public",
-      "table": "source_document"
+      "table": "settlement_allocation"
     },
     {
       "type": "text",
@@ -2691,7 +3592,46 @@
       "name": "organization_id",
       "entityType": "columns",
       "schema": "public",
-      "table": "source_document"
+      "table": "settlement_allocation"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "purchase_document_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "settlement_allocation"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "sales_document_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "settlement_allocation"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "settlement_document_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "settlement_allocation"
     },
     {
       "type": "text",
@@ -2701,10 +3641,283 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "type",
+      "name": "target_document_kind",
       "entityType": "columns",
       "schema": "public",
-      "table": "source_document"
+      "table": "settlement_allocation"
+    },
+    {
+      "type": "timestamp",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "settlement_document"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "document_number",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "settlement_document"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "draft_reference",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "settlement_document"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "settlement_document"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "journal_entry_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "settlement_document"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "organization_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "settlement_document"
+    },
+    {
+      "type": "timestamp",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "posted_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "settlement_document"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "posted_by_user_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "settlement_document"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "'draft'",
+      "generated": null,
+      "identity": null,
+      "name": "status",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "settlement_document"
+    },
+    {
+      "type": "timestamp",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "settlement_document"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "void_reason",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "settlement_document"
+    },
+    {
+      "type": "timestamp",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "voided_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "settlement_document"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "voided_by_user_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "settlement_document"
+    },
+    {
+      "type": "bigint",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "amount_minor",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "settlement_document"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "cash_account_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "settlement_document"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "direction",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "settlement_document"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "notes",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "settlement_document"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "party_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "settlement_document"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "payment_mode",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "settlement_document"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "reference",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "settlement_document"
+    },
+    {
+      "type": "date",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "settlement_date",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "settlement_document"
     },
     {
       "type": "text",
@@ -3432,34 +4645,6 @@
           "opclass": null
         },
         {
-          "value": "operation_key",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": true,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "journal_entry_organization_id_operation_key_uidx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "journal_entry"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "organization_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        },
-        {
           "value": "entry_number",
           "isExpression": false,
           "asc": true,
@@ -3501,6 +4686,41 @@
       "method": "btree",
       "concurrently": false,
       "name": "journal_entry_one_reversal_per_original_uidx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "journal_entry"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "organization_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "source_type",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "source_record_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": "\"source_record_id\" IS NOT NULL AND \"reversal_of_entry_id\" IS NULL",
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "journal_entry_one_original_per_source_uidx",
       "entityType": "indexes",
       "schema": "public",
       "table": "journal_entry"
@@ -4167,6 +5387,909 @@
       "nameExplicit": true,
       "columns": [
         {
+          "value": "organization_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "purchase_document_organization_id_id_uidx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "purchase_document"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "organization_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "draft_reference",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "purchase_document_organization_id_draft_reference_uidx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "purchase_document"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "organization_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "document_number",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": "document_number IS NOT NULL",
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "purchase_document_organization_id_document_number_uidx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "purchase_document"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "organization_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "journal_entry_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": "journal_entry_id IS NOT NULL",
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "purchase_document_organization_id_journal_entry_id_uidx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "purchase_document"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "organization_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "document_kind",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "status",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "purchase_date",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "purchase_document_register_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "purchase_document"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "organization_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "purchase_date",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "purchase_document_register_all_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "purchase_document"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "organization_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "document_kind",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "purchase_date",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "purchase_document_kind_register_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "purchase_document"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "organization_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "status",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "purchase_date",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "purchase_document_status_register_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "purchase_document"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "organization_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "vendor_party_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "purchase_document_vendor_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "purchase_document"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "organization_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "vendor_party_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "purchase_date",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": "status = 'posted' AND outstanding_minor > 0",
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "purchase_document_open_allocation_target_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "purchase_document"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "organization_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "purchase_document_line_organization_id_id_uidx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "purchase_document_line"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "organization_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "purchase_document_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "line_number",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "purchase_document_line_document_line_uidx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "purchase_document_line"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "organization_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "purchase_document_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "purchase_document_line_document_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "purchase_document_line"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "organization_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "expense_account_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "purchase_document_line_expense_account_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "purchase_document_line"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "organization_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "item_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "purchase_document_line_item_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "purchase_document_line"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "organization_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "sales_document_organization_id_id_uidx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "sales_document"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "organization_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "draft_reference",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "sales_document_organization_id_draft_reference_uidx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "sales_document"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "organization_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "document_number",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": "document_number IS NOT NULL",
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "sales_document_organization_id_document_number_uidx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "sales_document"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "organization_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "journal_entry_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": "journal_entry_id IS NOT NULL",
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "sales_document_organization_id_journal_entry_id_uidx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "sales_document"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "organization_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "status",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "invoice_date",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "sales_document_register_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "sales_document"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "organization_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "invoice_date",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "sales_document_register_all_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "sales_document"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "organization_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "customer_party_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "sales_document_customer_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "sales_document"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "organization_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "customer_party_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "invoice_date",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": "status = 'posted' AND outstanding_minor > 0",
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "sales_document_open_allocation_target_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "sales_document"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "organization_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "sales_document_line_organization_id_id_uidx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "sales_document_line"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "organization_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "sales_document_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "line_number",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "sales_document_line_document_line_uidx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "sales_document_line"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "organization_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "sales_document_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "sales_document_line_document_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "sales_document_line"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "organization_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "income_account_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "sales_document_line_income_account_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "sales_document_line"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "organization_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "item_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "sales_document_line_item_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "sales_document_line"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
           "value": "user_id",
           "isExpression": false,
           "asc": true,
@@ -4207,10 +6330,10 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "source_document_organization_id_id_uidx",
+      "name": "settlement_allocation_organization_id_id_uidx",
       "entityType": "indexes",
       "schema": "public",
-      "table": "source_document"
+      "table": "settlement_allocation"
     },
     {
       "nameExplicit": true,
@@ -4223,7 +6346,210 @@
           "opclass": null
         },
         {
-          "value": "type",
+          "value": "settlement_document_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "settlement_allocation_settlement_document_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "settlement_allocation"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "organization_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "sales_document_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "settlement_allocation_sales_document_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "settlement_allocation"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "organization_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "purchase_document_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "settlement_allocation_purchase_document_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "settlement_allocation"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "organization_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "settlement_document_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "sales_document_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": "sales_document_id IS NOT NULL",
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "settlement_allocation_sales_target_uidx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "settlement_allocation"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "organization_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "settlement_document_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "purchase_document_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": "purchase_document_id IS NOT NULL",
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "settlement_allocation_purchase_target_uidx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "settlement_allocation"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "organization_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "settlement_document_organization_id_id_uidx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "settlement_document"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "organization_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "draft_reference",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "settlement_document_organization_id_draft_reference_uidx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "settlement_document"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "organization_id",
           "isExpression": false,
           "asc": true,
           "nullsFirst": false,
@@ -4238,20 +6564,76 @@
         }
       ],
       "isUnique": true,
-      "where": "\"document_number\" IS NOT NULL",
+      "where": "document_number IS NOT NULL",
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "source_document_organization_id_type_number_uidx",
+      "name": "settlement_document_organization_id_document_number_uidx",
       "entityType": "indexes",
       "schema": "public",
-      "table": "source_document"
+      "table": "settlement_document"
     },
     {
       "nameExplicit": true,
       "columns": [
         {
           "value": "organization_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "journal_entry_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": "journal_entry_id IS NOT NULL",
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "settlement_document_organization_id_journal_entry_id_uidx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "settlement_document"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "organization_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "direction",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "status",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "settlement_date",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "id",
           "isExpression": false,
           "asc": true,
           "nullsFirst": false,
@@ -4263,10 +6645,185 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "source_document_organization_id_idx",
+      "name": "settlement_document_register_idx",
       "entityType": "indexes",
       "schema": "public",
-      "table": "source_document"
+      "table": "settlement_document"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "organization_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "settlement_date",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "settlement_document_register_all_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "settlement_document"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "organization_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "direction",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "settlement_date",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "settlement_document_direction_register_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "settlement_document"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "organization_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "status",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "settlement_date",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "settlement_document_status_register_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "settlement_document"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "organization_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "party_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "settlement_document_party_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "settlement_document"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "organization_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "cash_account_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "settlement_document_cash_account_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "settlement_document"
     },
     {
       "nameExplicit": true,
@@ -4607,25 +7164,6 @@
       "nameExplicit": true,
       "columns": [
         "organization_id",
-        "source_document_id"
-      ],
-      "schemaTo": "public",
-      "tableTo": "source_document",
-      "columnsTo": [
-        "organization_id",
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "RESTRICT",
-      "name": "journal_entry_organization_id_source_document_id_fkey",
-      "entityType": "fks",
-      "schema": "public",
-      "table": "journal_entry"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        "organization_id",
         "reversal_of_entry_id"
       ],
       "schemaTo": "public",
@@ -4873,6 +7411,264 @@
     {
       "nameExplicit": false,
       "columns": [
+        "organization_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "organization",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "purchase_document_organization_id_organization_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "purchase_document"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "organization_id",
+        "vendor_party_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "party",
+      "columnsTo": [
+        "organization_id",
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "RESTRICT",
+      "name": "purchase_document_organization_id_vendor_party_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "purchase_document"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "organization_id",
+        "journal_entry_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "journal_entry",
+      "columnsTo": [
+        "organization_id",
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "RESTRICT",
+      "name": "purchase_document_organization_id_journal_entry_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "purchase_document"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "organization_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "organization",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "purchase_document_line_organization_id_organization_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "purchase_document_line"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "organization_id",
+        "purchase_document_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "purchase_document",
+      "columnsTo": [
+        "organization_id",
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "purchase_document_line_organization_id_purchase_document_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "purchase_document_line"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "organization_id",
+        "expense_account_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "ledger_account",
+      "columnsTo": [
+        "organization_id",
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "RESTRICT",
+      "name": "purchase_document_line_organization_id_expense_account_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "purchase_document_line"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "organization_id",
+        "item_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "item",
+      "columnsTo": [
+        "organization_id",
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "RESTRICT",
+      "name": "purchase_document_line_organization_id_item_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "purchase_document_line"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "organization_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "organization",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "sales_document_organization_id_organization_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "sales_document"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "organization_id",
+        "customer_party_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "party",
+      "columnsTo": [
+        "organization_id",
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "RESTRICT",
+      "name": "sales_document_organization_id_customer_party_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "sales_document"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "organization_id",
+        "journal_entry_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "journal_entry",
+      "columnsTo": [
+        "organization_id",
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "RESTRICT",
+      "name": "sales_document_organization_id_journal_entry_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "sales_document"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "organization_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "organization",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "sales_document_line_organization_id_organization_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "sales_document_line"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "organization_id",
+        "sales_document_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "sales_document",
+      "columnsTo": [
+        "organization_id",
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "sales_document_line_organization_id_sales_document_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "sales_document_line"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "organization_id",
+        "income_account_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "ledger_account",
+      "columnsTo": [
+        "organization_id",
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "RESTRICT",
+      "name": "sales_document_line_organization_id_income_account_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "sales_document_line"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "organization_id",
+        "item_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "item",
+      "columnsTo": [
+        "organization_id",
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "RESTRICT",
+      "name": "sales_document_line_organization_id_item_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "sales_document_line"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
         "user_id"
       ],
       "schemaTo": "public",
@@ -4899,10 +7695,141 @@
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
-      "name": "source_document_organization_id_organization_id_fkey",
+      "name": "settlement_allocation_organization_id_organization_id_fkey",
       "entityType": "fks",
       "schema": "public",
-      "table": "source_document"
+      "table": "settlement_allocation"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "organization_id",
+        "settlement_document_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "settlement_document",
+      "columnsTo": [
+        "organization_id",
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "settlement_allocation_organization_id_settlement_document_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "settlement_allocation"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "organization_id",
+        "sales_document_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "sales_document",
+      "columnsTo": [
+        "organization_id",
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "RESTRICT",
+      "name": "settlement_allocation_organization_id_sales_document_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "settlement_allocation"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "organization_id",
+        "purchase_document_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "purchase_document",
+      "columnsTo": [
+        "organization_id",
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "RESTRICT",
+      "name": "settlement_allocation_organization_id_purchase_document_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "settlement_allocation"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "organization_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "organization",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "settlement_document_organization_id_organization_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "settlement_document"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "organization_id",
+        "party_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "party",
+      "columnsTo": [
+        "organization_id",
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "RESTRICT",
+      "name": "settlement_document_organization_id_party_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "settlement_document"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "organization_id",
+        "cash_account_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "ledger_account",
+      "columnsTo": [
+        "organization_id",
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "RESTRICT",
+      "name": "settlement_document_organization_id_cash_account_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "settlement_document"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "organization_id",
+        "journal_entry_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "journal_entry",
+      "columnsTo": [
+        "organization_id",
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "RESTRICT",
+      "name": "settlement_document_organization_id_journal_entry_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "settlement_document"
     },
     {
       "columns": [
@@ -5082,6 +8009,46 @@
         "id"
       ],
       "nameExplicit": false,
+      "name": "purchase_document_pkey",
+      "schema": "public",
+      "table": "purchase_document",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "purchase_document_line_pkey",
+      "schema": "public",
+      "table": "purchase_document_line",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "sales_document_pkey",
+      "schema": "public",
+      "table": "sales_document",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "sales_document_line_pkey",
+      "schema": "public",
+      "table": "sales_document_line",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
       "name": "session_pkey",
       "schema": "public",
       "table": "session",
@@ -5092,9 +8059,19 @@
         "id"
       ],
       "nameExplicit": false,
-      "name": "source_document_pkey",
+      "name": "settlement_allocation_pkey",
       "schema": "public",
-      "table": "source_document",
+      "table": "settlement_allocation",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "settlement_document_pkey",
+      "schema": "public",
+      "table": "settlement_document",
       "entityType": "pks"
     },
     {
@@ -5226,6 +8203,20 @@
     {
       "value": "\"reversal_of_entry_id\" IS NULL OR \"reversal_of_entry_id\" <> \"id\"",
       "name": "journal_entry_reversal_not_self_ck",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "journal_entry"
+    },
+    {
+      "value": "\n        (\n          \"source_type\" IS NULL\n          AND \"source_record_id\" IS NULL\n          AND \"source_number\" IS NULL\n        )\n        OR (\n          \"source_type\" IS NOT NULL\n          AND \"source_record_id\" IS NOT NULL\n          AND \"source_number\" IS NOT NULL\n        )\n      ",
+      "name": "journal_entry_source_all_or_none_ck",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "journal_entry"
+    },
+    {
+      "value": "\"source_type\" IN ('sales_invoice', 'purchase_bill', 'expense', 'settlement_received', 'settlement_paid')",
+      "name": "journal_entry_source_type_ck",
       "entityType": "checks",
       "schema": "public",
       "table": "journal_entry"
@@ -5369,6 +8360,223 @@
       "entityType": "checks",
       "schema": "public",
       "table": "party"
+    },
+    {
+      "value": "\"status\" IN ('draft', 'posted', 'voided')",
+      "name": "purchase_document_status_ck",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "purchase_document"
+    },
+    {
+      "value": "\"document_kind\" IN ('purchase_bill', 'expense')",
+      "name": "purchase_document_kind_ck",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "purchase_document"
+    },
+    {
+      "value": "\n    (\n      \"status\" = 'draft'\n      AND \"document_number\" IS NULL\n      AND \"journal_entry_id\" IS NULL\n      AND \"posted_at\" IS NULL\n      AND \"posted_by_user_id\" IS NULL\n      AND \"voided_at\" IS NULL\n      AND \"voided_by_user_id\" IS NULL\n      AND \"void_reason\" IS NULL\n    )\n    OR (\n      \"status\" = 'posted'\n      AND \"document_number\" IS NOT NULL\n      AND \"journal_entry_id\" IS NOT NULL\n      AND \"posted_at\" IS NOT NULL\n      AND \"posted_by_user_id\" IS NOT NULL\n      AND \"voided_at\" IS NULL\n      AND \"voided_by_user_id\" IS NULL\n      AND \"void_reason\" IS NULL\n    )\n    OR (\n      \"status\" = 'voided'\n      AND \"document_number\" IS NOT NULL\n      AND \"journal_entry_id\" IS NOT NULL\n      AND \"posted_at\" IS NOT NULL\n      AND \"posted_by_user_id\" IS NOT NULL\n      AND \"voided_at\" IS NOT NULL\n      AND \"voided_by_user_id\" IS NOT NULL\n      AND \"void_reason\" IS NOT NULL\n    )\n  ",
+      "name": "purchase_document_lifecycle_ck",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "purchase_document"
+    },
+    {
+      "value": "\"due_date\" IS NULL OR \"purchase_date\" <= \"due_date\"",
+      "name": "purchase_document_date_order_ck",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "purchase_document"
+    },
+    {
+      "value": "\"total_minor\" >= 0",
+      "name": "purchase_document_total_minor_ck",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "purchase_document"
+    },
+    {
+      "value": "\"outstanding_minor\" >= 0",
+      "name": "purchase_document_outstanding_minor_ck",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "purchase_document"
+    },
+    {
+      "value": "\"outstanding_minor\" <= \"total_minor\"",
+      "name": "purchase_document_outstanding_lte_total_ck",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "purchase_document"
+    },
+    {
+      "value": "\"line_number\" > 0",
+      "name": "purchase_document_line_line_number_ck",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "purchase_document_line"
+    },
+    {
+      "value": "length(trim(\"description\")) > 0",
+      "name": "purchase_document_line_description_not_blank_ck",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "purchase_document_line"
+    },
+    {
+      "value": "\"quantity\" > 0",
+      "name": "purchase_document_line_quantity_ck",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "purchase_document_line"
+    },
+    {
+      "value": "\"rate_minor\" > 0",
+      "name": "purchase_document_line_rate_minor_ck",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "purchase_document_line"
+    },
+    {
+      "value": "\"total_minor\" > 0",
+      "name": "purchase_document_line_total_minor_ck",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "purchase_document_line"
+    },
+    {
+      "value": "\"status\" IN ('draft', 'posted', 'voided')",
+      "name": "sales_document_status_ck",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "sales_document"
+    },
+    {
+      "value": "\n    (\n      \"status\" = 'draft'\n      AND \"document_number\" IS NULL\n      AND \"journal_entry_id\" IS NULL\n      AND \"posted_at\" IS NULL\n      AND \"posted_by_user_id\" IS NULL\n      AND \"voided_at\" IS NULL\n      AND \"voided_by_user_id\" IS NULL\n      AND \"void_reason\" IS NULL\n    )\n    OR (\n      \"status\" = 'posted'\n      AND \"document_number\" IS NOT NULL\n      AND \"journal_entry_id\" IS NOT NULL\n      AND \"posted_at\" IS NOT NULL\n      AND \"posted_by_user_id\" IS NOT NULL\n      AND \"voided_at\" IS NULL\n      AND \"voided_by_user_id\" IS NULL\n      AND \"void_reason\" IS NULL\n    )\n    OR (\n      \"status\" = 'voided'\n      AND \"document_number\" IS NOT NULL\n      AND \"journal_entry_id\" IS NOT NULL\n      AND \"posted_at\" IS NOT NULL\n      AND \"posted_by_user_id\" IS NOT NULL\n      AND \"voided_at\" IS NOT NULL\n      AND \"voided_by_user_id\" IS NOT NULL\n      AND \"void_reason\" IS NOT NULL\n    )\n  ",
+      "name": "sales_document_lifecycle_ck",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "sales_document"
+    },
+    {
+      "value": "\"due_date\" IS NULL OR \"invoice_date\" <= \"due_date\"",
+      "name": "sales_document_date_order_ck",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "sales_document"
+    },
+    {
+      "value": "\"total_minor\" >= 0",
+      "name": "sales_document_total_minor_ck",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "sales_document"
+    },
+    {
+      "value": "\"outstanding_minor\" >= 0",
+      "name": "sales_document_outstanding_minor_ck",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "sales_document"
+    },
+    {
+      "value": "\"outstanding_minor\" <= \"total_minor\"",
+      "name": "sales_document_outstanding_lte_total_ck",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "sales_document"
+    },
+    {
+      "value": "\"line_number\" > 0",
+      "name": "sales_document_line_line_number_ck",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "sales_document_line"
+    },
+    {
+      "value": "length(trim(\"description\")) > 0",
+      "name": "sales_document_line_description_not_blank_ck",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "sales_document_line"
+    },
+    {
+      "value": "\"quantity\" > 0",
+      "name": "sales_document_line_quantity_ck",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "sales_document_line"
+    },
+    {
+      "value": "\"rate_minor\" > 0",
+      "name": "sales_document_line_rate_minor_ck",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "sales_document_line"
+    },
+    {
+      "value": "\"total_minor\" > 0",
+      "name": "sales_document_line_total_minor_ck",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "sales_document_line"
+    },
+    {
+      "value": "\"target_document_kind\" IN ('sales_invoice', 'purchase_bill', 'expense')",
+      "name": "settlement_allocation_target_document_kind_ck",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "settlement_allocation"
+    },
+    {
+      "value": "\"amount_minor\" > 0",
+      "name": "settlement_allocation_amount_minor_ck",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "settlement_allocation"
+    },
+    {
+      "value": "\n        (\n          \"target_document_kind\" = 'sales_invoice'\n          AND \"sales_document_id\" IS NOT NULL\n          AND \"purchase_document_id\" IS NULL\n        )\n        OR (\n          \"target_document_kind\" IN ('purchase_bill', 'expense')\n          AND \"sales_document_id\" IS NULL\n          AND \"purchase_document_id\" IS NOT NULL\n        )\n      ",
+      "name": "settlement_allocation_target_ck",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "settlement_allocation"
+    },
+    {
+      "value": "\"status\" IN ('draft', 'posted', 'voided')",
+      "name": "settlement_document_status_ck",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "settlement_document"
+    },
+    {
+      "value": "\"direction\" IN ('received', 'paid')",
+      "name": "settlement_document_direction_ck",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "settlement_document"
+    },
+    {
+      "value": "\"payment_mode\" IN ('cash', 'bank_transfer', 'upi', 'card', 'cheque', 'other')",
+      "name": "settlement_document_payment_mode_ck",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "settlement_document"
+    },
+    {
+      "value": "\n    (\n      \"status\" = 'draft'\n      AND \"document_number\" IS NULL\n      AND \"journal_entry_id\" IS NULL\n      AND \"posted_at\" IS NULL\n      AND \"posted_by_user_id\" IS NULL\n      AND \"voided_at\" IS NULL\n      AND \"voided_by_user_id\" IS NULL\n      AND \"void_reason\" IS NULL\n    )\n    OR (\n      \"status\" = 'posted'\n      AND \"document_number\" IS NOT NULL\n      AND \"journal_entry_id\" IS NOT NULL\n      AND \"posted_at\" IS NOT NULL\n      AND \"posted_by_user_id\" IS NOT NULL\n      AND \"voided_at\" IS NULL\n      AND \"voided_by_user_id\" IS NULL\n      AND \"void_reason\" IS NULL\n    )\n    OR (\n      \"status\" = 'voided'\n      AND \"document_number\" IS NOT NULL\n      AND \"journal_entry_id\" IS NOT NULL\n      AND \"posted_at\" IS NOT NULL\n      AND \"posted_by_user_id\" IS NOT NULL\n      AND \"voided_at\" IS NOT NULL\n      AND \"voided_by_user_id\" IS NOT NULL\n      AND \"void_reason\" IS NOT NULL\n    )\n  ",
+      "name": "settlement_document_lifecycle_ck",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "settlement_document"
+    },
+    {
+      "value": "\"amount_minor\" > 0",
+      "name": "settlement_document_amount_minor_ck",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "settlement_document"
     }
   ],
   "renames": []

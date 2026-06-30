@@ -11,13 +11,20 @@ import {
   user,
   verification
 } from "#@/schema/auth.schema";
+import {
+  purchaseDocument,
+  purchaseDocumentLine,
+  salesDocument,
+  salesDocumentLine,
+  settlementAllocation,
+  settlementDocument
+} from "#@/schema/documents";
 import { item } from "#@/schema/items";
 import { journalEntry, journalLine } from "#@/schema/journal";
 import { currency, exchangeRate, organizationSetting } from "#@/schema/organization";
 import { outboxEvent } from "#@/schema/outbox";
 import { party } from "#@/schema/parties";
 import { accountingPeriod, fiscalYear } from "#@/schema/periods";
-import { sourceDocument } from "#@/schema/source-documents";
 
 const schema = {
   account,
@@ -37,8 +44,13 @@ const schema = {
   organizationSetting,
   outboxEvent,
   party,
+  purchaseDocument,
+  purchaseDocumentLine,
+  salesDocument,
+  salesDocumentLine,
   session,
-  sourceDocument,
+  settlementAllocation,
+  settlementDocument,
   user,
   verification
 };
@@ -139,13 +151,6 @@ export const relations = defineRelations(schema, (r) => {
         to: r.organization.id
       })
     },
-    sourceDocument: {
-      journalEntries: r.many.journalEntry(),
-      organization: r.one.organization({
-        from: r.sourceDocument.organizationId,
-        to: r.organization.id
-      })
-    },
     journalEntry: {
       accountingPeriod: r.one.accountingPeriod({
         from: r.journalEntry.accountingPeriodId,
@@ -159,10 +164,6 @@ export const relations = defineRelations(schema, (r) => {
       reversalOfEntry: r.one.journalEntry({
         from: r.journalEntry.reversalOfEntryId,
         to: r.journalEntry.id
-      }),
-      sourceDocument: r.one.sourceDocument({
-        from: r.journalEntry.sourceDocumentId,
-        to: r.sourceDocument.id
       })
     },
     journalLine: {
@@ -177,6 +178,109 @@ export const relations = defineRelations(schema, (r) => {
       organization: r.one.organization({
         from: r.journalLine.organizationId,
         to: r.organization.id
+      })
+    },
+    salesDocument: {
+      customer: r.one.party({
+        from: r.salesDocument.customerPartyId,
+        to: r.party.id
+      }),
+      journalEntry: r.one.journalEntry({
+        from: r.salesDocument.journalEntryId,
+        to: r.journalEntry.id
+      }),
+      lines: r.many.salesDocumentLine(),
+      organization: r.one.organization({
+        from: r.salesDocument.organizationId,
+        to: r.organization.id
+      })
+    },
+    salesDocumentLine: {
+      document: r.one.salesDocument({
+        from: r.salesDocumentLine.salesDocumentId,
+        to: r.salesDocument.id
+      }),
+      incomeAccount: r.one.ledgerAccount({
+        from: r.salesDocumentLine.incomeAccountId,
+        to: r.ledgerAccount.id
+      }),
+      item: r.one.item({
+        from: r.salesDocumentLine.itemId,
+        to: r.item.id
+      }),
+      organization: r.one.organization({
+        from: r.salesDocumentLine.organizationId,
+        to: r.organization.id
+      })
+    },
+    purchaseDocument: {
+      journalEntry: r.one.journalEntry({
+        from: r.purchaseDocument.journalEntryId,
+        to: r.journalEntry.id
+      }),
+      lines: r.many.purchaseDocumentLine(),
+      organization: r.one.organization({
+        from: r.purchaseDocument.organizationId,
+        to: r.organization.id
+      }),
+      vendor: r.one.party({
+        from: r.purchaseDocument.vendorPartyId,
+        to: r.party.id
+      })
+    },
+    purchaseDocumentLine: {
+      document: r.one.purchaseDocument({
+        from: r.purchaseDocumentLine.purchaseDocumentId,
+        to: r.purchaseDocument.id
+      }),
+      expenseAccount: r.one.ledgerAccount({
+        from: r.purchaseDocumentLine.expenseAccountId,
+        to: r.ledgerAccount.id
+      }),
+      item: r.one.item({
+        from: r.purchaseDocumentLine.itemId,
+        to: r.item.id
+      }),
+      organization: r.one.organization({
+        from: r.purchaseDocumentLine.organizationId,
+        to: r.organization.id
+      })
+    },
+    settlementDocument: {
+      allocations: r.many.settlementAllocation(),
+      cashAccount: r.one.ledgerAccount({
+        from: r.settlementDocument.cashAccountId,
+        to: r.ledgerAccount.id
+      }),
+      journalEntry: r.one.journalEntry({
+        from: r.settlementDocument.journalEntryId,
+        to: r.journalEntry.id
+      }),
+      organization: r.one.organization({
+        from: r.settlementDocument.organizationId,
+        to: r.organization.id
+      }),
+      party: r.one.party({
+        from: r.settlementDocument.partyId,
+        to: r.party.id
+      })
+    },
+    settlementAllocation: {
+      organization: r.one.organization({
+        from: r.settlementAllocation.organizationId,
+        to: r.organization.id
+      }),
+      purchaseDocument: r.one.purchaseDocument({
+        from: r.settlementAllocation.purchaseDocumentId,
+        to: r.purchaseDocument.id
+      }),
+      salesDocument: r.one.salesDocument({
+        from: r.settlementAllocation.salesDocumentId,
+        to: r.salesDocument.id
+      }),
+      settlementDocument: r.one.settlementDocument({
+        from: r.settlementAllocation.settlementDocumentId,
+        to: r.settlementDocument.id
       })
     },
     outboxEvent: {
